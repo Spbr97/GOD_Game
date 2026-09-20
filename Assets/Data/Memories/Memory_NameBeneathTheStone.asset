@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13c6a5a4d5d2cd348a064cf5f3c71f07, type: 3}
+  m_Name: Memory_NameBeneathTheStone
+  m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryFragment
+  memoryId: MEM_001
+  title: The Name Beneath the Stone
+  description: The ruin stone carries eight seats, not seven. Someone has ground the eighth name away, patiently, with a blade - not to deface it, but to finish it. Underneath the damage the carving is still legible in the way a scar is legible. You do not know the name. You are certain you have said it before.
+  owner: Unknown
+  location: The Ruins Beyond the Temple District
+  category: 1
+  importance: 2
+  associatedCharacters: []
+  associatedQuestId: Q001
+  objectiveIdOnDiscovery: FIND_MEMORY
+  discoveryFlag: FIRST_MEMORY_FOUND
+  visualTint: {r: 1, g: 0.85, b: 0.35, a: 1}
+  audioNarrationId: 
+  stateOnDiscovery: 1

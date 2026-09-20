@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06706c8155d566f4f9b3420499a577d2, type: 3}
+  m_Name: Enemy_ForgottenSoldier
+  m_EditorClassIdentifier: Game.Runtime::Game.AI.EnemyArchetype
+  archetypeId: ENEMY_FORGOTTEN_SOLDIER
+  displayName: Forgotten Soldier
+  enemyClass: 0
+  bodyTint: {r: 0.45, g: 0.42, b: 0.38, a: 1}
+  maxHealth: 60
+  poise: 24
+  poiseRecoveryPerSecond: 8
+  staggerDuration: 0.9
+  patrolSpeed: 1.6
+  chaseSpeed: 4.2
+  turnSpeedDegrees: 360
+  leashRange: 28
+  sightRange: 16
+  sightAngle: 120
+  hearingRange: 6
+  loseTargetAfter: 3
+  investigateDuration: 4
+  searchDuration: 6
+  searchRadius: 6
+  attackRange: 2.4
+  attackDamage: 10
+  telegraphDuration: 0.55
+  attackActiveDuration: 0.18
+  attackRecovery: 0.5
+  attackCooldown: 1.6
+  telegraphColour: {r: 1, g: 0.72, b: 0.2, a: 1}
+  retreatHealthFraction: 0
+  retreatDuration: 2.5

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06706c8155d566f4f9b3420499a577d2, type: 3}
+  m_Name: Enemy_StoneGuardian
+  m_EditorClassIdentifier: Game.Runtime::Game.AI.EnemyArchetype
+  archetypeId: ENEMY_STONE_GUARDIAN
+  displayName: Stone Guardian
+  enemyClass: 3
+  bodyTint: {r: 0.38, g: 0.42, b: 0.48, a: 1}
+  maxHealth: 140
+  poise: 60
+  poiseRecoveryPerSecond: 12
+  staggerDuration: 1.4
+  patrolSpeed: 1
+  chaseSpeed: 2.6
+  turnSpeedDegrees: 360
+  leashRange: 18
+  sightRange: 14
+  sightAngle: 90
+  hearingRange: 5
+  loseTargetAfter: 4
+  investigateDuration: 5
+  searchDuration: 7
+  searchRadius: 5
+  attackRange: 3
+  attackDamage: 22
+  telegraphDuration: 0.9
+  attackActiveDuration: 0.22
+  attackRecovery: 0.8
+  attackCooldown: 2.4
+  telegraphColour: {r: 0.85, g: 0.85, b: 1, a: 1}
+  retreatHealthFraction: 0
+  retreatDuration: 2.5

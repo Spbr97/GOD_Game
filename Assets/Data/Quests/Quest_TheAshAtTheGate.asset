@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: defd5aba7a5595e4aa60a687f094ca59, type: 3}
+  m_Name: Quest_TheAshAtTheGate
+  m_EditorClassIdentifier: Game.Runtime::Game.Quests.QuestDefinition
+  questId: Q002
+  title: The Ash at the Gate
+  description: Something crawled out of the ruins behind you. Put it down.
+  objectives:
+  - ObjectiveId: DEFEAT_RUIN_GUARDS
+    Description: Defeat what guards the ruins
+    Type: 1
+    RequiredCount: 3
+    Hidden: 0
+    Optional: 0
+    CompletionFlag: RUIN_GUARDS_DEFEATED
+  requiredFlags: []
+  completionFlags:
+  - QUEST_Q002_COMPLETE
+  failureFlags: []
+  rewardsSummary: Nothing yet - there is no inventory or progression system to grant a reward.

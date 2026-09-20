@@ -1,0 +1,164 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5ed36415cf0f2440b5ce99be205695c, type: 3}
+  m_Name: Dialogue_Amara
+  m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.DialogueGraph
+  graphId: DLG_AMARA
+  entryNodeIds:
+  - AMARA_AFTER
+  - AMARA_RETURN
+  - AMARA_WAITING
+  - AMARA_INTRO
+  nodes:
+  - DialogueId: AMARA_INTRO
+    Speaker: Queen Amara
+    Text: Ishan. Good. I have had the same dream four nights running, and I am told that is not a thing queens are permitted to mention aloud.
+    RequiredFlags: []
+    BlockingFlags:
+    - QUEENS_CHARGE_GIVEN
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 0
+      Target: MET_AMARA
+      Amount: 0
+    Choices: []
+    NextDialogueId: AMARA_INTRO_2
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_INTRO_2
+    Speaker: Queen Amara
+    Text: In it, there are eight thrones on the ruin stone past the temple district. Our histories record seven gods. I would like you to go and count them for me.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices:
+    - Text: I'll go now.
+      NextDialogueId: AMARA_ACCEPT
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences:
+      - Type: 5
+        Target: AMARA
+        Amount: 1
+    - Text: Eight? The histories are not wrong about the gods.
+      NextDialogueId: AMARA_DOUBT
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_DOUBT
+    Speaker: Queen Amara
+    Text: No. They are not wrong. That is exactly what troubles me. A wrong history can be corrected. A history that is complete and still short one seat is something else.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: AMARA_ACCEPT
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_ACCEPT
+    Speaker: Queen Amara
+    Text: Go quietly. Take nothing from the stone but what it says. And Ishan - if you find you already know what is written there, come back faster.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 0
+      Target: QUEENS_CHARGE_GIVEN
+      Amount: 0
+    - Type: 2
+      Target: Q001
+      Amount: 0
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_WAITING
+    Speaker: Queen Amara
+    Text: The ruins are past the temple district, where the ground stops being ours. Mira can tell you what the older carvings mean, if you can get her to stop at one sentence.
+    RequiredFlags:
+    - QUEENS_CHARGE_GIVEN
+    BlockingFlags:
+    - FIRST_MEMORY_FOUND
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_RETURN
+    Speaker: Queen Amara
+    Text: You counted them. I can see it on you. How many?
+    RequiredFlags:
+    - FIRST_MEMORY_FOUND
+    BlockingFlags:
+    - RETURNED_TO_AMARA
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices:
+    - Text: Eight. The last one was scraped out.
+      NextDialogueId: AMARA_RETURN_2
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    - Text: Eight. And I think I knew the name.
+      NextDialogueId: AMARA_RETURN_2
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences:
+      - Type: 5
+        Target: AMARA
+        Amount: 1
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_RETURN_2
+    Speaker: Queen Amara
+    Text: Then we have both dreamed it. Ishan, I want you to listen carefully, because I am about to say something I will not be able to repeat, and I do not know why I am so certain of that -
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 3
+      Target: RETURN_AMARA
+      Amount: 0
+    - Type: 0
+      Target: AVARSHA_SLEEP_BEGINS
+      Amount: 0
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: AMARA_AFTER
+    Speaker: Queen Amara
+    Text: ...
+    RequiredFlags:
+    - RETURNED_TO_AMARA
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 

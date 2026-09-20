@@ -1,0 +1,270 @@
+using System.Collections.Generic;
+using Game.Core;
+using Game.Dialogue;
+using Game.Quests;
+using UnityEngine;
+
+namespace Game.Memory
+{
+    /// <summary>
+    /// Holds which memories the player has and what state each is in (SPEC.md
+    /// sections 19-21, TASK 003).
+    ///
+    /// The safety rules from SPEC.md section 20 are enforced here rather than left to
+    /// callers: a memory marked Critical cannot be corrupted or forgotten, so no
+    /// amount of ordinary gameplay can make story progression unreachable.
+    /// </summary>
+    public class MemoryManager : MonoBehaviour
+    {
+        private static MemoryManager instance;
+
+        /// <summary>Resolved on first access; see <see cref="SceneSingleton"/>.</summary>
+        public static MemoryManager Instance => SceneSingleton.Resolve(ref instance);
+
+        [Tooltip("Every memory that exists, so states can be resolved by id from dialogue and save data.")]
+        [SerializeField] private MemoryFragment[] catalogue;
+
+        private readonly Dictionary<string, MemoryState> states = new();
+        private readonly Dictionary<string, MemoryFragment> byId = new();
+        private readonly List<MemoryFragment> discovered = new();
+
+        /// <summary>Overall memory integrity, 0..1 (SPEC.md section 20).</summary>
+        public float Integrity { get; private set; } = 1f;
+
+        public IReadOnlyList<MemoryFragment> Discovered => discovered;
+        public int DiscoveredCount => discovered.Count;
+
+        private void Awake()
+        {
+            if (instance != null && instance != this)
+            {
+                GameLogger.LogWarning(LogCategory.Memory, "A second MemoryManager was destroyed.", this);
+                Destroy(this);
+                return;
+            }
+
+            instance = this;
+            BuildCatalogue();
+        }
+
+        private void OnEnable()
+        {
+            EventBus.Subscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+
+            // Dialogue asks "what state is memory X in?" through this hook so it does
+            // not have to reference the Memory system (SPEC.md section 47).
+            DialogueGraph.MemoryStateResolver = ResolveStateName;
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+
+            if (DialogueGraph.MemoryStateResolver == ResolveStateName)
+            {
+                DialogueGraph.MemoryStateResolver = null;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (instance == this)
+            {
+                instance = null;
+            }
+        }
+
+        public MemoryState GetState(string memoryId)
+        {
+            return !string.IsNullOrEmpty(memoryId) && states.TryGetValue(memoryId, out var state)
+                ? state
+                : MemoryState.Unknown;
+        }
+
+        public bool IsDiscovered(string memoryId)
+        {
+            return GetState(memoryId) != MemoryState.Unknown;
+        }
+
+        public MemoryFragment Find(string memoryId)
+        {
+            return !string.IsNullOrEmpty(memoryId) && byId.TryGetValue(memoryId, out var memory) ? memory : null;
+        }
+
+        /// <summary>Discovers a memory by id, looked up in the catalogue.</summary>
+        public bool Discover(string memoryId)
+        {
+            var memory = Find(memoryId);
+            if (memory == null)
+            {
+                GameLogger.LogFallback(
+                    LogCategory.Memory,
+                    $"could not discover memory '{memoryId}'",
+                    "MemoryManager.Discover",
+                    "no memory with that id is listed in the memory catalogue",
+                    "nothing is granted; anything gated on this memory stays unavailable",
+                    this);
+                return false;
+            }
+
+            return Discover(memory);
+        }
+
+        /// <summary>
+        /// Records a memory as found. Returns false if it was already discovered, so a
+        /// pickup that fires twice grants one memory and reports one objective.
+        /// </summary>
+        public bool Discover(MemoryFragment memory)
+        {
+            if (memory == null)
+            {
+                return false;
+            }
+
+            var id = memory.MemoryId;
+            if (IsDiscovered(id))
+            {
+                return false;
+            }
+
+            Register(memory);
+            SetState(memory, memory.StateOnDiscovery);
+            discovered.Add(memory);
+
+            GameLogger.Log(LogCategory.Memory, $"Memory discovered: {memory.Title} ({id}).", this);
+
+            if (!string.IsNullOrEmpty(memory.DiscoveryFlag))
+            {
+                WorldState.Instance?.SetFlag(memory.DiscoveryFlag);
+            }
+
+            if (!string.IsNullOrEmpty(memory.ObjectiveIdOnDiscovery))
+            {
+                QuestManager.Instance?.ReportObjective(memory.ObjectiveIdOnDiscovery);
+            }
+
+            EventBus.Publish(new MemoryDiscoveredEvent(memory));
+            return true;
+        }
+
+        /// <summary>
+        /// Moves a memory to a new state. Refuses to degrade a Critical memory
+        /// (SPEC.md section 20: critical quest data must remain protected), logging the
+        /// refusal rather than failing silently.
+        /// </summary>
+        public bool SetState(MemoryFragment memory, MemoryState newState)
+        {
+            if (memory == null)
+            {
+                return false;
+            }
+
+            var id = memory.MemoryId;
+            var previous = GetState(id);
+            if (previous == newState)
+            {
+                return false;
+            }
+
+            if (memory.IsProtected && IsDegraded(newState))
+            {
+                GameLogger.LogWarning(
+                    LogCategory.Memory,
+                    $"Refused to set critical memory '{id}' to {newState}; critical memories are protected.",
+                    this);
+                return false;
+            }
+
+            Register(memory);
+            states[id] = newState;
+            EventBus.Publish(new MemoryStateChangedEvent(memory, previous, newState));
+            return true;
+        }
+
+        /// <summary>
+        /// Reduces overall memory integrity, for divine powers that consume memory
+        /// (SPEC.md section 20). Does not itself corrupt any memory — what integrity
+        /// affects is cosmetic and is decided by the systems that read it.
+        /// </summary>
+        public void ReduceIntegrity(float amount)
+        {
+            if (amount > 0f)
+            {
+                SetIntegrity(Integrity - amount);
+            }
+        }
+
+        public void RestoreIntegrity(float amount)
+        {
+            if (amount > 0f)
+            {
+                SetIntegrity(Integrity + amount);
+            }
+        }
+
+        private void SetIntegrity(float value)
+        {
+            var next = Mathf.Clamp01(value);
+            if (Mathf.Approximately(next, Integrity))
+            {
+                return;
+            }
+
+            Integrity = next;
+            GameLogger.Log(LogCategory.Memory, $"Memory integrity is now {Integrity:0.00}.", this);
+            EventBus.Publish(new MemoryIntegrityChangedEvent(Integrity));
+        }
+
+        /// <summary>The state name dialogue compares against, or "Unknown".</summary>
+        private string ResolveStateName(string memoryId)
+        {
+            return GetState(memoryId).ToString();
+        }
+
+        private static bool IsDegraded(MemoryState state)
+        {
+            return state == MemoryState.Forgotten
+                   || state == MemoryState.Corrupted
+                   || state == MemoryState.FalseMemory;
+        }
+
+        private void OnDialogueConsequence(DialogueConsequenceEvent consequence)
+        {
+            if (consequence.Type == ConsequenceType.DiscoverMemory)
+            {
+                Discover(consequence.Target);
+            }
+        }
+
+        private void BuildCatalogue()
+        {
+            byId.Clear();
+            if (catalogue == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < catalogue.Length; i++)
+            {
+                Register(catalogue[i]);
+            }
+        }
+
+        private void Register(MemoryFragment memory)
+        {
+            if (memory == null)
+            {
+                return;
+            }
+
+            byId[memory.MemoryId] = memory;
+        }
+
+        /// <summary>Test and tooling seam for supplying the catalogue without the Inspector.</summary>
+        public void Configure(MemoryFragment[] memories)
+        {
+            catalogue = memories;
+            BuildCatalogue();
+        }
+    }
+}

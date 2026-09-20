@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5ed36415cf0f2440b5ce99be205695c, type: 3}
+  m_Name: Dialogue_Mira
+  m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.DialogueGraph
+  graphId: DLG_MIRA
+  entryNodeIds:
+  - MIRA_AFTER_MEMORY
+  - MIRA_QUEST
+  - MIRA_INTRO
+  nodes:
+  - DialogueId: MIRA_INTRO
+    Speaker: Mira
+    Text: You are the Queen's soldier. Do not look startled, it is not insight, you are the only person in Avarsha who stands like that.
+    RequiredFlags: []
+    BlockingFlags:
+    - QUEENS_CHARGE_GIVEN
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 0
+      Target: SPOKE_TO_MIRA
+      Amount: 0
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: MIRA_QUEST
+    Speaker: Mira
+    Text: The ruin stone. Yes. I have copied that carving nine times and I have nine different counts, and I am not a careless woman.
+    RequiredFlags:
+    - QUEENS_CHARGE_GIVEN
+    BlockingFlags:
+    - FIRST_MEMORY_FOUND
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 0
+      Target: SPOKE_TO_MIRA
+      Amount: 0
+    Choices:
+    - Text: What did you count?
+      NextDialogueId: MIRA_COUNT
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    - Text: Then I'll count it a tenth time.
+      NextDialogueId: MIRA_SEND
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: MIRA_COUNT
+    Speaker: Mira
+    Text: Seven, eight times. Eight, once. I threw that page away, which was the single least scholarly act of my life, and I could not tell you why I did it.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: MIRA_SEND
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: MIRA_SEND
+    Speaker: Mira
+    Text: Go and look. And Ishan - whatever you read there, say it out loud before you walk away from it. Things last longer when they are spoken.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 5
+      Target: MIRA
+      Amount: 1
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: MIRA_AFTER_MEMORY
+    Speaker: Mira
+    Text: You said it out loud, did you not. Good. Then there are two of us who cannot quite repeat it, and that is one more than there was yesterday.
+    RequiredFlags:
+    - FIRST_MEMORY_FOUND
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 

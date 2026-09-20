@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5ed36415cf0f2440b5ce99be205695c, type: 3}
+  m_Name: Dialogue_Dev
+  m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.DialogueGraph
+  graphId: DLG_DEV
+  entryNodeIds:
+  - DEV_AFTER_SLEEP
+  - DEV_QUEST
+  - DEV_INTRO
+  nodes:
+  - DialogueId: DEV_INTRO
+    Speaker: Dev
+    Text: There he is. Thirty laps of the training ground before sunrise and he still walks like he is being marked on it.
+    RequiredFlags: []
+    BlockingFlags:
+    - QUEENS_CHARGE_GIVEN
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 0
+      Target: SPOKE_TO_DEV
+      Amount: 0
+    Choices:
+    - Text: You counted my laps?
+      NextDialogueId: DEV_JOKE
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    - Text: The Queen sent for me.
+      NextDialogueId: DEV_SERIOUS
+      RequiredFlags: []
+      BlockingFlags: []
+      Consequences: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: DEV_JOKE
+    Speaker: Dev
+    Text: I count everything. It is the only thing I am better at than you, and I intend to keep it.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: DEV_SERIOUS
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: DEV_SERIOUS
+    Speaker: Dev
+    Text: She sends for you a great deal lately. Go on. I will be here - the market does not guard itself, and someone has to be seen failing to guard it.
+    RequiredFlags: []
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences:
+    - Type: 5
+      Target: DEV
+      Amount: 1
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: DEV_QUEST
+    Speaker: Dev
+    Text: The old ruins? Ishan, nobody goes out there. Not because it is forbidden. Because nobody thinks of it. I have lived here my whole life and I have never once thought of it. Does that not strike you as strange?
+    RequiredFlags:
+    - QUEENS_CHARGE_GIVEN
+    BlockingFlags:
+    - RETURNED_TO_AMARA
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
+  - DialogueId: DEV_AFTER_SLEEP
+    Speaker: Dev
+    Text: ...
+    RequiredFlags:
+    - RETURNED_TO_AMARA
+    BlockingFlags: []
+    RequiredMemoryId: 
+    RequiredMemoryState: 
+    Consequences: []
+    Choices: []
+    NextDialogueId: 
+    Subtitle: 
+    VoiceAssetId: 
