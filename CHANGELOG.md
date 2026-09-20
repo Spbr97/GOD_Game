@@ -1,5 +1,80 @@
 # CHANGELOG
 
+## Unreleased — TASK 007: Combat completion and HUD
+
+Block, parry, lock-on, combo chains and the finisher, per SPEC.md sections 13, 14 and
+15; the HUD, per section 42; and `ROADMAP.md`.
+
+### Added
+
+- `GuardController` — block and parry on one input. The press opens a parry window
+  (0.2s, perfect within 0.08s), holding past it is a block. Parry deflects any attack
+  including heavies and publishes `ParryEvent`; a perfect parry restores divine energy.
+  Block absorbs at a stamina cost per point of damage; running out, or an unblockable
+  heavy, breaks the guard and stuns the player for 0.8s. Environmental damage is
+  never guarded. Windows scale with `Difficulty.Modifiers.PlayerTimingWindow`.
+- `IDamageGuard` and `HealthComponent.Guard` — the guard gets first look at damage,
+  after the attack id is registered so a parried swing cannot land later from another
+  collider.
+- `EnemyStagger` listens for `ParryEvent` and staggers itself when it is the attacker;
+  entering Stagger cancels the swing in flight. Combat still does not reference AI.
+- `ComboChain` and `ComboTracker` — the seven section 14 chains as a table and a
+  suffix matcher over recent inputs, longest chain wins. Dodge and parry are recorded
+  as steps, so Dodge→Light and Parry→Heavy work. Replaces the TASK 002 swing counter.
+- `AttackType.Finisher` — a light attack against an enemy at or below 20% health,
+  in range and in front (lock-on target first), becomes an unblockable lethal swing.
+- `LockOnController` — acquires the best hurtbox owner in view by angle-weighted
+  distance, drives `PlayerController.FacingTarget` (strafing) and
+  `PlayerCamera.LookTarget`, drops on death or beyond 20 m, toggles off on a second
+  press.
+- `DivineEnergyComponent` — the resource abilities will spend; starts empty. Saved and
+  restored through `PlayerStatsData.DivineEnergy`.
+- `HudUI` and a HUD under `UI_Canvas` in both scenes: health, stamina and divine
+  energy bars each with a text label (nothing by colour alone, section 43), the lock-on
+  target's name, and a flash for combos, parries and guard breaks. Hideable via
+  `SetVisible`.
+- Input: `Guard` (Q / left shoulder) and `LockOn` (middle mouse / right stick press).
+- Events: `ParryEvent`, `AttackBlockedEvent`, `GuardBrokenEvent`, `LockOnChangedEvent`,
+  `ComboPerformedEvent`, `FinisherStartedEvent`.
+- `ROADMAP.md` — the ordered task checklist; the next unticked task starts without
+  being asked.
+- 18 EditMode tests in `CombatActionTests.cs` and 7 PlayMode tests in
+  `CombatActionPlayModeTests.cs`.
+
+### Changed
+
+- `WeaponController.TrySwing` takes a damage multiplier instead of a combo index, and
+  knows the finisher's timings. `CurrentAttack` and `BaseDamage` exposed.
+- `CombatController` owns the guard input, the finisher decision and the combo
+  tracker; dodge i-frame length now scales with difficulty. `Configure` unchanged;
+  `ConfigureCombos` added.
+- `PlayerDeath` also disables `GuardController` and `LockOnController` while dead.
+- `UI_Canvas` in both scenes renders in Screen Space – Camera (plane 0.5) so it
+  appears in front of the camera in the Scene view instead of as a 1920×1080 sheet at
+  the origin; the scaler matches width and height equally so a short Game view panel
+  no longer clips it.
+- `GuardController`, `LockOnController` and `DivineEnergyComponent` added to the
+  player in `Avarsha.unity` and `Test.unity`.
+- Deprecated `FindObjectsByType<T>(FindObjectsSortMode)` overloads replaced in
+  `SaveManager` and `EnemyAiPlayModeTests` (pre-existing) and the two new sites.
+
+### Verified
+
+Checked against a running Editor, not by inspection:
+
+- Compiles with 0 errors and 0 warnings.
+- EditMode suite: 111 tests, 111 passed (18 new).
+- PlayMode suite: 40 tests, 40 passed (7 new), in 50.7s, first run.
+- Parry against a live enemy: the enemy staggered mid-swing, the player took no damage,
+  the parry was recorded as a combo step.
+- Block against a live enemy: no damage, 15 stamina for a 25-damage hit, no stagger.
+- Light→Light→Heavy on a dummy dealt exactly 1.6× base heavy damage; a lone heavy dealt
+  base damage.
+- Finisher: a healthy dummy took a light attack; the same dummy at 15% took a finisher
+  and died.
+- Avarsha entered Play mode with the new components and HUD and logged no warnings or
+  errors; the HUD was screenshotted showing all three bars.
+
 ## Unreleased — TASK 006: Save system
 
 Saving, loading and the corruption rules, per SPEC.md sections 31, 32 and 33.

@@ -82,6 +82,8 @@ namespace Game.Save
         public float MaxHealth = 100f;
         public float Stamina;
         public float MaxStamina = 100f;
+        public float DivineEnergy;
+        public float MaxDivineEnergy = 100f;
     }
 
     /// <summary>

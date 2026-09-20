@@ -6,12 +6,14 @@ using UnityEngine.InputSystem;
 namespace Game.Combat
 {
     /// <summary>
-    /// Turns player input into attacks and dodges (SPEC.md sections 13-15, TASK 002).
-    /// It owns the rules — can I act, can I pay for it, does this extend a combo —
-    /// and delegates the swing itself to <see cref="WeaponController"/>.
+    /// Turns player input into attacks, dodges and guards (SPEC.md sections 13-15,
+    /// TASK 002 and TASK 007). It owns the rules — can I act, can I pay for it, which
+    /// chain does this complete, does this target qualify for a finisher — and
+    /// delegates the swing to <see cref="WeaponController"/>, the guard to
+    /// <see cref="GuardController"/> and targeting to <see cref="LockOnController"/>.
     ///
-    /// Scope note: TASK 002 implements light, heavy and dodge. Block, parry, divine
-    /// ability, finisher and lock-on from SPEC.md section 13 are not implemented yet.
+    /// Of SPEC.md section 13's actions, only the divine ability is still missing; it
+    /// belongs to the first temple (section 60, Phase 3). Jump is locomotion.
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
     public class CombatController : MonoBehaviour
@@ -19,59 +21,69 @@ namespace Game.Combat
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private WeaponController weapon;
         [SerializeField] private StaminaComponent stamina;
+        [SerializeField] private GuardController guard;
+        [SerializeField] private LockOnController lockOn;
         [SerializeField] private Game.Player.PlayerController locomotion;
 
         [Header("Stamina costs")]
         [SerializeField] private float lightAttackCost = 12f;
         [SerializeField] private float heavyAttackCost = 25f;
         [SerializeField] private float dodgeCost = 20f;
+        [SerializeField] private float finisherCost = 10f;
 
         [Header("Combo")]
         [Tooltip("How long after a swing a follow-up still counts as part of the chain.")]
         [SerializeField] private float comboWindow = 0.7f;
 
-        [Tooltip("Longest chain before the counter resets. SPEC.md section 14 asks for three light hits.")]
-        [SerializeField] private int maxComboLength = 3;
+        [Header("Finisher")]
+        [Tooltip("An enemy at or below this fraction of health can be finished (SPEC.md section 14).")]
+        [SerializeField] private float finisherHealthThreshold = 0.2f;
+
+        [Tooltip("How close the enemy must be for a light attack to become a finisher.")]
+        [SerializeField] private float finisherRange = 2.5f;
 
         [Header("Dodge")]
         [SerializeField] private float dodgeDuration = 0.35f;
         [SerializeField] private float dodgeSpeed = 9f;
         [Tooltip("Seconds into the dodge when invulnerability starts.")]
         [SerializeField] private float invulnerabilityStart = 0.05f;
-        [Tooltip("Seconds into the dodge when invulnerability ends. SPEC.md section 15 asks for a short window.")]
+        [Tooltip("Seconds into the dodge when invulnerability ends at Normal difficulty. SPEC.md section 15 asks for a short window; difficulty scales its length.")]
         [SerializeField] private float invulnerabilityEnd = 0.26f;
 
         private HealthComponent health;
         private InputAction lightAttackAction;
         private InputAction heavyAttackAction;
         private InputAction dodgeAction;
+        private InputAction guardAction;
         private InputAction moveAction;
 
-        private int comboIndex;
-        private float comboExpiresAt;
+        private ComboTracker combo;
         private Coroutine dodgeRoutine;
 
         public bool IsDodging => dodgeRoutine != null;
-        public int ComboIndex => comboIndex;
+
+        /// <summary>The chain the last swing completed, or null. See <see cref="ComboTracker"/>.</summary>
+        public ComboChain CurrentChain => combo?.Current;
+
+        /// <summary>Recent steps inside the combo window, for HUD and tests.</summary>
+        public ComboTracker Combo => combo;
+
+        public bool IsGuarding => guard != null && guard.IsBlocking;
+
+        /// <summary>Length of the dodge i-frame window after difficulty scaling.</summary>
+        public float ScaledInvulnerabilityDuration =>
+            Mathf.Max(0f, invulnerabilityEnd - invulnerabilityStart) * Difficulty.Modifiers.PlayerTimingWindow;
 
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
+            combo ??= new ComboTracker(ComboChain.DefaultChains(), comboWindow);
 
-            if (weapon == null)
-            {
-                weapon = GetComponentInChildren<WeaponController>(true);
-            }
-
-            if (stamina == null)
-            {
-                stamina = GetComponent<StaminaComponent>();
-            }
-
-            if (locomotion == null)
-            {
-                locomotion = GetComponent<Game.Player.PlayerController>();
-            }
+            if (weapon == null) { weapon = GetComponentInChildren<WeaponController>(true); }
+            if (stamina == null) { stamina = GetComponent<StaminaComponent>(); }
+            if (guard == null) { guard = GetComponent<GuardController>(); }
+            if (lockOn == null) { lockOn = GetComponent<LockOnController>(); }
+            if (locomotion == null) { locomotion = GetComponent<Game.Player.PlayerController>(); }
 
             if (inputActions == null)
             {
@@ -91,6 +103,7 @@ namespace Game.Combat
             lightAttackAction = gameplayMap.FindAction("LightAttack");
             heavyAttackAction = gameplayMap.FindAction("HeavyAttack");
             dodgeAction = gameplayMap.FindAction("Dodge");
+            guardAction = gameplayMap.FindAction("Guard");
             moveAction = gameplayMap.FindAction("Move");
         }
 
@@ -99,6 +112,12 @@ namespace Game.Combat
             lightAttackAction?.Enable();
             heavyAttackAction?.Enable();
             dodgeAction?.Enable();
+            guardAction?.Enable();
+
+            if (guard != null)
+            {
+                guard.Parried += HandleParried;
+            }
         }
 
         private void OnDisable()
@@ -106,13 +125,26 @@ namespace Game.Combat
             lightAttackAction?.Disable();
             heavyAttackAction?.Disable();
             dodgeAction?.Disable();
+            guardAction?.Disable();
+
+            if (guard != null)
+            {
+                guard.Parried -= HandleParried;
+            }
         }
 
         private void Update()
         {
-            if (Time.time > comboExpiresAt)
+            if (guardAction != null)
             {
-                comboIndex = 0;
+                if (guardAction.WasPressedThisFrame())
+                {
+                    TryGuard();
+                }
+                else if (guardAction.WasReleasedThisFrame())
+                {
+                    ReleaseGuard();
+                }
             }
 
             if (dodgeAction != null && dodgeAction.WasPressedThisFrame())
@@ -133,7 +165,9 @@ namespace Game.Combat
 
         /// <summary>
         /// Attempts an attack. Stamina is only spent once the swing has actually
-        /// started, so a rejected input costs nothing.
+        /// started, so a rejected input costs nothing. A light attack against an
+        /// enemy below the finisher threshold becomes a finisher. Attacking lowers
+        /// the guard.
         /// </summary>
         public bool TryAttack(AttackType type)
         {
@@ -142,22 +176,65 @@ namespace Game.Combat
                 return false;
             }
 
-            var cost = type == AttackType.Heavy ? heavyAttackCost : lightAttackCost;
+            HealthComponent finisherTarget = null;
+            if (type == AttackType.Light)
+            {
+                finisherTarget = FindFinisherTarget();
+                if (finisherTarget != null)
+                {
+                    type = AttackType.Finisher;
+                }
+            }
+
+            var cost = type switch
+            {
+                AttackType.Heavy => heavyAttackCost,
+                AttackType.Finisher => finisherCost,
+                _ => lightAttackCost
+            };
+
             if (stamina != null && !stamina.HasStamina(cost))
             {
                 GameLogger.Log(LogCategory.Combat, $"{name} lacks stamina for a {type} attack.", this);
                 return false;
             }
 
-            if (!weapon.TrySwing(type, comboIndex))
+            var multiplier = 1f;
+            ComboChain chain = null;
+            if (type != AttackType.Finisher)
+            {
+                chain = combo.Record(type == AttackType.Heavy ? ComboStep.Heavy : ComboStep.Light,
+                    Time.time, weapon.TotalDuration(type));
+                multiplier = chain?.DamageMultiplier ?? 1f;
+            }
+
+            ReleaseGuard();
+
+            if (finisherTarget != null)
+            {
+                FaceTarget(finisherTarget.transform);
+            }
+
+            if (!weapon.TrySwing(type, multiplier))
             {
                 return false;
             }
 
             stamina?.TrySpend(cost);
 
-            comboIndex = (comboIndex + 1) % Mathf.Max(1, maxComboLength);
-            comboExpiresAt = Time.time + weapon.TotalDuration(type) + comboWindow;
+            if (chain != null)
+            {
+                GameLogger.Log(LogCategory.Combat, $"{name} performed {chain.Name} (x{chain.DamageMultiplier:0.##}).", this);
+                EventBus.Publish(new ComboPerformedEvent(gameObject, chain.Name, chain.DamageMultiplier));
+            }
+
+            if (finisherTarget != null)
+            {
+                combo.Reset();
+                GameLogger.Log(LogCategory.Combat, $"{name} finishes {finisherTarget.name}.", this);
+                EventBus.Publish(new FinisherStartedEvent(gameObject, finisherTarget.gameObject));
+            }
+
             return true;
         }
 
@@ -178,8 +255,29 @@ namespace Game.Combat
             }
 
             weapon?.CancelSwing();
+            ReleaseGuard();
+            combo.Record(ComboStep.Dodge, Time.time, dodgeDuration);
             dodgeRoutine = StartCoroutine(DodgeRoutine());
             return true;
+        }
+
+        /// <summary>
+        /// Raises the guard: a parry window now, a block if held. Refused mid-swing
+        /// so a whiffed attack cannot be cancelled into a free parry.
+        /// </summary>
+        public bool TryGuard()
+        {
+            if (!CanAct() || guard == null || IsDodging || (weapon != null && weapon.IsSwinging))
+            {
+                return false;
+            }
+
+            return guard.BeginGuard();
+        }
+
+        public void ReleaseGuard()
+        {
+            guard?.EndGuard();
         }
 
         /// <summary>
@@ -203,9 +301,84 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>Replaces the chain table, for tuning and tests. Resets the current chain.</summary>
+        public void ConfigureCombos(ComboChain[] chains, float window)
+        {
+            comboWindow = window;
+            combo = new ComboTracker(chains, window);
+        }
+
         private bool CanAct()
         {
-            return isActiveAndEnabled && health != null && !health.IsDead;
+            if (!isActiveAndEnabled || health == null || health.IsDead)
+            {
+                return false;
+            }
+
+            // A broken guard is a stun: nothing until it passes (SPEC.md section 15,
+            // "failed parry: player receives damage" — and loses the initiative).
+            return guard == null || !guard.IsGuardBroken;
+        }
+
+        private void HandleParried(bool perfect)
+        {
+            combo.Record(ComboStep.Parry, Time.time);
+        }
+
+        /// <summary>
+        /// The enemy a light attack would finish: the lock-on target if it qualifies,
+        /// otherwise the nearest qualifying hurtbox owner in front and in range.
+        /// </summary>
+        private HealthComponent FindFinisherTarget()
+        {
+            if (lockOn != null && lockOn.Target != null && Qualifies(lockOn.Target))
+            {
+                return lockOn.Target;
+            }
+
+            HealthComponent best = null;
+            var bestDistance = float.PositiveInfinity;
+            foreach (var hurtbox in FindObjectsByType<Hurtbox>())
+            {
+                var candidate = hurtbox.Health;
+                if (candidate == null || candidate == health || hurtbox.Faction == Faction.Player || !Qualifies(candidate))
+                {
+                    continue;
+                }
+
+                var offset = candidate.transform.position - transform.position;
+                offset.y = 0f;
+                var distance = offset.magnitude;
+                if (distance < bestDistance && Vector3.Dot(transform.forward, offset.normalized) > 0.3f)
+                {
+                    bestDistance = distance;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        private bool Qualifies(HealthComponent candidate)
+        {
+            if (candidate.IsDead || candidate.HealthFraction > finisherHealthThreshold)
+            {
+                return false;
+            }
+
+            var offset = candidate.transform.position - transform.position;
+            offset.y = 0f;
+            return offset.magnitude <= finisherRange;
+        }
+
+        private void FaceTarget(Transform target)
+        {
+            var toTarget = target.position - transform.position;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude > 0.0001f)
+            {
+                transform.rotation = Quaternion.LookRotation(toTarget, Vector3.up);
+            }
         }
 
         private IEnumerator DodgeRoutine()
@@ -217,6 +390,9 @@ namespace Game.Combat
 
             locomotion?.BeginDodge(direction, dodgeSpeed, dodgeDuration);
 
+            // The window's length, not its start, is what difficulty scales: Story
+            // gives more forgiving i-frames, Mythic fewer (SPEC.md sections 15, 44).
+            var windowEnd = invulnerabilityStart + ScaledInvulnerabilityDuration;
             var elapsed = 0f;
 
             // Two one-shot flags rather than one toggle: the window opens once and
@@ -232,7 +408,7 @@ namespace Game.Combat
                     windowOpened = true;
                     health.IsInvulnerable = true;
                 }
-                else if (windowOpened && !windowClosed && elapsed >= invulnerabilityEnd)
+                else if (windowOpened && !windowClosed && elapsed >= windowEnd)
                 {
                     windowClosed = true;
                     if (!health.IsDead)

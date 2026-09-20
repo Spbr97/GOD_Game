@@ -207,6 +207,13 @@ namespace Game.Save
                     data.PlayerStats.Stamina = stamina.CurrentStamina;
                     data.PlayerStats.MaxStamina = stamina.MaxStamina;
                 }
+
+                var divine = player.GetComponent<DivineEnergyComponent>();
+                if (divine != null)
+                {
+                    data.PlayerStats.DivineEnergy = divine.CurrentEnergy;
+                    data.PlayerStats.MaxDivineEnergy = divine.MaxEnergy;
+                }
             }
 
             var checkpoints = CheckpointManager.Instance;
@@ -416,6 +423,12 @@ namespace Game.Save
             {
                 stamina.RestoreTo(data.PlayerStats.Stamina);
             }
+
+            var divine = player.GetComponent<DivineEnergyComponent>();
+            if (divine != null)
+            {
+                divine.RestoreTo(data.PlayerStats.DivineEnergy);
+            }
         }
 
         private static string FindParticipantJson(SaveData data, string key)
@@ -434,7 +447,7 @@ namespace Game.Save
         private static List<ISaveParticipant> FindParticipants()
         {
             var found = new List<ISaveParticipant>();
-            var behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include);
 
             for (var i = 0; i < behaviours.Length; i++)
             {

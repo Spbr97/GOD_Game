@@ -3,6 +3,95 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 007 — Combat completion and HUD
+
+### The divine ability is still missing
+
+SPEC.md section 13 lists nine actions; eight now exist. The divine ability has a
+resource (`DivineEnergyComponent`, filled by perfect parries) and a combo step
+(`ComboStep.Ability`, so Ability→Light is in the chain table), but nothing spends the
+energy or performs an ability. It belongs with Ember Step and the first temple
+(ROADMAP TASK 011); building it before any temple exists would be inventing content.
+
+### Combo multipliers and windows are untuned placeholders
+
+The seven chain multipliers (1.2×–2×), the 0.7s window, the finisher threshold of 20%
+and the parry windows (0.2s, perfect 0.08s) are first guesses. They cannot be tuned
+honestly until attacks have animations, because the window a player perceives is the
+animation, not the number. Section 78 applies: tune when the placeholder is replaced.
+
+### The finisher is a big swing, not an execution
+
+A finisher is `AttackType.Finisher` on the same weapon path: unblockable, lethal,
+slower. There is no animation, no camera move, no invulnerability for the player
+during it and no lunge, so an enemy just outside `finisherRange` is not pulled in.
+Section 69's cinematic direction for executions needs the animation and camera
+systems first.
+
+### Lock-on has no target cycling and ignores line of sight
+
+One press acquires the best candidate in view; the only way to change target is to
+release and re-acquire. There is no switch-left/right, no cycling, and an enemy
+behind a wall is as acquirable as one in the open. The camera also does nothing about
+a target directly above or below the player. Cycling is a control-scheme question
+(the gamepad is already out of buttons — see TASK 003) rather than a code one.
+
+### Blocking does not slow the player or turn them
+
+While holding guard the player moves and turns at full speed and the guard has no
+direction: a hit from behind is blocked exactly like one from the front. Both are
+deliberate omissions until there is a facing-aware hit reaction system; without one,
+a directional block would just be a source of unexplained damage.
+
+### Guard break has no visible reaction
+
+A broken guard is a 0.8s stun with a HUD message. No animation, no knockback, no
+camera shake. The player learns it happened by being unable to act.
+
+### The HUD is placeholder text on flat bars
+
+`HudUI` draws three bars and two labels with the built-in font. No damage flash, no
+low-health warning, no boss health (no bosses), no equipped ability (no abilities),
+no minimap. It is hideable through `SetVisible`, but nothing binds that to an input
+or a setting yet; SPEC.md section 42's "HUD must be hideable" is a method, not a feature.
+
+### The canvas renders in camera space, which can be occluded
+
+`UI_Canvas` was switched from Screen Space – Overlay to Screen Space – Camera at a
+plane distance of 0.5 so it appears in the Scene view next to the world. A camera-space
+canvas is geometry: anything closer than 0.5 m to the camera would draw over it. The
+camera's collision clamp keeps it at least 0.8 m from surfaces, so this does not
+happen today, but a future camera change could. Switch back to Overlay if it does.
+
+### Scene-view UI placement was not visually verified
+
+The Game view was screenshotted with the HUD showing; the Scene view could not be,
+because Unity draws canvases in the Scene view in its own pass that a manual camera
+render does not include. The change is the documented fix for the symptom, not one
+that was watched working.
+
+### Difficulty scales the dodge window but nothing else on the player
+
+`PlayerTimingWindow` now scales dodge i-frames and both parry windows, which is what
+section 15 requires. It does not touch stamina costs, block cost or combo windows.
+Whether it should is a design call not made in the spec.
+
+### `Avarsha.unity` is serialized as binary
+
+`ProjectSettings/EditorSettings.asset` says Force Text, but `Avarsha.unity` has been
+binary since its first commit (`Test.unity` is text). Diffs of the hub scene are
+therefore opaque and merges impossible. Fixing it is a one-off re-save with the
+serialization mode confirmed; not done here because it is unrelated to this task and
+touches the whole file.
+
+### Deprecated `FindObjectsSortMode` overloads were removed
+
+Unity 6000.6 deprecates `FindObjectsByType<T>(FindObjectsSortMode)`. Two sites in
+`SaveManager` and `EnemyAiPlayModeTests` predated this task and were fixed alongside
+the two new ones so the project compiles with zero warnings again. Recorded so the
+"0 warnings" claim in TASK 006's changelog is understood as true for the Editor it was
+made on.
+
 ## TASK 006 — Save system
 
 ### Six of the save's fields are reserved and always empty
@@ -236,9 +325,8 @@ links for exactly this; neither is used yet.
 `Difficulty` implements SPEC.md section 44's four modes and scales enemy damage,
 telegraph length, attack cooldown and group aggression — deliberately not health, per
 sections 15 and 44. `SettingsManager.SetDifficulty` persists it. But there is no
-options menu, so the only way to leave Normal is from code. `PlayerTimingWindow` is
-defined and nothing reads it: dodge i-frames are still fixed on `CombatController`,
-and parry does not exist.
+options menu, so the only way to leave Normal is from code (menu: ROADMAP TASK 008).
+`PlayerTimingWindow` is read since TASK 007 by the dodge and parry windows.
 
 ### `Q002 The Ash at the Gate` is a demonstration, not designed content
 
@@ -389,22 +477,15 @@ has now forced a second bad binding.
 
 ## TASK 002 — Combat Foundation
 
-### Combat actions not yet implemented
+### Combat actions not yet implemented — closed in TASK 007
 
-SPEC.md section 13 lists nine basic actions. TASK 002 implements **light attack, heavy
-attack and dodge**. Still missing: **block, parry, divine ability, finisher, lock-on**.
-Parry in particular carries a design requirement that nothing yet satisfies — SPEC.md
-section 15 says difficulty must modify the timing window rather than multiply enemy
-health, and there is no difficulty system to read that window from.
+Block, parry, finisher and lock-on now exist; only the divine ability remains, tracked
+under TASK 007.
 
-### Combo system is a counter, not a chain
+### Combo system is a counter, not a chain — closed in TASK 007
 
-SPEC.md section 14 asks for named chains (Light→Light→Heavy, Dodge→Light, Parry→Heavy,
-and a finisher below a health threshold). What exists is an integer that counts swings
-inside a time window and scales damage by 15% per step. It does not distinguish light
-from heavy in the chain, and there is no finisher. Real chains need the attack types
-recorded in sequence and matched against a table, which is worth doing once animations
-exist to differentiate the steps.
+`ComboTracker` matches recorded steps against the section 14 table; the finisher
+exists. Tuning is tracked under TASK 007.
 
 ### Attack timing is serialized numbers, not animation events
 
@@ -450,11 +531,10 @@ first death before any checkpoint still resolves.
 and hazards stay as they were. Whether death should roll the world back is a design
 decision the spec does not settle, and implementing either answer needs the save system.
 
-### Difficulty scaling is absent
+### Difficulty scaling is absent — closed in TASK 004 and TASK 007
 
-SPEC.md section 15 requires difficulty to modify timing windows rather than enemy health,
-and section 16 requires per-enemy difficulty scaling. Neither exists; all values are
-fixed serialized fields.
+Enemy-side scaling arrived in TASK 004; the player's dodge and parry windows scale
+since TASK 007.
 
 ### Dodge is bound to left Ctrl
 

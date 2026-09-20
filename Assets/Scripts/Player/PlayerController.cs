@@ -34,6 +34,20 @@ namespace Game.Player
         public bool IsDodging => Time.time < dodgeEndsAt;
 
         /// <summary>
+        /// When set, the player faces this instead of their movement direction, so
+        /// movement becomes strafing. Set by Game.Combat.LockOnController; this class
+        /// only knows it has something to face, not why.
+        /// </summary>
+        public Transform FacingTarget { get; set; }
+
+        /// <summary>The camera the player's movement is relative to. Assigned from Camera.main when unset.</summary>
+        public Transform CameraTransform
+        {
+            get => cameraTransform;
+            set => cameraTransform = value;
+        }
+
+        /// <summary>
         /// Takes over horizontal movement for the duration of a dodge. Called by
         /// Game.Combat.CombatController, which owns the stamina cost and the
         /// invulnerability window; this class only supplies the motion so that all
@@ -153,9 +167,25 @@ namespace Game.Player
 
             // Facing is held during a dodge: a backstep should not spin the player
             // around to look at the direction they are travelling.
-            if (!dodging && moveDirection.sqrMagnitude > 0.0001f)
+            if (dodging)
             {
-                var targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+                return;
+            }
+
+            Vector3 facing;
+            if (FacingTarget != null)
+            {
+                facing = FacingTarget.position - transform.position;
+                facing.y = 0f;
+            }
+            else
+            {
+                facing = moveDirection;
+            }
+
+            if (facing.sqrMagnitude > 0.0001f)
+            {
+                var targetRotation = Quaternion.LookRotation(facing, Vector3.up);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
             }
         }

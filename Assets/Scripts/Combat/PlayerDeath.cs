@@ -38,7 +38,9 @@ namespace Game.Combat
                 disableWhileDead = new Behaviour[]
                 {
                     GetComponent<Game.Player.PlayerController>(),
-                    GetComponent<CombatController>()
+                    GetComponent<CombatController>(),
+                    GetComponent<GuardController>(),
+                    GetComponent<LockOnController>()
                 };
             }
         }

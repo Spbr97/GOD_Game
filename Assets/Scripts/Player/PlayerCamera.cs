@@ -20,9 +20,23 @@ namespace Game.Player
         [SerializeField] private float maxPitch = 60f;
         [SerializeField] private LayerMask collisionMask = ~0;
 
+        [Header("Lock-on")]
+        [Tooltip("How quickly the camera swings to frame a lock-on target, in degrees per second.")]
+        [SerializeField] private float lockOnTurnSpeed = 360f;
+
+        [Tooltip("Pitch used while locked on, so the target and the player both stay in frame.")]
+        [SerializeField] private float lockOnPitch = 18f;
+
         private InputAction lookAction;
         private float yaw;
         private float pitch = 10f;
+
+        /// <summary>
+        /// When set, the camera frames this instead of following the look input. Set
+        /// by Game.Combat.LockOnController; releasing it hands control back to the
+        /// stick without a jump because yaw and pitch were kept current all along.
+        /// </summary>
+        public Transform LookTarget { get; set; }
 
         private void Awake()
         {
@@ -65,8 +79,24 @@ namespace Game.Player
             var sensitivityScale = SettingsManager.Instance != null ? SettingsManager.Instance.Current.MouseSensitivity : 1f;
             var invertY = SettingsManager.Instance != null && SettingsManager.Instance.Current.InvertY ? -1f : 1f;
 
-            yaw += look.x * sensitivity * sensitivityScale;
-            pitch -= look.y * sensitivity * sensitivityScale * invertY;
+            if (LookTarget != null)
+            {
+                var toTarget = LookTarget.position - target.position;
+                toTarget.y = 0f;
+                if (toTarget.sqrMagnitude > 0.0001f)
+                {
+                    var targetYaw = Quaternion.LookRotation(toTarget, Vector3.up).eulerAngles.y;
+                    var step = lockOnTurnSpeed * Time.deltaTime;
+                    yaw = Mathf.MoveTowardsAngle(yaw, targetYaw, step);
+                    pitch = Mathf.MoveTowards(pitch, lockOnPitch, step);
+                }
+            }
+            else
+            {
+                yaw += look.x * sensitivity * sensitivityScale;
+                pitch -= look.y * sensitivity * sensitivityScale * invertY;
+            }
+
             pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
 
             var pivot = target.position + Vector3.up * height;

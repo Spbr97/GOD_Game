@@ -7,7 +7,14 @@ namespace Game.Combat
     public enum AttackType
     {
         Light,
-        Heavy
+        Heavy,
+
+        /// <summary>
+        /// The execution on an enemy below the finisher threshold (SPEC.md section
+        /// 14). Slow, unblockable and lethal by design; the controller only offers
+        /// it when a target qualifies.
+        /// </summary>
+        Finisher
     }
 
     /// <summary>
@@ -35,9 +42,11 @@ namespace Game.Combat
         [SerializeField] private float heavyActive = 0.20f;
         [SerializeField] private float heavyRecovery = 0.38f;
 
-        [Header("Combo")]
-        [Tooltip("Damage multiplier applied per step of the current combo chain.")]
-        [SerializeField] private float comboDamageStep = 0.15f;
+        [Header("Finisher")]
+        [SerializeField] private float finisherDamage = 250f;
+        [SerializeField] private float finisherWindup = 0.25f;
+        [SerializeField] private float finisherActive = 0.2f;
+        [SerializeField] private float finisherRecovery = 0.6f;
 
         private Coroutine swingRoutine;
 
@@ -47,11 +56,28 @@ namespace Game.Combat
         /// <summary>True only during the active damage window. Exposed for tests.</summary>
         public bool IsHitboxOpen => hitbox != null && hitbox.IsActive;
 
+        /// <summary>The attack currently playing, meaningful only while <see cref="IsSwinging"/>.</summary>
+        public AttackType CurrentAttack { get; private set; }
+
         public float TotalDuration(AttackType type)
         {
-            return type == AttackType.Heavy
-                ? heavyWindup + heavyActive + heavyRecovery
-                : lightWindup + lightActive + lightRecovery;
+            return type switch
+            {
+                AttackType.Heavy => heavyWindup + heavyActive + heavyRecovery,
+                AttackType.Finisher => finisherWindup + finisherActive + finisherRecovery,
+                _ => lightWindup + lightActive + lightRecovery
+            };
+        }
+
+        /// <summary>Base damage before combo scaling, for HUD and tests.</summary>
+        public float BaseDamage(AttackType type)
+        {
+            return type switch
+            {
+                AttackType.Heavy => heavyDamage,
+                AttackType.Finisher => finisherDamage,
+                _ => lightDamage
+            };
         }
 
         private void Awake()
@@ -76,15 +102,18 @@ namespace Game.Combat
         /// <summary>
         /// Starts a swing. Returns false if one is already running, so the caller
         /// does not spend stamina on an input that was dropped.
+        /// <paramref name="damageMultiplier"/> is the reward for the combo chain
+        /// this swing completes (SPEC.md section 14); 1 is a plain swing.
         /// </summary>
-        public bool TrySwing(AttackType type, int comboIndex = 0)
+        public bool TrySwing(AttackType type, float damageMultiplier = 1f)
         {
             if (IsSwinging || !isActiveAndEnabled)
             {
                 return false;
             }
 
-            swingRoutine = StartCoroutine(SwingRoutine(type, comboIndex));
+            CurrentAttack = type;
+            swingRoutine = StartCoroutine(SwingRoutine(type, Mathf.Max(0f, damageMultiplier)));
             return true;
         }
 
@@ -100,13 +129,27 @@ namespace Game.Combat
             hitbox?.Deactivate();
         }
 
-        private IEnumerator SwingRoutine(AttackType type, int comboIndex)
+        private IEnumerator SwingRoutine(AttackType type, float damageMultiplier)
         {
-            var isHeavy = type == AttackType.Heavy;
-            var windup = isHeavy ? heavyWindup : lightWindup;
-            var active = isHeavy ? heavyActive : lightActive;
-            var recovery = isHeavy ? heavyRecovery : lightRecovery;
-            var damage = (isHeavy ? heavyDamage : lightDamage) * (1f + comboDamageStep * comboIndex);
+            float windup, active, recovery;
+            switch (type)
+            {
+                case AttackType.Heavy:
+                    windup = heavyWindup; active = heavyActive; recovery = heavyRecovery;
+                    break;
+                case AttackType.Finisher:
+                    windup = finisherWindup; active = finisherActive; recovery = finisherRecovery;
+                    break;
+                default:
+                    windup = lightWindup; active = lightActive; recovery = lightRecovery;
+                    break;
+            }
+
+            var damage = BaseDamage(type) * damageMultiplier;
+
+            // Heavies and finishers go through a block (SPEC.md section 15 still
+            // lets them be parried, which is the guard's decision, not the weapon's).
+            var unblockable = type != AttackType.Light;
 
             yield return new WaitForSeconds(windup);
 
@@ -116,7 +159,7 @@ namespace Game.Combat
                 {
                     Amount = damage,
                     Type = DamageType.Physical,
-                    Unblockable = isHeavy
+                    Unblockable = unblockable
                 });
             }
 

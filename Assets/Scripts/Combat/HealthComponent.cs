@@ -35,6 +35,12 @@ namespace Game.Combat
         /// <summary>Set by dodge i-frames and by death, so nothing lands on a corpse.</summary>
         public bool IsInvulnerable { get; set; }
 
+        /// <summary>
+        /// Optional defence consulted before damage is applied — the player's block
+        /// and parry (SPEC.md section 15). Enemies have none. See <see cref="IDamageGuard"/>.
+        /// </summary>
+        public IDamageGuard Guard { get; set; }
+
         /// <summary>Raised after health has already been reduced.</summary>
         public event Action<DamageData> Damaged;
 
@@ -70,6 +76,19 @@ namespace Game.Combat
             }
 
             if (!RegisterAttack(damage.AttackId))
+            {
+                return false;
+            }
+
+            // The attack id is registered before the guard is consulted, so a swing
+            // that was parried or blocked cannot land later from a second collider
+            // once the guard window has closed.
+            if (Guard != null && Guard.TryGuard(ref damage))
+            {
+                return false;
+            }
+
+            if (damage.Amount <= 0f)
             {
                 return false;
             }

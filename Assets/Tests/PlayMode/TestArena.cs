@@ -203,7 +203,8 @@ namespace Game.Tests.Play
 
             var health = root.AddComponent<HealthComponent>();
             health.Configure(100f);
-            root.AddComponent<StaminaComponent>();
+            var stamina = root.AddComponent<StaminaComponent>();
+            var divine = root.AddComponent<DivineEnergyComponent>();
 
             var hurtbox = AddHurtbox(root, "Hurtbox", new Vector3(0f, 1f, 0f), 0.5f, 2f);
             hurtbox.Configure(health, 1f, Faction.Player);
@@ -212,6 +213,8 @@ namespace Game.Tests.Play
             {
                 Root = root,
                 Health = health,
+                Stamina = stamina,
+                DivineEnergy = divine,
                 Hurtbox = hurtbox
             };
 
@@ -240,8 +243,12 @@ namespace Game.Tests.Play
 
             if (withCombatInput)
             {
+                var actions = BuildInputActions();
+                rig.Guard = root.AddComponent<GuardController>();
+                rig.LockOn = root.AddComponent<LockOnController>();
+                rig.LockOn.Configure(actions);
                 rig.Combat = root.AddComponent<CombatController>();
-                rig.Combat.Configure(BuildInputActions());
+                rig.Combat.Configure(actions);
             }
 
             // Added last so its default "disable while dead" list can find the combat
@@ -264,6 +271,8 @@ namespace Game.Tests.Play
             map.AddAction("LightAttack", InputActionType.Button);
             map.AddAction("HeavyAttack", InputActionType.Button);
             map.AddAction("Dodge", InputActionType.Button);
+            map.AddAction("Guard", InputActionType.Button);
+            map.AddAction("LockOn", InputActionType.Button);
             map.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
             return asset;
         }
@@ -486,11 +495,15 @@ namespace Game.Tests.Play
     {
         public GameObject Root;
         public HealthComponent Health;
+        public StaminaComponent Stamina;
+        public DivineEnergyComponent DivineEnergy;
         public PlayerDeath Death;
         public Hurtbox Hurtbox;
         public WeaponController Weapon;
         public Hitbox WeaponHitbox;
         public CombatController Combat;
+        public GuardController Guard;
+        public LockOnController LockOn;
 
         public Vector3 Position
         {

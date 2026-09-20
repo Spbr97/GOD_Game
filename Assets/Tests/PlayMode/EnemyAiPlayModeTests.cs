@@ -302,7 +302,7 @@ namespace Game.Tests.Play
             yield return TestArena.Observe(6f, () =>
             {
                 var attacking = 0;
-                foreach (var member in Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
+                foreach (var member in Object.FindObjectsByType<EnemyController>())
                 {
                     if (member.State == EnemyState.Attack)
                     {

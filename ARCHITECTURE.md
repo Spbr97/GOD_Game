@@ -52,24 +52,28 @@ Assets/
 
 ### Player (`Assets/Scripts/Player/`)
 
-- `PlayerController` — `CharacterController`-based movement (move, sprint, jump, gravity), reads input via the Input System through a serialized `InputActionAsset`, looking actions up by name. There is deliberately no generated C# wrapper class for the asset, so the actions can be re-authored in the Editor without a code-gen step.
-- `PlayerCamera` — third-person orbit/follow camera with spherecast-based collision avoidance so it does not clip through geometry (SPEC.md section 38).
+- `PlayerController` — `CharacterController`-based movement (move, sprint, jump, gravity), reads input via the Input System through a serialized `InputActionAsset`, looking actions up by name. There is deliberately no generated C# wrapper class for the asset, so the actions can be re-authored in the Editor without a code-gen step. `FacingTarget` makes movement strafe around a transform instead of turning towards the movement direction; it is set by lock-on and the controller does not know why.
+- `PlayerCamera` — third-person orbit/follow camera with spherecast-based collision avoidance so it does not clip through geometry (SPEC.md section 38). `LookTarget` frames a transform instead of following the look stick; yaw and pitch are kept current while it is set, so releasing it hands control back without a jump.
 
 ### Combat (`Assets/Scripts/Combat/`)
 
 - `DamageData` — the value passed for one damage application: amount, type, source, hit point, direction, and an `AttackId` allocated per swing.
 - `HealthComponent` — the single health pool used by the player and every enemy. All damage goes through `TakeDamage`, which is the one place that rejects self-damage, damage to the dead or invulnerable, and repeated attack ids.
-- `StaminaComponent` — pool gating attacks and dodges, with a regeneration delay after each spend. `Regenerate` takes time as an argument so tests can step it deterministically.
+- `StaminaComponent` — pool gating attacks, dodges and blocks, with a regeneration delay after each spend. `Regenerate` takes time as an argument so tests can step it deterministically.
+- `DivineEnergyComponent` — the resource divine abilities will spend. Starts empty; a perfect parry fills it. No ability spends it yet.
 - `Hitbox` — the damaging volume of a swing. Disabled except during an attack's active window; remembers which hurtboxes it touched during the current swing.
 - `Hurtbox` — a collider that forwards damage to a `HealthComponent`, with a per-collider multiplier for weak points. Resolves its health pool lazily rather than only in `Awake`.
-- `WeaponController` — owns swing timing (windup / active / recovery) and opens the hitbox for the active window only.
-- `CombatController` — turns player input into light attacks, heavy attacks and dodges; owns stamina costs, the combo counter and the dodge invulnerability window.
+- `WeaponController` — owns swing timing (windup / active / recovery) for light, heavy and finisher attacks and opens the hitbox for the active window only. Takes a damage multiplier per swing, which is how a completed combo chain reaches the hitbox.
+- `CombatController` — turns player input into attacks, dodges and guards; owns stamina costs, the combo tracker, the finisher decision and the dodge invulnerability window. A light attack against an enemy at or below the finisher threshold becomes a finisher.
+- `ComboChain` / `ComboTracker` — SPEC.md section 14's chain table and the matcher over recent inputs. Plain C#, time passed in. The longest chain whose steps are the tail of the recent history wins, so Light→Light→Heavy beats Light→Heavy.
+- `GuardController` — block and parry on one input: the press opens a parry window, holding past it is a block. Registers itself as the `HealthComponent.Guard` and gets first look at incoming damage through `IDamageGuard`. Windows scale with `Difficulty.Modifiers.PlayerTimingWindow`.
+- `LockOnController` — picks the best hostile in view and points the player (`FacingTarget`) and the camera (`LookTarget`) at it until it dies, leaves range, or the player lets go. Candidates are hurtbox owners not on the player's side, so it knows nothing about AI.
 - `EnemyHealth` — enemy reaction to the shared health pool: hit flash, death cleanup, despawn.
 - `PlayerDeath` — player reaction to death: disables controls, then respawns at the current checkpoint.
 - `Checkpoint` — idempotent respawn point. Only the first activation raises `CheckpointActivatedEvent`.
 - `CheckpointManager` — singleton holding the current respawn point, so `Checkpoint` and `PlayerDeath` do not have to know about each other.
 - `DamageVolume` — hazard trigger that damages what stands in it on a cadence.
-- `CombatEvents` — the `EventBus` payloads: `DamageAppliedEvent`, `EntityDiedEvent`, `PlayerDiedEvent`, `PlayerRespawnedEvent`, `CheckpointActivatedEvent`.
+- `CombatEvents` — the `EventBus` payloads: `DamageAppliedEvent`, `EntityDiedEvent`, `PlayerDiedEvent`, `PlayerRespawnedEvent`, `CheckpointActivatedEvent`, `ParryEvent`, `AttackBlockedEvent`, `GuardBrokenEvent`, `LockOnChangedEvent`, `ComboPerformedEvent`, `FinisherStartedEvent`.
 
 #### How one hit flows
 
@@ -78,6 +82,12 @@ Assets/
 `Faction` on `Hitbox` and `Hurtbox` decides who an attack is willing to hurt. `Neutral` is the default and opts out of the check entirely, so anything authored before factions existed — the player's weapon, the training dummy — behaves exactly as it did. Enemies are `Hostile`, which is what stops two of them swinging at the same player from killing each other.
 
 Duplicate damage is prevented at two levels, because the two failure modes are different. `Hitbox` remembers the hurtboxes it has already touched, which stops repeated trigger callbacks within one swing. `HealthComponent` remembers recent attack ids, which stops two separate hurtboxes on the same entity both landing the same swing.
+
+#### How a hit is answered
+
+`HealthComponent.TakeDamage` consults its `Guard` after registering the attack id and before touching health. The order matters: a parried or blocked swing has its id consumed, so it cannot land later from a second collider once the guard window has closed. `GuardController` decides in this order — environmental damage is never guarded; inside the parry window the hit is parried, once per press; while holding, an unblockable attack breaks the guard and lands, otherwise stamina pays for the block or, if it cannot, the guard breaks and the hit lands. A broken guard is a short stun during which the player can do nothing.
+
+"Successful parry staggers enemy" (SPEC.md section 15) crosses from Combat to AI without a reference: the guard publishes `ParryEvent` naming the attacker, and each `EnemyStagger` checks whether the attacker is itself. Entering the Stagger state cancels the enemy's swing, so a parry stops the attack that was in flight.
 
 ### World (`Assets/Scripts/World/`)
 
@@ -149,13 +159,14 @@ All ten behaviours SPEC.md section 17 asks for exist as values of `EnemyState`.
 - `InteractionPromptUI` — shows the current interactable's prompt, driven entirely by events.
 - `QuestTrackerUI` — the active quest's title and current objective.
 - `MemoryDiscoveryUI` — the banner shown when a fragment is recovered.
+- `HudUI` — the always-on HUD: health, stamina and divine energy bars (polled, because stamina regenerates every frame), the lock-on target and a flash for combos, parries and guard breaks. Finds the player through `PlayerDeath`, as the save system does, and hides through `SetVisible`.
 
 ## Dependencies between systems
 
 `PlayerController` → `GameLogger` only (no dependency on GameManager for movement).
 `PauseMenu` → `GameManager`, `GameLogger`.
 `GameManager` → `EventBus`, `GameLogger`. Does not depend on Player/Combat/AI directly.
-`Combat` → `Core` (`EventBus`, `GameLogger`) and, in `CombatController` and `PlayerDeath` only, `Player.PlayerController`.
+`Combat` → `Core` (`EventBus`, `GameLogger`) and, in `CombatController`, `PlayerDeath` and `LockOnController` only, `Player.PlayerController` and `Player.PlayerCamera`.
 
 `AI` → `Core` and `Combat`. It does **not** reference `Quests`, `Dialogue` or `Memory`: an enemy that counts towards a quest carries a `QuestTarget`, which belongs to `Quests`.
 `World` → `Core`, and `Quests` for reporting objectives and starting quests.
@@ -183,7 +194,7 @@ Setting `Instance` in `Awake` alone is not enough. Unity does not guarantee whic
 
 A consequence for tests: because the lookup searches the loaded scenes, EditMode tests that use these managers must run in a scene of their own, or the project's own scene would answer instead. `AvarshaTests` opens an empty scene in `[OneTimeSetUp]` and restores the previous one afterwards.
 
-The one deliberate exception is `CombatController` → `PlayerController.BeginDodge`. A dodge is an impulse that has to be applied through the same `CharacterController.Move` call as ordinary movement, so combat asks locomotion to move rather than moving the player itself. Combat still owns the stamina cost and the invulnerability window.
+The one deliberate exception is `CombatController` → `PlayerController.BeginDodge`. A dodge is an impulse that has to be applied through the same `CharacterController.Move` call as ordinary movement, so combat asks locomotion to move rather than moving the player itself. Combat still owns the stamina cost and the invulnerability window. Lock-on follows the same shape: `LockOnController` sets `PlayerController.FacingTarget` and `PlayerCamera.LookTarget`, and neither Player class knows what a target is for.
 
 No system depends on more than one layer below it. Gameplay scripts do not reference story/quest content (SPEC.md section 58, rule 7) — none exists yet in this phase.
 
@@ -195,13 +206,13 @@ Anything driving the Editor by reflection must therefore use `Game.Runtime`, not
 
 ## Tests
 
-`Assets/Tests/EditMode/` holds EditMode tests (`Game.Tests.EditMode` assembly): `CombatTests.cs` covers the combat damage and resource rules, `AvarshaTests.cs` the world-state, dialogue, quest and memory rules, `EnemyAiTests.cs` the enemy transition table, perception geometry, poise, group slots, patrol order, factions and difficulty scaling, and `SaveTests.cs` the save file format, its checksum and plausibility rules, version migration and the backup and quarantine behaviour. 93 tests in total.
+`Assets/Tests/EditMode/` holds EditMode tests (`Game.Tests.EditMode` assembly): `CombatTests.cs` covers the combat damage and resource rules, `AvarshaTests.cs` the world-state, dialogue, quest and memory rules, `EnemyAiTests.cs` the enemy transition table, perception geometry, poise, group slots, patrol order, factions and difficulty scaling, and `SaveTests.cs` the save file format, its checksum and plausibility rules, version migration and the backup and quarantine behaviour, and `CombatActionTests.cs` the combo chain matcher, parry and block rules, divine energy and the difficulty scaling of timing windows. 111 tests in total.
 
 Each test class opens an empty scene in `[OneTimeSetUp]` and restores the previous one in `[OneTimeTearDown]`. The managers resolve themselves by searching the loaded scenes, so leaving the project's own scene open would let Avarsha's managers answer instead of the ones a test set up, and results would depend on which scene the developer happened to have open. `EnemyAiTests` also resets the static `Difficulty` in `[TearDown]`.
 
 Note that Unity does not call `Awake` on plain MonoBehaviours in EditMode. Components that resolve references must therefore do so lazily rather than only in `Awake`, or they will be unconfigured under test — and, more importantly, also unconfigured at runtime if they are added or reparented after `Awake`. `Hitbox` and `Hurtbox` both resolve on demand for this reason. Components expose a `Configure(...)` method as an explicit test seam where serialized fields need setting.
 
-`Assets/Tests/PlayMode/` holds PlayMode tests (`Game.Tests.PlayMode` assembly): `CombatPlayModeTests.cs`, `EnemyAiPlayModeTests.cs`, `ProgressionPlayModeTests.cs` and `SavePlayModeTests.cs`, 33 tests in total. They cover what EditMode structurally cannot — coroutines, physics triggers, navigation, and anything that only goes wrong after several frames. Every defect found at the end of TASK 004 was of that kind.
+`Assets/Tests/PlayMode/` holds PlayMode tests (`Game.Tests.PlayMode` assembly): `CombatPlayModeTests.cs`, `CombatActionPlayModeTests.cs`, `EnemyAiPlayModeTests.cs`, `ProgressionPlayModeTests.cs` and `SavePlayModeTests.cs`, 40 tests in total. They cover what EditMode structurally cannot — coroutines, physics triggers, navigation, and anything that only goes wrong after several frames. Every defect found at the end of TASK 004 was of that kind.
 
 The split between the two suites is a split of claims, not of convenience. EditMode proves a rule is right: `EnemyController.Decide` is a pure function over a senses snapshot, so the whole transition table is 17 tests with no scene at all. PlayMode proves a system wired into a scene actually obeys that rule — which is a different claim, and the one that was false when TASK 004 first ran.
 
@@ -211,7 +222,7 @@ The assembly references `Unity.AI.Navigation` where the EditMode one does not, s
 
 ## Scenes
 
-`Assets/Scenes/Test.unity` is the Phase 0 test scene and the only scene in Build Settings. It contains a ground plane, three collision blockers (one of which is a low step for testing grounding), the player capsule, the camera rig, a `GameSystems` object holding the Core singletons and `CheckpointManager`, and a UI canvas with the pause overlay.
+`Assets/Scenes/Test.unity` is the Phase 0 test scene. It contains a ground plane, three collision blockers (one of which is a low step for testing grounding), the player capsule (locomotion, health, stamina, divine energy, combat, guard, lock-on, death), the camera rig, a `GameSystems` object holding the Core singletons and `CheckpointManager`, and `UI_Canvas` with the pause overlay and the HUD. The canvas renders in Screen Space – Camera at a plane distance of 0.5 so it is visible in the Scene view in front of the camera.
 
 Combat additions: the player carries a `Hurtbox` and an `AstraBlade` child whose `HitVolume` holds the `Hitbox`; `Enemy_TrainingDummy` (60 health) stands at (3, 1.1, 6); `Checkpoint_01` at (-3, 1, 5); `Hazard_AshPit`, a `DamageVolume`, at (-7, 0.5, 5).
 

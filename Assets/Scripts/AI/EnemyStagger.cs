@@ -46,6 +46,8 @@ namespace Game.AI
             {
                 health.Damaged += HandleDamaged;
             }
+
+            EventBus.Subscribe<ParryEvent>(HandleParry);
         }
 
         private void OnDisable()
@@ -54,6 +56,24 @@ namespace Game.AI
             {
                 health.Damaged -= HandleDamaged;
             }
+
+            EventBus.Unsubscribe<ParryEvent>(HandleParry);
+        }
+
+        /// <summary>
+        /// "Successful parry staggers enemy" (SPEC.md section 15). Arrives as an
+        /// event rather than a call because Combat must not reference AI; the guard
+        /// announces the parry and the attacker recognises itself.
+        /// </summary>
+        private void HandleParry(ParryEvent parry)
+        {
+            if (parry.Attacker != gameObject || health == null || health.IsDead)
+            {
+                return;
+            }
+
+            ForceStagger(parry.StaggerDuration);
+            GameLogger.Log(LogCategory.AI, $"{name} was parried by {parry.Defender?.name}.", this);
         }
 
         private void Update()
@@ -90,9 +110,8 @@ namespace Game.AI
         }
 
         /// <summary>
-        /// Staggers regardless of poise. This is the hook SPEC.md section 15 needs for
-        /// "successful parry staggers enemy"; nothing calls it yet because parry is
-        /// not implemented.
+        /// Staggers regardless of poise. Used by parry (SPEC.md section 15) via
+        /// <see cref="HandleParry"/>, and available to scripted encounters.
         /// </summary>
         public void ForceStagger(float duration = 0f)
         {
