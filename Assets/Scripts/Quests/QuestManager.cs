@@ -194,6 +194,57 @@ namespace Game.Quests
             return true;
         }
 
+        /// <summary>Quests that have finished, completed or failed. For the save system.</summary>
+        public IReadOnlyDictionary<string, QuestProgress> FinishedQuests => finished;
+
+        /// <summary>
+        /// Puts one quest back where a save left it. Restoring is silent — no
+        /// started/completed events, no completion flags — because the player already
+        /// lived through those beats and the world state is restored separately.
+        /// Returns false when the quest id is not in the catalogue, which is what a
+        /// save from a build that had content this one does not looks like.
+        /// </summary>
+        public bool RestoreQuest(string questId, QuestStatus status, IReadOnlyList<string> objectiveIds,
+            IReadOnlyList<int> objectiveCounts, IReadOnlyList<bool> objectiveComplete)
+        {
+            var definition = FindInCatalogue(questId);
+            if (definition == null)
+            {
+                GameLogger.LogFallback(
+                    LogCategory.Quest,
+                    $"could not restore quest '{questId}'",
+                    "QuestManager.RestoreQuest",
+                    "no quest with that id is listed in the quest catalogue",
+                    "the quest is dropped from the loaded save rather than failing the load",
+                    this);
+                return false;
+            }
+
+            var progress = new QuestProgress(definition);
+            progress.Restore(status, objectiveIds, objectiveCounts, objectiveComplete);
+
+            active.Remove(questId);
+            finished.Remove(questId);
+
+            if (status == QuestStatus.Active)
+            {
+                active[questId] = progress;
+            }
+            else
+            {
+                finished[questId] = progress;
+            }
+
+            return true;
+        }
+
+        /// <summary>Forgets all quest progress. For loading a save and for starting a new game.</summary>
+        public void ClearAllProgress()
+        {
+            active.Clear();
+            finished.Clear();
+        }
+
         public QuestProgress GetProgress(string questId)
         {
             if (string.IsNullOrEmpty(questId))

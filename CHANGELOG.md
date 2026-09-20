@@ -1,5 +1,111 @@
 # CHANGELOG
 
+## Unreleased — TASK 006: Save system
+
+Saving, loading and the corruption rules, per SPEC.md sections 31, 32 and 33.
+
+### Added
+
+- `Assets/Scripts/Save/`: `SaveData`, `SaveSerializer`, `SaveMigration`, `SaveStorage`,
+  `SaveManager`, `SaveEvents` and `ISaveParticipant`.
+- `SaveData` carries every field SPEC.md section 31 names. Six of them are reserved and
+  written empty, because the systems behind them do not exist; see `KNOWN_ISSUES.md`.
+- Writing follows the spec's four steps literally — temporary file, validate by reading
+  it back off disk, move the current save aside as the backup, then put the new one in
+  its place. A failure at any step leaves every existing file untouched.
+- Reading falls back to the backup when the primary fails validation, raises
+  `SaveRecoveredFromBackupEvent` carrying SPEC.md section 32's sentence verbatim, and
+  quarantines the bad file as `*.corrupt-<timestamp>` rather than deleting it.
+- Validation is an envelope with an FNV-1a checksum plus a plausibility pass, so a file
+  that parses but cannot describe a real game is rejected too.
+- `SaveManager` refuses to save during a conversation or while the player is dead
+  (SPEC.md section 31: never save during a critical state transition), and auto-saves
+  when a checkpoint is activated.
+- `ISaveParticipant` — a system can save data `SaveData` has no field for without the
+  save system referencing it. Implementers are found in the loaded scenes at save time.
+- `SaveManager` added to `GameSystems` in `Avarsha.unity`.
+- 15 EditMode tests in `SaveTests.cs` and 8 PlayMode tests in `SavePlayModeTests.cs`,
+  covering all five cases SPEC.md section 53 names for saves.
+
+### Changed
+
+- Snapshot and restore seams on the systems a save has to read: `WorldState.Flags`,
+  `Counters` and `SetCounter`; `QuestManager.FinishedQuests`, `RestoreQuest` and
+  `ClearAllProgress`; `QuestProgress.Counts`, `CompletedObjectives` and `Restore`;
+  `MemoryManager.States`, `RestoreState`, `RestoreIntegrity01` and `ClearAll`;
+  `HealthComponent.RestoreTo` and `StaminaComponent.RestoreTo`.
+- Restoring is deliberately silent. A load replays no quest, memory or damage events,
+  because the player already lived through those beats and re-firing them would grant
+  their flags and rewards a second time.
+
+### Verified
+
+Checked against a running Editor, not by inspection:
+
+- Compiles with 0 errors and 0 warnings.
+- EditMode suite: 93 tests, 93 passed (15 new).
+- PlayMode suite: 33 tests, 33 passed (8 new), in 43.6s.
+- Round trip: a part-finished quest, a discovered memory, world flags and counters, the
+  player's position, health and difficulty all survive being saved, wrecked and loaded.
+- Backup recovery: with the primary overwritten by garbage, the load came back from the
+  backup holding the save before last, and announced it in the specified words.
+- No overwrite on failure: a save that fails read-back validation leaves the previous
+  file byte-for-byte identical and removes its own temporary file.
+- Refusals: saving mid-conversation and over a corpse both fail and write nothing.
+
+## Unreleased — TASK 005: PlayMode tests
+
+Automated coverage for everything that only fails once the game is running, per
+SPEC.md section 53.
+
+### Added
+
+- `Assets/Tests/PlayMode/` — a second test assembly, `Game.Tests.PlayMode`, which
+  unlike the EditMode one references `Unity.AI.Navigation` so tests can bake a NavMesh.
+- `TestArena` — builds a throwaway arena per test: floor, runtime-baked NavMesh, walls,
+  a player, dummies, enemies, patrol routes, groups and the manager singletons. Every
+  wait in the suite goes through `TestArena.Until`, which has a deadline, so a broken
+  test fails with a message instead of hanging the run.
+- `CombatPlayModeTests` — 7 tests: swing timing across windup/active/recovery, damage
+  through a real physics query, one swing landing once on a target with three
+  hurtboxes, the dodge invulnerability window opening and closing, dodge cancelling a
+  swing, a hazard volume ticking, and death disabling controls then respawning at the
+  active checkpoint.
+- `EnemyAiPlayModeTests` — 12 tests on a baked NavMesh: patrolling unprompted, chasing,
+  a wall blocking line of sight, the telegraph preceding the damage window, damage in
+  reach, the leash breaking off a visible target, stagger interrupting a swing, death
+  ending all action, a destination off the NavMesh failing rather than silently
+  succeeding, direct steering with no usable agent, the group attack limit, and no
+  friendly fire.
+- `ProgressionPlayModeTests` — 6 tests: a quest started by walking into a trigger,
+  objectives advancing as targets actually die, a revived-and-rekilled target not
+  completing a quest twice, re-giving an active quest not resetting progress, a memory
+  pickup granting once under repeated interaction, and critical memories surviving an
+  attempt to forget them.
+
+### Changed
+
+- `CombatController.Configure` — a test seam for supplying an `InputActionAsset`
+  without the Inspector. The component disables itself in `Awake` when it has none, so
+  a test-built player cannot drive it otherwise.
+
+### Closed
+
+- The leash range is now proven as a behaviour, not only as a decision: an enemy with a
+  6m leash and 60m sight breaks off while the player is still in plain view.
+- The telegraph is now observed firing. `Attack_TelegraphsBeforeTheHitboxOpens` measures
+  the wind-up and asserts the hitbox stays shut throughout it.
+- The EditMode-only coverage gap, carried since TASK 002, is closed for combat and
+  narrowed for TASK 003. What remains uncovered is recorded in `KNOWN_ISSUES.md`.
+
+### Verified
+
+Checked against a running Editor, not by inspection:
+
+- Compiles with 0 errors and 0 warnings.
+- PlayMode suite: 25 tests, 25 passed, in 41.5s.
+- EditMode suite: 78 tests, 78 passed — unchanged by the `CombatController` seam.
+
 ## Unreleased — TASK 004: Enemy AI
 
 Enemy behaviour, per SPEC.md sections 16 and 17.

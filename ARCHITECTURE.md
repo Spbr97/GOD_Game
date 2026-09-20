@@ -127,6 +127,21 @@ All ten behaviours SPEC.md section 17 asks for exist as values of `EnemyState`.
 - `MemoryPickup` — a fragment in the world. It stays in the scene after collection rather than being destroyed, so a memory cannot be lost to a destroyed object before the grant is recorded.
 - `MemoryEvents` — discovered, state changed, integrity changed.
 
+### Save (`Assets/Scripts/Save/`)
+
+- `SaveData` — the whole save, as a plain `[Serializable]` class shaped for `JsonUtility`. It carries every field SPEC.md section 31 names; six of them are reserved and written empty because the systems behind them do not exist. They are there on purpose: the file's shape is what version migration has to reason about, and adding a field later is a migration where filling an existing empty one is not.
+- `SaveSerializer` — the file format. A save is an envelope of version, checksum and payload rather than the payload alone, so a truncated or half-written file is detectable without parsing game data out of it. Validation also includes a plausibility pass, which catches a file that parses and checksums correctly but cannot describe a real game.
+- `SaveMigration` — brings an older save forward. It has no steps yet; it exists now because the first migration is otherwise written under pressure, with a player's save already broken.
+- `SaveStorage` — the four-step replace from SPEC.md section 31, and the corruption rules from section 32. Its root directory is a parameter so tests never touch a player's real save folder.
+- `SaveManager` — the aggregator, and the only class allowed to know about every system at once. It also decides when saving is unsafe.
+- `ISaveParticipant` — the escape hatch for a system that wants to save something `SaveData` has no field for.
+
+**Why saving is a leaf, not a peer.** SPEC.md section 58 forbids a system depending on every other one. The save system unavoidably has to read them all, so the dependency is made to run one way: `Save` reads `Core`, `Combat`, `Quests` and `Memory`, and none of them reference `Save`. Anything that wants to opt in without being referenced implements `ISaveParticipant` and is found at save time.
+
+**Why restoring is silent.** Applying a save replays no quest, memory or damage events. The player already lived through those beats; re-firing them would set their completion flags and grant their rewards a second time. This is why `QuestProgress.Restore`, `MemoryManager.RestoreState` and `HealthComponent.RestoreTo` exist as separate paths rather than reusing `ReportObjective`, `Discover` and `TakeDamage`.
+
+**Order matters when applying.** World flags go back before quests, because setting a flag publishes an event that quest logic reacts to. Restoring the quests last means their saved status wins over whatever that reaction decided.
+
 ### UI (`Assets/Scripts/UI/`)
 
 - `PauseMenu` — listens for the Pause input action, toggles a Canvas, sets `Time.timeScale`, calls into `GameManager`.
@@ -147,6 +162,7 @@ All ten behaviours SPEC.md section 17 asks for exist as values of `EnemyState`.
 `Dialogue` → `Core` and `World` (for `Interactable`) only. It does **not** reference `Quests` or `Memory`.
 `Quests` → `Core`, and reads `Dialogue`'s consequence payload.
 `Memory` → `Core`, `Quests`, and `Dialogue`'s consequence payload.
+`Save` → `Core`, `Combat`, `Quests`, `Memory` and `Dialogue`'s event payloads. Nothing references `Save`.
 `UI` → every content system, read-only, through `EventBus` payloads.
 
 `Core` does not reference `Combat`. `Combat` does not reference `UI`; UI reacts to combat through `EventBus` payloads instead.
@@ -179,11 +195,19 @@ Anything driving the Editor by reflection must therefore use `Game.Runtime`, not
 
 ## Tests
 
-`Assets/Tests/EditMode/` holds EditMode tests (`Game.Tests.EditMode` assembly): `CombatTests.cs` covers the combat damage and resource rules, `AvarshaTests.cs` the world-state, dialogue, quest and memory rules, and `EnemyAiTests.cs` the enemy transition table, perception geometry, poise, group slots, patrol order, factions and difficulty scaling. 78 tests in total.
+`Assets/Tests/EditMode/` holds EditMode tests (`Game.Tests.EditMode` assembly): `CombatTests.cs` covers the combat damage and resource rules, `AvarshaTests.cs` the world-state, dialogue, quest and memory rules, `EnemyAiTests.cs` the enemy transition table, perception geometry, poise, group slots, patrol order, factions and difficulty scaling, and `SaveTests.cs` the save file format, its checksum and plausibility rules, version migration and the backup and quarantine behaviour. 93 tests in total.
 
 Each test class opens an empty scene in `[OneTimeSetUp]` and restores the previous one in `[OneTimeTearDown]`. The managers resolve themselves by searching the loaded scenes, so leaving the project's own scene open would let Avarsha's managers answer instead of the ones a test set up, and results would depend on which scene the developer happened to have open. `EnemyAiTests` also resets the static `Difficulty` in `[TearDown]`.
 
 Note that Unity does not call `Awake` on plain MonoBehaviours in EditMode. Components that resolve references must therefore do so lazily rather than only in `Awake`, or they will be unconfigured under test — and, more importantly, also unconfigured at runtime if they are added or reparented after `Awake`. `Hitbox` and `Hurtbox` both resolve on demand for this reason. Components expose a `Configure(...)` method as an explicit test seam where serialized fields need setting.
+
+`Assets/Tests/PlayMode/` holds PlayMode tests (`Game.Tests.PlayMode` assembly): `CombatPlayModeTests.cs`, `EnemyAiPlayModeTests.cs`, `ProgressionPlayModeTests.cs` and `SavePlayModeTests.cs`, 33 tests in total. They cover what EditMode structurally cannot — coroutines, physics triggers, navigation, and anything that only goes wrong after several frames. Every defect found at the end of TASK 004 was of that kind.
+
+The split between the two suites is a split of claims, not of convenience. EditMode proves a rule is right: `EnemyController.Decide` is a pure function over a senses snapshot, so the whole transition table is 17 tests with no scene at all. PlayMode proves a system wired into a scene actually obeys that rule — which is a different claim, and the one that was false when TASK 004 first ran.
+
+`TestArena` builds each PlayMode test its own world in code: floor, walls, a NavMesh baked at runtime, actors and manager singletons, all destroyed afterwards. Three things about it are load-bearing. Objects are built inactive and activated last, because in PlayMode `AddComponent` runs `Awake` immediately and a `Configure(...)` call after that is too late. The NavMesh is baked after the ground and before the actors, or an enemy standing on the floor is carved out of the mesh it needs. And `WorldState` is emptied rather than destroyed between tests, because it is `DontDestroyOnLoad` and its `Awake` destroys any duplicate.
+
+The assembly references `Unity.AI.Navigation` where the EditMode one does not, so tests can call `NavMeshSurface.BuildNavMesh()`. Game code needs no such reference: `EnemyNavigator` uses only `UnityEngine.AI.NavMeshAgent`, which is an auto-referenced engine module.
 
 ## Scenes
 
@@ -224,7 +248,13 @@ unity command --project-path <repo>           # list what the Editor exposes
 unity command eval_file --file <script.cs>    # run C# against the live Editor
 unity command console --level error           # read compile/runtime errors
 unity command run_tests --mode editor         # run the EditMode suite
+unity command run_tests --mode playmode --async_tests
+unity command test_status                     # poll the async run for results
 ```
+
+PlayMode tests cannot run synchronously over the CLI: entering play mode triggers a
+domain reload that drops the request. Start them with `--async_tests` and poll
+`test_status` until it reports `completed`.
 
 Two things about `eval_file` that are easy to trip over:
 
@@ -233,4 +263,4 @@ Two things about `eval_file` that are easy to trip over:
 
 ## Not yet implemented
 
-Inventory, Save, Audio, VFX and the debug console. Within combat, block, parry, divine ability, finisher and lock-on are still outstanding. Quests, Dialogue, Memory, World and AI exist but are first passes: three of ten enemy classes are built, memory integrity is never consumed, and nothing persists across a quit. See `KNOWN_ISSUES.md` for the full list, including the open defects found by the TASK 004 play-mode run.
+Inventory, Audio, VFX and the debug console. Within combat, block, parry, divine ability, finisher and lock-on are still outstanding. Quests, Dialogue, Memory, World and AI exist but are first passes: three of ten enemy classes are built, and memory integrity is never consumed. The save system exists and round-trips the player's progress, but not the state of the world around them — a killed enemy is alive again after a load — and nothing in the game offers to save or load except the checkpoint auto-save. See `KNOWN_ISSUES.md` for the full list.

@@ -71,6 +71,13 @@ namespace Game.Combat
             regenBlockedUntil = 0f;
         }
 
+        /// <summary>Puts stamina at an exact value, for restoring a save. See HealthComponent.RestoreTo.</summary>
+        public void RestoreTo(float value)
+        {
+            CurrentStamina = Mathf.Clamp(value, 0f, maxStamina);
+            regenBlockedUntil = 0f;
+        }
+
         /// <summary>Time is passed in rather than read, so tests can step it deterministically.</summary>
         public void Regenerate(float deltaTime, float now)
         {

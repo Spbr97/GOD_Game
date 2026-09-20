@@ -135,6 +135,21 @@ namespace Game.Combat
             attackIdOrder.Clear();
         }
 
+        /// <summary>
+        /// Puts health at an exact value without going through damage or healing, for
+        /// restoring a save. Deliberately separate from <see cref="TakeDamage"/>: a load
+        /// is not an injury, and routing it through damage would publish hit events and
+        /// could trigger the death path on the frame the game comes back.
+        /// </summary>
+        public void RestoreTo(float value, bool dead = false)
+        {
+            CurrentHealth = Mathf.Clamp(value, 0f, maxHealth);
+            IsDead = dead;
+            IsInvulnerable = dead;
+            recentAttackIds.Clear();
+            attackIdOrder.Clear();
+        }
+
         /// <summary>Editor/test seam for setting up an entity before Awake would run.</summary>
         public void Configure(float newMaxHealth)
         {

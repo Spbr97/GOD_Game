@@ -86,6 +86,57 @@ namespace Game.Memory
             return GetState(memoryId) != MemoryState.Unknown;
         }
 
+        /// <summary>Every memory the player has a state for, for the save system to snapshot.</summary>
+        public IReadOnlyDictionary<string, MemoryState> States => states;
+
+        /// <summary>
+        /// Puts one memory back where a save left it, without the discovery events,
+        /// flags or quest reports that <see cref="Discover"/> fires. Restoring is not a
+        /// discovery; the player already had this memory.
+        ///
+        /// The protection in <see cref="SetState"/> is deliberately not applied here.
+        /// A save can only contain a state the rules already allowed, and refusing to
+        /// restore one would silently change the player's save rather than protect it.
+        /// </summary>
+        public bool RestoreState(string memoryId, MemoryState state)
+        {
+            var memory = Find(memoryId);
+            if (memory == null)
+            {
+                GameLogger.LogFallback(
+                    LogCategory.Memory,
+                    $"could not restore memory '{memoryId}'",
+                    "MemoryManager.RestoreState",
+                    "no memory with that id is listed in the memory catalogue",
+                    "the memory is dropped from the loaded save rather than failing the load",
+                    this);
+                return false;
+            }
+
+            states[memoryId] = state;
+
+            if (state != MemoryState.Unknown && !discovered.Contains(memory))
+            {
+                discovered.Add(memory);
+            }
+
+            return true;
+        }
+
+        /// <summary>Sets overall integrity outright, for restoring a save.</summary>
+        public void RestoreIntegrity01(float value)
+        {
+            Integrity = Mathf.Clamp01(value);
+        }
+
+        /// <summary>Forgets everything the player has found. For loading a save and for a new game.</summary>
+        public void ClearAll()
+        {
+            states.Clear();
+            discovered.Clear();
+            Integrity = 1f;
+        }
+
         public MemoryFragment Find(string memoryId)
         {
             return !string.IsNullOrEmpty(memoryId) && byId.TryGetValue(memoryId, out var memory) ? memory : null;

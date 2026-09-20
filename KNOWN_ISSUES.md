@@ -3,6 +3,140 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 006 — Save system
+
+### Six of the save's fields are reserved and always empty
+
+`SaveData` carries every field SPEC.md section 31 names, but `Inventory`, `Abilities`,
+`NpcStates`, `BossStates`, `DialogueFlags` and `EndingFlags` have no system behind them
+and are written empty every time. They exist now so the file's shape is settled and a
+later system fills a field instead of triggering a version migration. Nothing reads
+them, and nothing validates them.
+
+### The world is not saved, only the player's progress
+
+Quest states, world flags and counters, memories and the player all round-trip. The
+*world* does not: a killed enemy is alive again after a load, a collected memory pickup
+is sitting in the world again, and a fired `LocationTrigger` has forgotten it fired.
+Everything gated on a world flag behaves correctly, so story progression is safe; what
+is wrong is everything gated on an object's own state. Closing this needs per-object
+save identity — a stable id on each saveable object — which `ISaveParticipant` can
+carry but nothing implements yet.
+
+### Loading does not change scene
+
+`SaveData.SceneName` is recorded and then ignored. `Load` applies a save into whichever
+scene is already open, so loading a save made elsewhere silently puts the player at
+coordinates that mean nothing. `GameSceneManager` exists and could do the load first;
+the two are not connected, and doing so needs a defined point at which restoring
+happens after the new scene's managers have woken.
+
+### Nothing in the game offers to save or load
+
+`SaveManager` sits on `GameSystems` in Avarsha and auto-saves when a checkpoint is
+activated. That is the only save anything writes. There is no save menu, no load menu,
+no slot browser and no way for a player to write a `Manual` or `Chapter` save —
+`SaveSlot` declares all three and only one is ever used. Saving and loading are
+currently reachable only from code and from tests.
+
+### The required corruption message is published but never shown
+
+`SaveManager` raises `SaveRecoveredFromBackupEvent` carrying SPEC.md section 32's
+sentence verbatim, and a PlayMode test asserts the exact wording. No UI subscribes to
+it, so in a real session the player is not told. The same is true of `SaveFailedEvent`.
+
+### The checksum detects corruption, not editing
+
+`SaveSerializer` uses FNV-1a, which catches a truncated, half-written or bit-rotted
+file — the failure SPEC.md section 32 is about. It is not a signature: anyone who
+wants to edit their own save can recompute it. That is a deliberate scope decision for
+a single-player game, not an oversight, but it means the checksum must never be relied
+on as an anti-cheat measure.
+
+### Migration has never migrated anything
+
+There is one save version, so `SaveMigration` has no steps and its loop has never run.
+The refusal path is tested; the upgrade path cannot be until there is a version 2. The
+first real migration should arrive with a test that loads a genuine version 1 file
+captured from this build, not a hand-written one.
+
+### Settings live in two places
+
+`SettingsManager` persists the difficulty in `PlayerPrefs` and `SaveData.Difficulty`
+persists it again in the save file. Loading a save applies the save's value, which can
+then disagree with what the options screen would show. SPEC.md section 31 lists
+`Settings` as save data and also names a separate settings save, so both are wanted —
+but which one wins is currently decided by whichever ran last.
+
+### Saving is only blocked for two of the cases that should block it
+
+`SaveManager` refuses to save during a conversation and while the player is dead.
+SPEC.md section 31 says never to save during a critical state transition, and SPEC.md
+section 33 names irreversible story decisions, boss transitions and temple completions.
+None of those exist yet, and none of them call `BlockSaves`. The hook is public and
+reason-keyed so they can when they do.
+
+### Quarantined saves accumulate forever
+
+A save that fails validation is renamed `*.corrupt-<timestamp>` and left on disk,
+because SPEC.md section 32 forbids deleting user saves. Nothing ever removes them,
+counts them or tells the player they are there, so a player hitting repeated corruption
+slowly fills their save folder with files they do not know about.
+
+### Two tests deliberately log console errors
+
+`Load_ACorruptPrimary_...` and `Storage_ACorruptPrimary_...` feed the loader a shredded
+file on purpose, and `SaveStorage` logs that at error level as SPEC.md section 32 step
+4 requires. The tests suppress the failure with `LogAssert.ignoreFailingMessages`, but
+the entries still land in the Unity console, so a clean run of the suite leaves errors
+behind that are expected rather than real.
+
+## TASK 005 — PlayMode tests
+
+### Whole systems still have no PlayMode coverage
+
+`Assets/Tests/PlayMode/` covers combat, enemy AI, quests and memories — the systems
+whose failures were expensive. Dialogue, the interaction prompt, every UI screen, the
+pause menu, the third-person camera and player locomotion have none. Locomotion and
+the camera are the two most obviously frame-dependent systems in the project and are
+still checked only by eye.
+
+### Nothing tests the shipped scenes
+
+Every test builds its arena in code, including its own NavMesh. That is deliberate —
+a test that depends on `Avarsha.unity` breaks whenever a designer moves a building —
+but it means no test would notice if the hub scene lost its `NavMesh`, its
+`QuestManager` or a serialized reference. A separate, small set of scene-integrity
+tests would close this; they do not exist.
+
+### The suite is wall-clock and tolerance-based
+
+PlayMode tests run in real seconds: the current 25 take about 42. Assertions about
+movement are distance thresholds ("closed more than 2m in two seconds") and every wait
+has a deadline, so a heavily loaded machine could fail a test that is not actually
+broken. Nothing is time-scaled or deterministic. If flakes appear, the fix is to drive
+the systems from a fixed clock rather than to widen the tolerances.
+
+### SPEC.md section 53 lists tests for systems that do not exist
+
+Parry, combos and boss phases (combat), and save, load, backup, corrupted data and
+version migration (save) are all named in section 53 and none are covered, because
+none are implemented. They are listed here so the gap is not mistaken for an oversight
+in the test suite.
+
+### Nothing runs the tests automatically
+
+Both suites are run by hand through the Unity CLI. There is no CI, no pre-commit hook
+and no record of which commit last passed. The coverage only protects the project if
+somebody remembers to run it.
+
+### `CombatController.Configure` exists only for the tests
+
+`CombatController` disables itself in `Awake` when it has no `InputActionAsset`, so a
+test-built player needs one before activation. `Configure` is the seam for that,
+matching the pattern already used across the project — but it is a public method on a
+gameplay component that shipping code never calls.
+
 ## TASK 004 — Enemy AI
 
 ### Three enemy archetypes exist out of ten
@@ -66,26 +200,6 @@ by its own side.
 There is no faction model, so an enemy cannot deliberately target an NPC and the
 Avarsha civilians are in no danger. Same fix as the defect above.
 
-### The leash range itself has only ever been unit-tested
-
-Giving up on a lost target is verified in play: the Forgotten Soldier moved to
-`Search` 3.0s after losing sight. But that is the *lose-target* path. The separate
-anti-cheese rule — break off when further than `leashRange` from home even with the
-player in plain sight (SPEC.md section 56) — is covered only by
-`Decide_BeyondLeashRange_ReturnsHomeEvenWithTheTargetInSight`. No play-mode run has
-dragged an enemy past its leash while keeping it in line of sight, so the rule is
-proven as a decision but not as a behaviour.
-
-### The telegraph has not been observed firing in play
-
-`sawTelegraph=False` in both play-mode runs: the probe polled
-`EnemyCombatant.IsTelegraphing` every frame during the engage phase and never caught
-it true, because the enemy under observation stayed in `Chase` and never entered its
-attack. Enemy attacks do land — the first run took the player from 93 to 83 health —
-so the attack path works; what is unproven is that the wind-up actually tints the
-body for the authored duration. It needs either a PlayMode test or a probe that waits
-on `EnemyState.Attack` before it starts watching.
-
 ### Retreat is the only self-preservation behaviour
 
 An enemy backs off once when it drops below its archetype's health fraction, then
@@ -141,17 +255,14 @@ same gap recorded under TASK 002's "respawn does not reset world state", now wit
 something in the world it actually loses. `QuestTarget` guards against a kill being
 counted twice, so a future respawn will not break the quest count.
 
-### Test coverage is EditMode-only for the third task running
+### Knockback and the enemy tint are still unverified
 
-`Assets/Tests/EditMode/EnemyAiTests.cs` covers what can be decided without a frame:
-the whole transition table via `EnemyController.Decide`, the sight-cone geometry,
-poise and stagger, group attack slots, patrol route order, difficulty scaling and the
-quest hook — 33 tests. It does not cover anything needing a NavMesh, a physics step
-or elapsed time: actual pathing, the perception raycast, the attack coroutine's
-timing, the telegraph, knockback, or the leash playing out over seconds. Those were
-verified by a scripted play-mode run, which is a manual check rather than a
-regression test. This gap is now three tasks old and is the largest single risk in
-the project.
+`EnemyStagger` pushes an enemy along `DamageData.Direction` when poise breaks, and
+`EnemyController` and `EnemyCombatant` tint the body. TASK 005 covers the stagger
+itself — the swing is interrupted and the state machine enters `Stagger` — but not
+that the enemy visibly moves, and not that either tint reaches the renderer. Both are
+cosmetic and both will be rewritten when real art and animation arrive, which is why
+they were left rather than tested.
 
 ## TASK 003 — Avarsha
 
@@ -259,15 +370,14 @@ denser scene than this one, interactables beyond the sixteenth collider in range
 be invisible to it. There is also no line-of-sight check, so an NPC on the other side
 of a wall can be selected if they are within range.
 
-### Test coverage is EditMode-only, again
+### Conversation and interaction are still untested over frames
 
-`Assets/Tests/EditMode/AvarshaTests.cs` covers the world-state, dialogue, quest and
-memory rules — 24 tests over the logic the acceptance criteria rest on. It does not
-cover anything needing a frame or a physics step: trigger volumes firing on entry,
-the interaction prompt, the dialogue UI, player control locking, or the supernatural
-event's sequence over time. Those were verified by a scripted play-mode run, which is
-a manual check rather than a regression test. This is the same gap recorded for TASK
-002 and it is now twice as large.
+TASK 005 covers the quest and memory halves of this in PlayMode — trigger volumes
+firing on entry, kills advancing an objective, a pickup granting once. What remains
+uncovered is everything belonging to a conversation: the interaction prompt, the
+dialogue UI, `PlayerDialogueLock` suspending and restoring control, and the
+supernatural event's sequence over time. Those are still verified only by a scripted
+play-mode run, which is a manual check rather than a regression test.
 
 ### Gamepad bindings are saturated
 
@@ -345,15 +455,6 @@ decision the spec does not settle, and implementing either answer needs the save
 SPEC.md section 15 requires difficulty to modify timing windows rather than enemy health,
 and section 16 requires per-enemy difficulty scaling. Neither exists; all values are
 fixed serialized fields.
-
-### Test coverage is EditMode-only
-
-`Assets/Tests/EditMode/CombatTests.cs` covers the damage, stamina and checkpoint rules —
-the logic the acceptance criteria rest on. It does **not** cover anything needing a
-physics step or a frame: hitbox trigger behaviour, swing timing, dodge invulnerability
-windows, and the death-to-respawn sequence. Those were verified by a scripted play-mode
-run instead, which is a manual check rather than a regression test. They should become
-PlayMode tests.
 
 ### Dodge is bound to left Ctrl
 

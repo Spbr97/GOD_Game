@@ -182,6 +182,27 @@ namespace Game.Combat
             return true;
         }
 
+        /// <summary>
+        /// Test and tooling seam for supplying input without the Inspector. Must be
+        /// called before Awake — build the object inactive, configure, then activate —
+        /// because Awake disables this component outright when no input asset is set.
+        /// </summary>
+        public void Configure(InputActionAsset actions, WeaponController weaponController = null,
+            StaminaComponent staminaComponent = null)
+        {
+            inputActions = actions;
+
+            if (weaponController != null)
+            {
+                weapon = weaponController;
+            }
+
+            if (staminaComponent != null)
+            {
+                stamina = staminaComponent;
+            }
+        }
+
         private bool CanAct()
         {
             return isActiveAndEnabled && health != null && !health.IsDead;

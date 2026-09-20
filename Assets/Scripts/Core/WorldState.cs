@@ -132,9 +132,30 @@ namespace Game.Core
             return true;
         }
 
+        /// <summary>
+        /// Every flag that has ever been set, for the save system to snapshot. Read-only
+        /// because writing has to go through <see cref="SetFlag"/> to publish its event.
+        /// </summary>
+        public IReadOnlyDictionary<string, bool> Flags => flags;
+
+        /// <summary>Every counter that has ever been touched, for the save system to snapshot.</summary>
+        public IReadOnlyDictionary<string, int> Counters => counters;
+
         public int GetCounter(string key)
         {
             return !string.IsNullOrEmpty(key) && counters.TryGetValue(key, out var value) ? value : 0;
+        }
+
+        /// <summary>
+        /// Sets a counter outright rather than by a delta. Used when restoring a save;
+        /// ordinary gameplay uses <see cref="AddToCounter"/>.
+        /// </summary>
+        public void SetCounter(string key, int value)
+        {
+            if (!string.IsNullOrEmpty(key))
+            {
+                counters[key] = value;
+            }
         }
 
         public int AddToCounter(string key, int delta)
