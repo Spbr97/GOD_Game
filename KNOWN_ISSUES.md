@@ -3,6 +3,167 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## SPEC AUDIT (after TASK 019) — all seven gaps now CLOSED by TASK 020–026
+
+A full pass over SPEC.md sections 1–87 after the vertical slice closed found
+seven requirements that were neither built nor planned anywhere. All seven were
+implemented in TASK 020–026; each is recorded below with what closing it
+actually delivered and what it deliberately did **not**. The residual
+limitations are the entries under "still open" — those are the ones that matter
+going forward.
+
+### CLOSED — Debug mode (section 52), TASK 021
+
+`Assets/Scripts/Debug/` now holds `DebugMode` (the release gate), `DebugCommands`
+(the twelve state-changing tools as headless statics), `DebugOverlay` (the five
+read-only overlays) and `DebugConsole` (the IMGUI front end, backquote to open).
+All seventeen section 52 tools exist. Gating is two-layer: a compile-time
+`#if UNITY_EDITOR || DEVELOPMENT_BUILD` so a release player has no console in the
+binary at all, plus a runtime switch that starts off inside builds that do have
+it.
+
+**Still open:** the console is IMGUI and unstyled — it is a developer tool and
+was not given design attention. There is no command to *fail* a quest, because
+`QuestManager.FailQuest` needs a reason string and no caller has ever needed one
+from the console; add it when something does. `spawn` clones an enemy already in
+the scene rather than building one from an archetype asset, so it cannot spawn a
+type the current scene does not contain — building one from scratch would mean
+this file knowing how a dozen components fit together, and drifting from the
+scenes the first time that changed.
+
+### CLOSED — Map screen (section 42), TASK 026
+
+`MapUI` draws a top-down map from the scene at the moment it opens: markers for
+the player (with facing), checkpoints, NPCs, quest targets, discovered memories
+and bosses, each carrying a letter as well as a colour (section 43). Bound to
+**M** and to the D-pad up, and reachable from a Close button. Extent comes from
+`WorldBounds` when the scene has one, so the map does not rescale under the
+player as they walk.
+
+**Still open:** it is a marker map, not a floor plan — nothing draws walls,
+buildings or district outlines, so it answers "where is the thing I want" but
+not "how do I get there". No zoom and no pan; Avarsha fits on one screen and the
+temples will not. Undiscovered memories are deliberately hidden so the map does
+not become a collectible checklist. The optional HUD minimap (section 42) is
+still not built.
+
+### CLOSED — The three missing documents (sections 81, 82), TASK 020
+
+`GAME_DESIGN.md`, `STORY_BIBLE.md` and `TEST_PLAN.md` now exist. The story bible
+records the canon invented across TASK 003–018 — the ruin stone, Avarsha's
+districts, every NPC line, the three memory fragments, Nirvaan's cinematic
+lines — separated into "canon from SPEC.md" (authoritative) and "canon added
+during implementation" (provisional), with the section 82 rule stated at the
+top.
+
+**Still open, and this needs the author, not a coding agent:** writing the bible
+surfaced four story questions the implementation has already answered without
+anyone deciding them. They are listed at the end of STORY_BIBLE.md. The sharpest
+is that SPEC.md section 8.1 names Agniya's boss **The Flame Sovereign**, and the
+shipped boss is **Agniya, the First Flame** — a direct conflict with the spec,
+not a gap in it. The others: whether "the war that made them seven" (MEM_003) is
+canon, whether Nirvaan knows his own name, and whether the Temple Guardian is a
+construct or one of the Forgotten.
+
+### CLOSED — Falling out of the world (section 50, edge cases 9 and 10), TASK 022
+
+`WorldBounds` defines a kill plane and a horizontal footprint per scene.
+`PlayerBoundsGuard` returns the player to the latest valid checkpoint with a
+message; `EnemyBoundsGuard` returns an enemy to its authored home rather than
+deleting it (section 55 forbids a required NPC disappearing). Both are wired
+into Avarsha and Test, sized from the scenes' own geometry plus 40 m of padding.
+
+**Still open:** the volume is a box and a plane, not per-region. A later scene
+with legitimately separated areas — Vayu's floating islands especially — will
+need either several volumes or a different shape. Recovery is position-only: it
+does not undo anything that happened during the fall, though nothing currently
+can. A scene with no `WorldBounds` is silently unguarded, which keeps every
+existing test arena working but means a new scene opts in rather than being
+protected by default.
+
+### CLOSED — "[Dialogue unavailable]" (section 50), TASK 024
+
+A missing graph, or one with no usable entry node, now shows the exact
+specified string as a real one-line conversation — dismissed with the ordinary
+advance key — and `DialogueRunner.Begin` still returns **false**, so the
+caller's own consequences do not fire for a conversation that did not happen.
+`NpcInteractable` no longer hides its prompt when it has no dialogue, because a
+hidden prompt cannot display a fallback. A node with empty text gets the same
+string.
+
+**Still open:** a link to a node that does not exist *mid-conversation* still
+ends the conversation cleanly rather than showing the fallback. That is
+deliberate — the player has read real lines by then and ending is honest —
+but it means the two "missing dialogue" cases behave differently, which is worth
+knowing when debugging. There is also no per-line fallback for missing *voice*
+audio, because no voice audio exists at all yet (section 41).
+
+### CLOSED — Device and window edge cases (20–24), TASK 025
+
+`DeviceWatcher` handles all three: `InputSystem.onDeviceChange` for controller
+loss and return, and `OnApplicationFocus`/`OnApplicationPause` for focus. Losing
+the last gamepad or the window pauses via an `AutoPauseRequestedEvent` that
+`PauseMenu` turns into a real menu — never a frozen game with nothing on screen.
+Nothing resumes automatically. Resolution, graphics quality and fullscreen now
+exist in the Settings screen, and a change made while a scene is loading is
+deferred until the load finishes (edge case 20).
+
+**Still open:** focus-loss pausing is off in the Editor by default, because
+clicking out of the Game view would freeze any PlayMode test that happened to be
+running; the behaviour is covered by tests calling the handler directly, but the
+Editor does not exercise the Unity callback itself. There is no control-scheme
+swap — the game does not re-prompt keyboard glyphs when a pad is unplugged,
+because no glyph system exists. `DeviceWatcher` is in the gameplay scenes only,
+not the Main Menu, so unplugging a pad in the menu is silent. The Settings
+screen is still reachable only from the Main Menu, not from Pause (carried over
+from TASK 017).
+
+### CLOSED — Boss arena escape (edge case 7, sections 55 and 56), TASK 023
+
+`BossArena` watches the player's distance while an encounter is live. Leaving
+for longer than a three-second grace ends the fight: the boss returns to full
+health, phase 1 and its start position, and `BossEncounterResetEvent` takes the
+HUD bar down without any victory treatment. Both Avarsha bosses have one, each
+sized wider than the boss can see so an encounter cannot start outside its own
+arena.
+
+**Still open:** it is a radius, not an authored shape. A non-circular arena — a
+long hall, an L — is either too generous at the corners or too tight at the
+ends. The reset is not announced to the player: they get no message explaining
+why the boss walked away and healed, which will read as a bug the first time it
+happens to someone. Nothing prevents *ranged* attacks from just inside the
+margin; there are no ranged player attacks yet, so this is latent.
+
+---
+
+## SPEC AUDIT (second pass, during TASK 020–026) — newly found, still open
+
+### The motion blur toggle (section 43) does not exist
+
+Section 43's accessibility list names a motion blur toggle. The game renders no
+motion blur — there is no post-processing volume with a motion blur override —
+so a toggle would govern nothing. A dead control is worse than a missing one and
+much harder to notice, which is exactly how the Master Volume slider survived
+eighteen tasks doing nothing. Closing this means adding motion blur to a URP
+volume profile first, then a toggle that gates it. Recorded here rather than
+shipped as a checkbox that lies.
+
+### Section 54's edge cases 1–4, 8, 12–14, 19, 27–30 have no tests
+
+They are handled in code — cutscene state, save blockers, quest restore, missing
+asset fallbacks, cinematic pause — but none has an automated test naming it, so
+nothing would catch a regression. TEST_PLAN.md section 4 lists which are covered
+and which are not. The gap is coverage, not behaviour.
+
+### Colour-blind indicators (section 43) are satisfied by convention, not by a mode
+
+Section 43 asks for "colorblind-friendly indicators" and says important
+information must never be communicated by colour alone. The project satisfies
+the second sentence everywhere — every bar has a number, telegraphs pulse in
+scale as well as colour, map markers carry letters — but there is no
+colour-blind *mode* offering alternative palettes. Whether the convention is
+enough to close the requirement is a judgement call that has not been made.
+
 ## TASK 018 — Placeholder audio, animation and VFX pass
 
 ### Attack timings were not moved to animation events
@@ -379,12 +540,14 @@ The Quit button calls `EditorApplication.isPlaying = false` in the Editor and
 `Application.Quit()` otherwise; only the Editor path has been exercised, since there is
 no build pipeline yet (that is TASK 019's job).
 
-### Master Volume has nothing to control
+### Master Volume has nothing to control — CLOSED (spec audit, TASK 019)
 
-The Settings screen's volume slider writes to `SettingsManager.Current.MasterVolume`
-and persists it, but nothing reads that field — there is no audio system yet
-(ROADMAP TASK 018). The slider is honest about being a placeholder control with no
-effect, per section 78.
+The Settings screen's volume slider wrote to `SettingsManager.Current.MasterVolume`
+and persisted it, but nothing read that field: there was no audio system until
+TASK 018. Once TASK 018 added real audio the slider became a genuinely broken
+control rather than an honest placeholder, which the spec audit caught.
+`SettingsManager.Apply` now pushes it to `AudioListener.volume`, the same
+push-not-pull shape `Difficulty` already uses, and the slider applies live.
 
 ### Menu UI is built by an editor script, not laid out by hand
 
@@ -448,10 +611,13 @@ camera shake. The player learns it happened by being unable to act.
 
 ### The HUD is placeholder text on flat bars
 
-`HudUI` draws three bars and two labels with the built-in font. No damage flash, no
-low-health warning, no boss health (no bosses), no equipped ability (no abilities),
-no minimap. It is hideable through `SetVisible`, but nothing binds that to an input
-or a setting yet; SPEC.md section 42's "HUD must be hideable" is a method, not a feature.
+`HudUI` draws three bars and two labels with the built-in font. Partly overtaken by
+later tasks: the boss health bar arrived with TASK 013 and a damage flash with
+TASK 017's `ScreenEffectsUI`. Still open as of the TASK 019 spec audit: no
+low-health warning, no equipped-ability indicator (Ember Step has existed since
+TASK 011, so the system it was waiting for is now there), and no minimap. It is
+hideable through `SetVisible`, but nothing binds that to an input or a setting, so
+SPEC.md section 42's "HUD must be hideable" is still a method rather than a feature.
 
 ### The canvas renders in camera space, which can be occluded
 

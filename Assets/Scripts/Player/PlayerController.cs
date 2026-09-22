@@ -77,6 +77,17 @@ namespace Game.Player
             dodgeEndsAt = 0f;
         }
 
+        /// <summary>
+        /// Clears accumulated fall speed. Called after a teleport that did not go
+        /// through death — <see cref="Game.World.PlayerBoundsGuard"/> — because by the
+        /// time a fall out of the world is noticed the downward velocity is large
+        /// enough to punch straight back through the floor on the next frame.
+        /// </summary>
+        public void CancelVerticalVelocity()
+        {
+            verticalVelocity = Vector3.zero;
+        }
+
         private void Awake()
         {
             controller = GetComponent<CharacterController>();

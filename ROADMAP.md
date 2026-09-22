@@ -115,6 +115,56 @@ be asked. Reordering is a decision for the owner; say so and this file changes.
   KNOWN_ISSUES.md's per-task sections — none of them block a fun, playable
   vertical slice, per section 62.
 
+- [x] **TASK 020 — The three missing project documents (sections 81, 82).**
+  `GAME_DESIGN.md`, `STORY_BIBLE.md` and `TEST_PLAN.md`. The story bible
+  separates canon transcribed from SPEC.md (authoritative) from canon invented
+  across TASK 003–018 (provisional), states section 82's "propose it first"
+  rule at the top, and ends with four story questions the implementation has
+  already answered without anyone deciding them — including a direct conflict
+  with section 8.1 over Agniya's boss name. Those need the author, not an agent.
+- [x] **TASK 021 — Debug mode (section 52).** All seventeen developer tools:
+  `DebugCommands` (twelve headless statics that drive the real systems, so a
+  state reached with them is a state the game can be in), `DebugOverlay` (five
+  read-only readouts), `DebugConsole` (IMGUI, backquote) and `DebugMode`, the
+  gate. Two-layer gating: a compile-time `#if` so a release player has no
+  console in the binary at all, plus a runtime switch that starts off.
+- [x] **TASK 022 — Falling out of the world (section 50, edge cases 9 and 10).**
+  `WorldBounds` (kill plane plus horizontal footprint; height alone is never an
+  escape), `PlayerBoundsGuard` (back to the latest valid checkpoint, with a
+  message and the fall speed cleared) and `EnemyBoundsGuard` (back to its
+  authored home — put back, never deleted, per section 55). Sized into both
+  gameplay scenes from their own geometry.
+- [x] **TASK 023 — Boss arena escape (edge case 7, sections 55 and 56).**
+  `BossArena` ends a fight the player walks out of: full health, phase 1, back
+  to its start. One rule answering three requirements — the arena resets
+  safely, chipping from outside stops paying, and walking away is allowed
+  rather than punished. A grace period keeps a dodge across the line from
+  ending an encounter.
+- [x] **TASK 024 — The `[Dialogue unavailable]` fallback (section 50).** A
+  missing graph now shows the exact specified string as a real, dismissable
+  one-line conversation, while `Begin` still returns false so the caller's own
+  consequences never fire for a conversation that did not happen.
+  `NpcInteractable` no longer hides its prompt when it has no dialogue — a
+  hidden prompt cannot display a fallback.
+- [x] **TASK 025 — Device and window edge cases (20–24).** `DeviceWatcher`
+  handles controller loss and return and window focus, pausing through
+  `AutoPauseRequestedEvent` so there is always a menu on screen and nothing
+  resumes by itself. Resolution, graphics quality and fullscreen added to the
+  Settings screen, with a change made during a scene load deferred until the
+  load finishes.
+- [x] **TASK 026 — Map screen (section 42).** `MapUI` draws the scene's own
+  markers — player with facing, checkpoints, people, objectives, discovered
+  memories, bosses — each with a letter as well as a colour. Bound to M and
+  D-pad up. Drawn from the scene rather than authored, so it cannot go out of
+  date as the world changes.
+
+  All seven came from the SPEC.md audit after TASK 019 and were the only
+  requirements found with neither an implementation nor a roadmap entry. The
+  residual limitations of each are in KNOWN_ISSUES.md, along with three gaps the
+  second pass found: the motion blur toggle (section 43) has nothing to gate, a
+  dozen section 54 edge cases are handled but untested, and colour-blind support
+  is satisfied by convention rather than by a mode.
+
 ## Later (after the vertical slice)
 
 - Phase 5 — remaining six temples, each with one unique mechanic.

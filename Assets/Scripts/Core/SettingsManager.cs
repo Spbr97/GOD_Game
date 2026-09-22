@@ -35,6 +35,48 @@ namespace Game.Core
 
         /// <summary>Widens <see cref="Game.Combat.LockOnController"/>'s acquisition cone when true.</summary>
         public bool AimAssistEnabled = true;
+
+        // ------------------------------------- SPEC.md section 54, edge cases 20 and 24
+
+        /// <summary>
+        /// Index into <see cref="QualitySettings.names"/>. -1 means "leave the
+        /// project's own default alone", which is what a fresh install wants: the
+        /// build was configured with a sensible level and a saved -1 says the player
+        /// has never chosen otherwise.
+        /// </summary>
+        public int QualityLevel = -1;
+
+        /// <summary>Chosen screen width. 0 means "leave the current resolution alone".</summary>
+        public int ResolutionWidth;
+
+        /// <summary>Chosen screen height. 0 means "leave the current resolution alone".</summary>
+        public int ResolutionHeight;
+
+        public bool Fullscreen = true;
+
+        /// <summary>Whether a stored resolution exists to apply at all.</summary>
+        public bool HasResolution => ResolutionWidth > 0 && ResolutionHeight > 0;
+    }
+
+    /// <summary>
+    /// Raised after display settings were actually applied, so anything laid out
+    /// against the screen can re-measure (SPEC.md section 54's edge case 24). Not
+    /// raised for a change that was deferred because a scene was loading.
+    /// </summary>
+    public readonly struct DisplaySettingsAppliedEvent
+    {
+        public readonly int Width;
+        public readonly int Height;
+        public readonly bool Fullscreen;
+        public readonly int QualityLevel;
+
+        public DisplaySettingsAppliedEvent(int width, int height, bool fullscreen, int qualityLevel)
+        {
+            Width = width;
+            Height = height;
+            Fullscreen = fullscreen;
+            QualityLevel = qualityLevel;
+        }
     }
 
     /// <summary>
@@ -58,6 +100,12 @@ namespace Game.Core
         public GameSettings Current { get; private set; } = new();
 
         public InputActionAsset InputActions => inputActions;
+
+        /// <summary>A display change arrived while a scene was loading and is waiting for it to finish.</summary>
+        private bool displayApplyPending;
+
+        /// <summary>Exposed for tests and the debug overlay.</summary>
+        public bool DisplayApplyPending => displayApplyPending;
 
         private void Awake()
         {
@@ -176,6 +224,83 @@ namespace Game.Core
         public void Apply()
         {
             Game.Core.Difficulty.Set(Current.Difficulty);
+
+            // SPEC.md section 43's "audio volume controls". Pushed the same way
+            // Difficulty is: AudioListener's volume is a global the emitting sources
+            // never read from here (TASK 018's SfxSpawner builds one per cue).
+            AudioListener.volume = Mathf.Clamp01(Current.MasterVolume);
+
+            ApplyDisplaySettings();
+        }
+
+        /// <summary>
+        /// Applies quality level and resolution (SPEC.md section 54's edge cases 20
+        /// and 24).
+        ///
+        /// Refused outright while a scene is loading, and retried once it finishes.
+        /// That is edge case 20: changing the resolution mid-load resizes the screen
+        /// underneath a scene that is halfway through building its canvas, and what
+        /// comes out is a layout measured against a screen that no longer exists.
+        /// Deferring costs the player nothing — the change lands a moment later.
+        /// </summary>
+        public void ApplyDisplaySettings()
+        {
+            if (GameSceneManager.IsLoading)
+            {
+                displayApplyPending = true;
+                GameLogger.Log(LogCategory.UI, "Display settings deferred: a scene is loading.", this);
+                return;
+            }
+
+            displayApplyPending = false;
+
+            var quality = Current.QualityLevel;
+            if (quality >= 0 && quality < QualitySettings.names.Length && quality != QualitySettings.GetQualityLevel())
+            {
+                // applyExpensiveChanges: false — the expensive half is texture and
+                // shader reloading, and forcing it mid-session is a visible hitch for
+                // no benefit the player asked for.
+                QualitySettings.SetQualityLevel(quality, false);
+            }
+
+            if (Current.HasResolution
+                && (Screen.width != Current.ResolutionWidth
+                    || Screen.height != Current.ResolutionHeight
+                    || Screen.fullScreen != Current.Fullscreen))
+            {
+                Screen.SetResolution(Current.ResolutionWidth, Current.ResolutionHeight, Current.Fullscreen);
+            }
+
+            EventBus.Publish(new DisplaySettingsAppliedEvent(
+                Current.HasResolution ? Current.ResolutionWidth : Screen.width,
+                Current.HasResolution ? Current.ResolutionHeight : Screen.height,
+                Current.Fullscreen,
+                quality));
+        }
+
+        /// <summary>
+        /// Lands a display change that arrived mid-load. A per-frame bool test rather
+        /// than a callback on <see cref="GameSceneManager"/>, because the load that
+        /// deferred it may be the one that destroys whatever registered the callback.
+        /// </summary>
+        private void Update()
+        {
+            if (displayApplyPending && !GameSceneManager.IsLoading)
+            {
+                ApplyDisplaySettings();
+            }
+        }
+
+        /// <summary>Sets and persists the display settings together, since changing one usually means changing the other.</summary>
+        public void SetDisplay(int width, int height, bool fullscreen, int qualityLevel)
+        {
+            Current.ResolutionWidth = width;
+            Current.ResolutionHeight = height;
+            Current.Fullscreen = fullscreen;
+            Current.QualityLevel = qualityLevel;
+
+            ApplyDisplaySettings();
+            Save();
         }
 
         /// <summary>Changes difficulty and persists it. SPEC.md section 44 allows this mid-run.</summary>

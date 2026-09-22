@@ -35,6 +35,25 @@ namespace Game.AI
         }
     }
 
+    /// <summary>
+    /// Raised when a live encounter ended without a defeat, because the player left
+    /// the arena and the boss was put back (SPEC.md section 54's edge case 7,
+    /// section 55's "important boss arenas must reset safely"). Distinct from
+    /// <see cref="BossDefeatedEvent"/> on purpose: the HUD hides the same bar either
+    /// way, but nothing that celebrates a victory should fire for a walked-away fight.
+    /// </summary>
+    public readonly struct BossEncounterResetEvent
+    {
+        public readonly GameObject Boss;
+        public readonly string BossId;
+
+        public BossEncounterResetEvent(GameObject boss, string bossId)
+        {
+            Boss = boss;
+            BossId = bossId;
+        }
+    }
+
     /// <summary>Raised once when the boss dies, and again (without replaying the victory hooks) when a save restores a prior defeat.</summary>
     public readonly struct BossDefeatedEvent
     {

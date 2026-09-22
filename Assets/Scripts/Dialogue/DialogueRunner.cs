@@ -13,6 +13,18 @@ namespace Game.Dialogue
     /// </summary>
     public class DialogueRunner : MonoBehaviour
     {
+        /// <summary>
+        /// The exact string SPEC.md section 50 requires when dialogue is missing.
+        /// Public and const so a test asserts on the requirement itself rather than
+        /// on a copy of it.
+        /// </summary>
+        public const string UnavailableText = "[Dialogue unavailable]";
+
+        private const string FallbackGraphId = "DIALOGUE_UNAVAILABLE";
+        private const string FallbackNodeId = "UNAVAILABLE";
+
+        private static DialogueGraph fallbackGraph;
+
         private static DialogueRunner instance;
 
         /// <summary>Resolved on first access; see <see cref="Game.Core.SceneSingleton"/>.</summary>
@@ -49,9 +61,24 @@ namespace Game.Dialogue
         }
 
         /// <summary>
-        /// Starts a conversation. Returns false when the graph is missing or has no
-        /// usable node, or when a conversation is already running — starting a second
-        /// conversation over the first would strand the first one's consequences.
+        /// Starts a conversation.
+        ///
+        /// Returns false when the graph is missing or has no usable node, or when a
+        /// conversation is already running — starting a second conversation over the
+        /// first would strand the first one's consequences.
+        ///
+        /// A missing graph still puts <see cref="UnavailableText"/> on screen, because
+        /// SPEC.md section 50 requires it: an NPC who silently does nothing reads as a
+        /// game that ignored the button, not as content that is not finished. It
+        /// returns false anyway, and that is the point — the caller's own consequences
+        /// (<see cref="NpcInteractable"/>'s "first spoken" flag, and anything a quest
+        /// hangs off it) must not fire for a conversation that did not actually
+        /// happen. A display fallback is not a conversation.
+        ///
+        /// A link to a node that does not exist mid-conversation is a different
+        /// failure and stays as it was: the conversation ends cleanly. The player has
+        /// already read real lines by then, so ending is honest, whereas interrupting
+        /// them with an error string is not.
         /// </summary>
         public bool Begin(DialogueGraph graph, string defaultSpeaker = null)
         {
@@ -68,14 +95,23 @@ namespace Game.Dialogue
                     "could not start dialogue",
                     "DialogueRunner.Begin",
                     "no dialogue graph was supplied",
-                    "nothing happens; the player keeps control",
+                    $"showing \"{UnavailableText}\" so the failure is visible, and applying none of the caller's consequences",
                     this);
+                ShowUnavailable(defaultSpeaker);
                 return false;
             }
 
             var entry = graph.GetEntryNode();
             if (entry == null)
             {
+                GameLogger.LogFallback(
+                    LogCategory.Dialogue,
+                    $"could not start dialogue '{graph.GraphId}'",
+                    "DialogueRunner.Begin",
+                    "the graph has no usable entry node",
+                    $"showing \"{UnavailableText}\" so the failure is visible, and applying none of the caller's consequences",
+                    this);
+                ShowUnavailable(defaultSpeaker);
                 return false;
             }
 
@@ -88,6 +124,58 @@ namespace Game.Dialogue
             Show(entry);
             return true;
         }
+
+        /// <summary>
+        /// Runs the one-line fallback conversation (SPEC.md section 50's missing
+        /// dialogue). It is a real conversation on a real graph rather than a special
+        /// case threaded through the UI, so <c>DialogueUI</c>, the advance key, the
+        /// player-control lock and the completion event all behave exactly as they do
+        /// for authored dialogue — the player dismisses it the normal way instead of
+        /// being stuck in front of a panel nothing knows how to close.
+        /// </summary>
+        private void ShowUnavailable(string defaultSpeaker)
+        {
+            var graph = FallbackGraph();
+
+            CurrentGraph = graph;
+            DefaultSpeaker = defaultSpeaker;
+
+            EventBus.Publish(new DialogueStartedEvent(graph, defaultSpeaker));
+            Show(graph.GetEntryNode());
+        }
+
+        /// <summary>
+        /// The fallback graph, built in code because it must exist even when the
+        /// project's dialogue assets are what failed to load.
+        ///
+        /// Deliberately <c>== null</c> rather than <c>??=</c>: a domain reload
+        /// destroys the cached ScriptableObject, and C#'s <c>is null</c> pattern —
+        /// which <c>??=</c> compiles to — does not see Unity's "fake null", so the
+        /// destroyed instance would be handed out forever. Same reason as
+        /// <see cref="Game.VFX.VfxSpawner"/>'s shared material.
+        /// </summary>
+        private static DialogueGraph FallbackGraph()
+        {
+            if (fallbackGraph == null)
+            {
+                fallbackGraph = ScriptableObject.CreateInstance<DialogueGraph>();
+                fallbackGraph.name = FallbackGraphId;
+
+                // Not an asset and not owned by a scene, so say so: without this Unity
+                // reports it as a leaked ScriptableObject when the domain reloads
+                // between test runs.
+                fallbackGraph.hideFlags = HideFlags.HideAndDontSave;
+                fallbackGraph.Configure(
+                    FallbackGraphId,
+                    new[] { FallbackNodeId },
+                    new[] { new DialogueNode { DialogueId = FallbackNodeId, Text = UnavailableText } });
+            }
+
+            return fallbackGraph;
+        }
+
+        /// <summary>Whether what is on screen is the missing-dialogue fallback rather than authored content.</summary>
+        public bool IsShowingUnavailable => CurrentGraph != null && CurrentGraph.GraphId == FallbackGraphId;
 
         /// <summary>
         /// Advances a node that has no choices. Nodes with choices ignore this and wait

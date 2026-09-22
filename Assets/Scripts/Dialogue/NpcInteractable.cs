@@ -30,10 +30,12 @@ namespace Game.Dialogue
         {
             get
             {
-                if (dialogue == null)
-                {
-                    return false;
-                }
+                // An NPC with no dialogue assigned stays interactable on purpose.
+                // SPEC.md section 50 requires missing dialogue to display
+                // "[Dialogue unavailable]", and it cannot display anything if the
+                // prompt is hidden — an NPC who ignores the button reads as an input
+                // that did not register, which is the harder bug to find of the two.
+                // DialogueRunner.Begin shows the fallback and applies no consequences.
 
                 // Talking to a second NPC mid-conversation would be refused by the
                 // runner anyway; hiding the prompt says so before the player presses.

@@ -227,6 +227,38 @@ namespace Game.AI
             onDefeated?.Invoke();
         }
 
+        /// <summary>
+        /// Abandons a live encounter and puts the boss back as it was authored
+        /// (SPEC.md section 54's edge case 7, section 55's "important boss arenas must
+        /// reset safely", section 56's "boss arena escape").
+        ///
+        /// Full health is the point, not a side effect: without it a player could chip
+        /// the boss down from outside the arena in complete safety, which is exactly
+        /// the cheese section 56 names. Phase goes back to 1 so the transformation
+        /// tint and the faster pace go with it, and <see cref="EncounterStarted"/>
+        /// clears so re-entering plays the encounter's opening properly rather than
+        /// dropping the player into a fight already in progress.
+        ///
+        /// A defeated boss is never reset: death is permanent and saved.
+        /// </summary>
+        public void ResetEncounter()
+        {
+            if (Defeated || !EncounterStarted)
+            {
+                return;
+            }
+
+            EncounterStarted = false;
+            Phase = 1;
+
+            health?.ResetHealth();
+            ApplyPhaseEffects(1);
+            enemyController?.ResetToHome();
+
+            GameLogger.Log(LogCategory.AI, $"Boss {displayName} reset; the player left the arena.", this);
+            EventBus.Publish(new BossEncounterResetEvent(gameObject, bossId));
+        }
+
         private void OnWorldFlagChanged(WorldFlagChangedEvent changed)
         {
             if (changed.Value && identity != null && changed.Flag == WorldObjectState.DeadFlag(identity.Id))

@@ -154,7 +154,11 @@ namespace Game.UI
 
             if (bodyLabel != null)
             {
-                bodyLabel.text = node.SubtitleText;
+                // A node that exists but has no line is the same failure to the player
+                // as a missing graph, so it gets the same string (SPEC.md section 50)
+                // rather than an empty panel they cannot tell from a rendering bug.
+                var line = node.SubtitleText;
+                bodyLabel.text = string.IsNullOrWhiteSpace(line) ? DialogueRunner.UnavailableText : line;
             }
 
             BuildChoices(node);
