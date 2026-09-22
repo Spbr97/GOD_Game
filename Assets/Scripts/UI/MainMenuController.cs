@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Core;
 using Game.Save;
 using UnityEngine;
@@ -71,6 +72,11 @@ namespace Game.UI
         [SerializeField] private Toggle screenEffectsToggle;
         [SerializeField] private Toggle aimAssistToggle;
 
+        [Header("Display (SPEC.md section 54, edge cases 20 and 24)")]
+        [SerializeField] private Dropdown resolutionDropdown;
+        [SerializeField] private Dropdown qualityDropdown;
+        [SerializeField] private Toggle fullscreenToggle;
+
         [Header("Controls")]
         [SerializeField] private RemapUI remapUI;
 
@@ -131,6 +137,10 @@ namespace Game.UI
             volumeSlider?.onValueChanged.AddListener(OnVolumeChanged);
             sensitivitySlider?.onValueChanged.AddListener(OnSensitivityChanged);
             invertYToggle?.onValueChanged.AddListener(OnInvertYChanged);
+
+            resolutionDropdown?.onValueChanged.AddListener(OnResolutionChanged);
+            qualityDropdown?.onValueChanged.AddListener(OnQualityChanged);
+            fullscreenToggle?.onValueChanged.AddListener(OnFullscreenChanged);
 
             textScaleSlider?.onValueChanged.AddListener(OnTextScaleChanged);
             subtitleBackgroundToggle?.onValueChanged.AddListener(OnSubtitleBackgroundChanged);
@@ -323,8 +333,118 @@ namespace Game.UI
                 if (aimAssistToggle != null) aimAssistToggle.SetIsOnWithoutNotify(settings.AimAssistEnabled);
             }
 
+            RefreshDisplayControls(settings);
+
             wiringSettingsControls = false;
             SetText(settingsDifficultyLabel, $"Difficulty: {Difficulty.Current}");
+        }
+
+        // --------------------------------------------------------------------- display
+
+        /// <summary>
+        /// The resolutions this screen actually supports, newest-first and
+        /// de-duplicated. Rebuilt each time the panel opens rather than cached,
+        /// because the list changes when a monitor is plugged in or the player drags
+        /// the window to a different one.
+        /// </summary>
+        private readonly List<Resolution> offeredResolutions = new();
+
+        private void RefreshDisplayControls(GameSettings settings)
+        {
+            if (fullscreenToggle != null && settings != null)
+            {
+                fullscreenToggle.SetIsOnWithoutNotify(settings.Fullscreen);
+            }
+
+            if (qualityDropdown != null)
+            {
+                qualityDropdown.ClearOptions();
+                qualityDropdown.AddOptions(new List<string>(QualitySettings.names));
+
+                var level = settings != null && settings.QualityLevel >= 0
+                    ? settings.QualityLevel
+                    : QualitySettings.GetQualityLevel();
+                qualityDropdown.SetValueWithoutNotify(Mathf.Clamp(level, 0, Mathf.Max(0, QualitySettings.names.Length - 1)));
+                qualityDropdown.RefreshShownValue();
+            }
+
+            if (resolutionDropdown == null)
+            {
+                return;
+            }
+
+            offeredResolutions.Clear();
+            var labels = new List<string>();
+            var selected = 0;
+
+            foreach (var resolution in Screen.resolutions)
+            {
+                var label = $"{resolution.width} x {resolution.height}";
+                if (labels.Contains(label))
+                {
+                    // Screen.resolutions lists the same size once per refresh rate.
+                    // The player is choosing a size, not a refresh rate.
+                    continue;
+                }
+
+                if (settings != null && settings.HasResolution
+                    && resolution.width == settings.ResolutionWidth
+                    && resolution.height == settings.ResolutionHeight)
+                {
+                    selected = labels.Count;
+                }
+                else if ((settings == null || !settings.HasResolution)
+                         && resolution.width == Screen.width && resolution.height == Screen.height)
+                {
+                    selected = labels.Count;
+                }
+
+                offeredResolutions.Add(resolution);
+                labels.Add(label);
+            }
+
+            resolutionDropdown.ClearOptions();
+            resolutionDropdown.AddOptions(labels);
+            resolutionDropdown.SetValueWithoutNotify(selected);
+            resolutionDropdown.RefreshShownValue();
+        }
+
+        private void OnResolutionChanged(int index)
+        {
+            if (wiringSettingsControls || SettingsManager.Instance == null
+                || index < 0 || index >= offeredResolutions.Count)
+            {
+                return;
+            }
+
+            var chosen = offeredResolutions[index];
+            SettingsManager.Instance.SetDisplay(
+                chosen.width,
+                chosen.height,
+                SettingsManager.Instance.Current.Fullscreen,
+                SettingsManager.Instance.Current.QualityLevel);
+        }
+
+        private void OnQualityChanged(int index)
+        {
+            if (wiringSettingsControls || SettingsManager.Instance == null)
+            {
+                return;
+            }
+
+            var current = SettingsManager.Instance.Current;
+            SettingsManager.Instance.SetDisplay(current.ResolutionWidth, current.ResolutionHeight, current.Fullscreen, index);
+        }
+
+        private void OnFullscreenChanged(bool value)
+        {
+            if (wiringSettingsControls || SettingsManager.Instance == null)
+            {
+                return;
+            }
+
+            var current = SettingsManager.Instance.Current;
+            SettingsManager.Instance.SetDisplay(current.ResolutionWidth, current.ResolutionHeight, value, current.QualityLevel);
         }
 
         private void SetDifficulty(DifficultyMode mode)
@@ -349,6 +469,7 @@ namespace Game.UI
             }
 
             SettingsManager.Instance.Current.MasterVolume = value;
+            SettingsManager.Instance.Apply();
             SettingsManager.Instance.Save();
         }
 

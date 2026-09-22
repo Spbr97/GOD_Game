@@ -49,6 +49,8 @@ namespace Game.UI
             {
                 pauseAction.performed += OnPausePressed;
             }
+
+            EventBus.Subscribe<AutoPauseRequestedEvent>(OnAutoPauseRequested);
         }
 
         private void OnDisable()
@@ -59,7 +61,16 @@ namespace Game.UI
             }
 
             pauseAction?.Disable();
+            EventBus.Unsubscribe<AutoPauseRequestedEvent>(OnAutoPauseRequested);
         }
+
+        /// <summary>
+        /// A pause the player did not ask for: the controller was unplugged, or the
+        /// window lost focus (SPEC.md section 54's edge cases 21 and 23). It opens the
+        /// ordinary menu, so there is always something on screen explaining why the
+        /// game stopped and a button to carry on with.
+        /// </summary>
+        private void OnAutoPauseRequested(AutoPauseRequestedEvent request) => OpenPause();
 
         private void OnPausePressed(InputAction.CallbackContext context)
         {
@@ -76,13 +87,29 @@ namespace Game.UI
             }
             else if (GameManager.Instance.CurrentState == GameState.Playing)
             {
-                GameManager.Instance.Pause();
-                SetPanelActive(true);
+                OpenPause();
+            }
+        }
 
-                if (EventSystem.current != null && resumeButton != null)
-                {
-                    EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
-                }
+        /// <summary>
+        /// Pauses and shows the menu. Public so anything that needs to stop the game
+        /// with something on screen goes through one path — see
+        /// <see cref="OnAutoPauseRequested"/> — rather than setting the state and
+        /// leaving a frozen game with no menu on it.
+        /// </summary>
+        public void OpenPause()
+        {
+            if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing)
+            {
+                return;
+            }
+
+            GameManager.Instance.Pause();
+            SetPanelActive(true);
+
+            if (EventSystem.current != null && resumeButton != null)
+            {
+                EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
             }
         }
 

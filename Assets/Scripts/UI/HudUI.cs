@@ -65,6 +65,7 @@ namespace Game.UI
             EventBus.Subscribe<PlayerRespawnedEvent>(OnRespawned);
             EventBus.Subscribe<BossEncounterStartedEvent>(OnBossEncounterStarted);
             EventBus.Subscribe<BossDefeatedEvent>(OnBossDefeated);
+            EventBus.Subscribe<BossEncounterResetEvent>(OnBossEncounterReset);
 
             SetText(lockOnLabel, string.Empty);
             SetText(comboLabel, string.Empty);
@@ -80,6 +81,7 @@ namespace Game.UI
             EventBus.Unsubscribe<PlayerRespawnedEvent>(OnRespawned);
             EventBus.Unsubscribe<BossEncounterStartedEvent>(OnBossEncounterStarted);
             EventBus.Unsubscribe<BossDefeatedEvent>(OnBossDefeated);
+            EventBus.Unsubscribe<BossEncounterResetEvent>(OnBossEncounterReset);
         }
 
         private void Update()
@@ -185,6 +187,22 @@ namespace Game.UI
         private void OnBossDefeated(BossDefeatedEvent defeated)
         {
             if (bossHealth != null && defeated.Boss != null && bossHealth.gameObject != defeated.Boss)
+            {
+                return;
+            }
+
+            bossHealth = null;
+            SetBossVisible(false);
+        }
+
+        /// <summary>
+        /// The player walked out of the arena and the fight was abandoned (SPEC.md
+        /// section 54's edge case 7). The bar goes away the same as on a defeat —
+        /// there is no live boss to show — but nothing here treats it as a win.
+        /// </summary>
+        private void OnBossEncounterReset(BossEncounterResetEvent reset)
+        {
+            if (bossHealth != null && reset.Boss != null && bossHealth.gameObject != reset.Boss)
             {
                 return;
             }

@@ -1,5 +1,81 @@
 # CHANGELOG
 
+## Unreleased — TASK 020-026: Closing the SPEC.md audit
+
+The seven requirements the post-TASK 019 audit found with neither an
+implementation nor a roadmap entry. SPEC.md sections 42, 50, 52, 54 (edge cases
+7, 9, 10, 20-24), 55, 56, 81 and 82.
+
+### Added
+
+- **Developer tools** (`Assets/Scripts/Debug/`, section 52). `DebugMode` gates
+  them twice over: a compile-time `#if UNITY_EDITOR || DEVELOPMENT_BUILD`, so a
+  release player has no console in the binary rather than a hidden one, plus a
+  runtime switch that starts off. `DebugCommands` holds the twelve
+  state-changing tools as headless statics - no UI, no MonoBehaviour, no scene -
+  so the same operations an automated test needs are the ones a developer types.
+  `DebugOverlay` holds the five read-only readouts; `DebugConsole` is the IMGUI
+  front end on backquote.
+- **`WorldBounds`, `PlayerBoundsGuard`, `EnemyBoundsGuard`** (section 50, edge
+  cases 9 and 10). A kill plane and a horizontal footprint per scene; the player
+  goes back to the latest valid checkpoint with a message, an enemy goes back to
+  its authored home. Neither is deleted or killed - falling through the floor is
+  a level bug, and section 55 forbids a required NPC disappearing.
+- **`BossArena`** (edge case 7, sections 55 and 56). Leaving a fight ends it:
+  the boss returns to full health, phase 1 and its start position. That single
+  rule resets the arena safely, stops chipping from outside paying, and still
+  lets the player walk away.
+- **The `[Dialogue unavailable]` fallback** (section 50), as a real one-line
+  conversation the player dismisses normally.
+- **`DeviceWatcher`** (edge cases 21, 22, 23) and **resolution / graphics
+  quality / fullscreen settings** (edge cases 20 and 24), with a display change
+  made during a scene load deferred until it finishes.
+- **`MapUI`** (section 42's Map screen), drawn from the scene at the moment it
+  opens. Bound to M and D-pad up.
+- **`GAME_DESIGN.md`, `STORY_BIBLE.md`, `TEST_PLAN.md`** (sections 81 and 82).
+- 30 tests (16 EditMode, 14 PlayMode). Suite: **170 + 111 = 281, all passing.**
+
+### Changed
+
+- `DialogueRunner.Begin` shows the fallback on a missing graph but still returns
+  `false`, so the caller's own consequences do not fire. `NpcInteractable` no
+  longer hides its prompt when it has no dialogue, because a hidden prompt
+  cannot display a fallback.
+- `PauseMenu.OpenPause()` is public and subscribes to `AutoPauseRequestedEvent`,
+  so a pause nobody asked for still leaves a menu on screen. Setting
+  `GameManager`'s state alone would freeze the game with nothing on it, and the
+  next Pause press would then resume without ever having shown one.
+- `RecoveryMessageUI` also carries the out-of-world and device-change sentences.
+- `EnemyController.ResetToHome()` and `BossController.ResetEncounter()` added.
+- `GameSceneManager.IsLoading` added, so things that need to know a load is in
+  flight do not need a reference to it.
+- `PlayerController.CancelVerticalVelocity()` added - by the time a fall out of
+  the world is noticed, the accumulated speed would punch the player straight
+  back through the floor on the next frame.
+- A `Map` action added to `PlayerControls.inputactions` (keyboard M, D-pad up).
+
+### Fixed
+
+- The **Master Volume slider did nothing**. It wrote and persisted
+  `SettingsManager.Current.MasterVolume`, and nothing ever read it. Harmless
+  while the game had no audio; a genuinely broken control from TASK 018 onward.
+  `Apply()` now pushes it to `AudioListener.volume`, and `MainMenuController`
+  applies on change rather than only saving. Found by the audit, which is also
+  why TEST_PLAN.md's manual pass now says explicitly that a control which
+  changes nothing is a bug rather than a placeholder.
+
+### Known limitations
+
+Recorded in full in `KNOWN_ISSUES.md`. The ones worth naming here: the debug
+console is unstyled IMGUI and cannot spawn an enemy type absent from the current
+scene; the map has no walls, zoom or pan; boss arenas are circles and their
+reset is not explained to the player; `WorldBounds` is one box per scene, which
+will not fit Vayu's floating islands; focus-loss pausing is off in the Editor so
+PlayMode tests are not frozen by a stray click. Newly found and still open: the
+section 43 motion blur toggle has no motion blur to gate, a dozen section 54
+edge cases are handled but untested, and colour-blind support is satisfied by
+convention rather than by a palette mode.
+
 ## Unreleased — TASK 019: Vertical slice acceptance
 
 The final ROADMAP task: verifying SPEC.md section 61's vertical-slice

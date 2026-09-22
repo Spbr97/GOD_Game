@@ -324,6 +324,52 @@ namespace Game.AI
             ApplyTint(colour);
         }
 
+        /// <summary>
+        /// Puts this enemy back exactly where it was authored, having forgotten
+        /// everything: position, rotation, pace, tint and target.
+        ///
+        /// Used by <see cref="BossArena"/> when the player walks out of a fight
+        /// (SPEC.md section 55's "important boss arenas must reset safely") and by
+        /// <see cref="Game.World.EnemyBoundsGuard"/> when one falls through the floor.
+        /// Health is deliberately not touched here — this class does not own it, and
+        /// the two callers want different answers.
+        /// </summary>
+        public void ResetToHome()
+        {
+            if (State == EnemyState.Dead)
+            {
+                return;
+            }
+
+            navigator?.Stop();
+
+            // Warp rather than move: the navigator owns this transform while its agent
+            // is on a mesh, and a plain assignment is silently undone next frame.
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.Warp(home);
+            }
+            else
+            {
+                transform.position = home;
+            }
+
+            transform.rotation = homeRotation;
+
+            perception?.Forget();
+            hasDisturbance = false;
+
+            SetSpeedMultiplier(1f);
+
+            if (archetype != null && applyArchetypeTint)
+            {
+                ApplyTint(archetype.BodyTint);
+            }
+
+            Transition(patrolRoute != null ? EnemyState.Patrol : EnemyState.Idle);
+        }
+
         private EnemySenses Sense()
         {
             var targetPosition = perception != null && perception.Target != null
