@@ -31,7 +31,8 @@ namespace Game.Combat
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                // The component, not the GameObject: see GameManager.Awake for why.
+                Destroy(this);
                 return;
             }
 
@@ -61,6 +62,40 @@ namespace Game.Combat
             }
 
             ActiveCheckpoint = checkpoint;
+        }
+
+        /// <summary>
+        /// Finds the checkpoint a save named and makes it current, for
+        /// <see cref="Game.Save.SaveManager.Apply"/> (SPEC.md TASK 009). Looks it up by
+        /// id rather than storing a direct reference, because a save is data and must
+        /// survive the referenced object not existing in whatever build loads it later
+        /// (SPEC.md section 54, edge case 16). A checkpoint no longer in this build is
+        /// logged and the player keeps the default spawn instead of the load failing.
+        /// </summary>
+        public void RestoreActiveCheckpoint(string checkpointId)
+        {
+            if (string.IsNullOrEmpty(checkpointId))
+            {
+                return;
+            }
+
+            foreach (var checkpoint in FindObjectsByType<Checkpoint>(FindObjectsInactive.Include))
+            {
+                if (checkpoint.CheckpointId == checkpointId)
+                {
+                    checkpoint.RestoreActivated();
+                    SetActiveCheckpoint(checkpoint);
+                    return;
+                }
+            }
+
+            GameLogger.LogFallback(
+                LogCategory.Game,
+                $"Could not restore checkpoint '{checkpointId}' from the save",
+                "CheckpointManager.RestoreActiveCheckpoint",
+                "no checkpoint with that id exists in this scene",
+                "the player keeps the default spawn instead",
+                this);
         }
 
         /// <summary>

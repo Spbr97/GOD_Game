@@ -1,6 +1,9 @@
 using Game.Core;
+using Game.Save;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Game.UI
 {
@@ -12,6 +15,12 @@ namespace Game.UI
     {
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private GameObject pausePanel;
+
+        [Tooltip("Selected automatically when the panel opens, so a gamepad (with no cursor) has a button to move from (SPEC.md section 43).")]
+        [SerializeField] private Button resumeButton;
+
+        [Tooltip("Scene the 'Main Menu' button loads (SPEC.md section 42's Main Menu screen).")]
+        [SerializeField] private string mainMenuScene = "MainMenu";
 
         private InputAction pauseAction;
 
@@ -69,6 +78,11 @@ namespace Game.UI
             {
                 GameManager.Instance.Pause();
                 SetPanelActive(true);
+
+                if (EventSystem.current != null && resumeButton != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
+                }
             }
         }
 
@@ -90,6 +104,26 @@ namespace Game.UI
 
             GameManager.Instance.Resume();
             SetPanelActive(false);
+        }
+
+        /// <summary>Wired to a Save button's OnClick in the Inspector (SPEC.md section 31's manual save).</summary>
+        public void OnSaveButtonPressed()
+        {
+            SaveManager.Instance?.Save(SaveSlot.Manual);
+        }
+
+        /// <summary>Wired to a Main Menu button's OnClick in the Inspector.</summary>
+        public void OnMainMenuButtonPressed()
+        {
+            Time.timeScale = 1f;
+
+            if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Paused)
+            {
+                GameManager.Instance.Resume();
+            }
+
+            SetPanelActive(false);
+            GameSceneManager.Instance?.LoadScene(mainMenuScene);
         }
     }
 }

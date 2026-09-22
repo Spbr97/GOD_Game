@@ -174,6 +174,58 @@ namespace Game.Tests.Play
             return Track(new GameObject("CheckpointManager")).AddComponent<CheckpointManager>();
         }
 
+        public Game.Progression.SkillTreeManager SpawnSkillTreeManager(params Game.Progression.SkillDefinition[] catalogue)
+        {
+            var go = Track(new GameObject("SkillTreeManager"));
+            go.SetActive(false);
+            var manager = go.AddComponent<Game.Progression.SkillTreeManager>();
+            manager.Configure(catalogue);
+            go.SetActive(true);
+            return manager;
+        }
+
+        public Game.Inventory.InventoryManager SpawnInventoryManager(params Game.Inventory.InventoryItem[] catalogue)
+        {
+            var go = Track(new GameObject("InventoryManager"));
+            go.SetActive(false);
+            var manager = go.AddComponent<Game.Inventory.InventoryManager>();
+            manager.Configure(catalogue);
+            go.SetActive(true);
+            return manager;
+        }
+
+        /// <summary>
+        /// A live <see cref="GameManager"/> — needed by anything that calls
+        /// <see cref="GameManager.EnterCutscene"/>/<see cref="GameManager.ExitCutscene"/>
+        /// (TASK 014). Its own <c>Start()</c> puts it in <see cref="GameState.Playing"/>
+        /// after one frame, same as in a real scene.
+        /// </summary>
+        public GameManager SpawnGameManager()
+        {
+            return Track(new GameObject("GameManager")).AddComponent<GameManager>();
+        }
+
+        /// <summary>
+        /// A live <see cref="SettingsManager"/> (TASK 017) — needed by anything that
+        /// reads <see cref="SettingsManager.Instance"/> for accessibility settings or
+        /// calls its binding-override save/load. Built inactive so
+        /// <see cref="SettingsManager.ConfigureInputActions"/> can run before
+        /// <c>Awake</c> loads settings and any remembered overrides onto the asset.
+        /// </summary>
+        public SettingsManager SpawnSettingsManager(InputActionAsset actions = null)
+        {
+            var go = Track(new GameObject("SettingsManager"));
+            go.SetActive(false);
+            var manager = go.AddComponent<SettingsManager>();
+            if (actions != null)
+            {
+                manager.ConfigureInputActions(actions);
+            }
+
+            go.SetActive(true);
+            return manager;
+        }
+
         // ------------------------------------------------------------------- player
 
         /// <summary>
@@ -273,6 +325,7 @@ namespace Game.Tests.Play
             map.AddAction("Dodge", InputActionType.Button);
             map.AddAction("Guard", InputActionType.Button);
             map.AddAction("LockOn", InputActionType.Button);
+            map.AddAction("Ability", InputActionType.Button);
             map.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
             return asset;
         }

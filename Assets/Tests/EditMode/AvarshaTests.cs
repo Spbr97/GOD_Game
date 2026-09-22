@@ -508,6 +508,41 @@ namespace Game.Tests
         }
 
         [Test]
+        public void Memory_Corrupt_SetsStateAndSpendsIntegrity()
+        {
+            NewWorldState();
+            var memories = NewComponent<MemoryManager>("Memories");
+            var memory = NewAsset<MemoryFragment>();
+            memory.Configure("MEM_OPT", "Optional", "body", "nobody",
+                MemoryCategory.Lost, MemoryImportance.Optional);
+            memories.Configure(new[] { memory });
+            memories.Discover("MEM_OPT");
+
+            Assert.IsTrue(memories.Corrupt(memory, 0.25f));
+
+            Assert.AreEqual(MemoryState.Corrupted, memories.GetState("MEM_OPT"));
+            Assert.AreEqual(0.75f, memories.Integrity, 0.001f);
+        }
+
+        [Test]
+        public void Memory_Corrupt_OnACriticalMemory_SpendsNothing()
+        {
+            NewWorldState();
+            var memories = NewComponent<MemoryManager>("Memories");
+            var memory = NewAsset<MemoryFragment>();
+            memory.Configure("MEM_CRIT", "Critical", "body", "nobody",
+                MemoryCategory.Divine, MemoryImportance.Critical);
+            memories.Configure(new[] { memory });
+            memories.Discover("MEM_CRIT");
+
+            Assert.IsFalse(memories.Corrupt(memory, 0.5f),
+                "A refused corruption must not still spend integrity as its cost.");
+
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_CRIT"));
+            Assert.AreEqual(1f, memories.Integrity, 0.001f);
+        }
+
+        [Test]
         public void Memory_Integrity_ClampsBetweenZeroAndOne()
         {
             NewWorldState();
@@ -575,6 +610,41 @@ namespace Game.Tests
 
             Assert.IsTrue(supernatural.HasPlayed);
             Assert.IsTrue(state.GetFlag(WorldFlags.FirstSupernaturalEvent));
+        }
+
+        [Test]
+        public void Cinematic_EndState_SetsItsCompletionFlagAndReportsItsObjective()
+        {
+            var state = NewWorldState();
+            var quests = NewComponent<QuestManager>("Quests");
+            var quest = NewAsset<QuestDefinition>();
+            quest.Configure("Q_CINE", "Cinematic Quest", "",
+                new[] { new QuestObjective { ObjectiveId = "CINE_SEEN", Description = "Watch it", RequiredCount = 1 } });
+            quests.Configure(new[] { quest });
+            quests.StartQuest("Q_CINE");
+
+            var cinematic = NewComponent<CinematicPlayer>("Cinematic");
+            cinematic.Configure("TEST_CINEMATIC", "START_IT", "TEST_CINEMATIC_DONE",
+                new[] { new CinematicBeat { Subtitle = "Line one", Duration = 1f } }, "CINE_SEEN");
+
+            cinematic.ApplyEndStateImmediately();
+
+            Assert.IsTrue(cinematic.HasPlayed);
+            Assert.IsTrue(state.GetFlag("TEST_CINEMATIC_DONE"));
+            Assert.AreEqual(QuestStatus.Completed, quests.GetStatus("Q_CINE"));
+        }
+
+        [Test]
+        public void Cinematic_EndState_IsIdempotent()
+        {
+            NewWorldState();
+            var cinematic = NewComponent<CinematicPlayer>("Cinematic");
+            cinematic.Configure("TEST_CINEMATIC", null, "TEST_CINEMATIC_DONE",
+                new[] { new CinematicBeat { Subtitle = "Line one", Duration = 1f } });
+
+            cinematic.ApplyEndStateImmediately();
+            Assert.DoesNotThrow(() => cinematic.ApplyEndStateImmediately());
+            Assert.IsTrue(cinematic.HasPlayed);
         }
     }
 }

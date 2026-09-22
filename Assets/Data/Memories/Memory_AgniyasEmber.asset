@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13c6a5a4d5d2cd348a064cf5f3c71f07, type: 3}
+  m_Name: Memory_AgniyasEmber
+  m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryFragment
+  memoryId: MEM_003
+  title: Agniya's Ember
+  description: The flame does not go out when the god falls. It just stops pretending to be a god and remembers being fire - patient, indifferent, older than the seven, older than the war that made them seven. Somewhere in the heat you were sure you heard it say your true name before it forgot how.
+  owner: Agniya
+  location: Agniya Temple
+  category: 2
+  importance: 1
+  associatedCharacters: []
+  associatedQuestId:
+  objectiveIdOnDiscovery:
+  discoveryFlag: AGNIYA_MARK_OBTAINED
+  visualTint: {r: 0.95, g: 0.35, b: 0.05, a: 1}
+  audioNarrationId:
+  stateOnDiscovery: 1

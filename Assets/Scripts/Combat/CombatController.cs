@@ -6,14 +6,13 @@ using UnityEngine.InputSystem;
 namespace Game.Combat
 {
     /// <summary>
-    /// Turns player input into attacks, dodges and guards (SPEC.md sections 13-15,
-    /// TASK 002 and TASK 007). It owns the rules — can I act, can I pay for it, which
-    /// chain does this complete, does this target qualify for a finisher — and
-    /// delegates the swing to <see cref="WeaponController"/>, the guard to
-    /// <see cref="GuardController"/> and targeting to <see cref="LockOnController"/>.
+    /// Turns player input into attacks, dodges, guards and the divine ability (SPEC.md
+    /// sections 13-15, TASK 002, TASK 007 and TASK 011). It owns the rules — can I act,
+    /// can I pay for it, which chain does this complete, does this target qualify for a
+    /// finisher — and delegates the swing to <see cref="WeaponController"/>, the guard
+    /// to <see cref="GuardController"/> and targeting to <see cref="LockOnController"/>.
     ///
-    /// Of SPEC.md section 13's actions, only the divine ability is still missing; it
-    /// belongs to the first temple (section 60, Phase 3). Jump is locomotion.
+    /// Of SPEC.md section 13's actions, Jump is locomotion; everything else lives here.
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
     public class CombatController : MonoBehaviour
@@ -23,6 +22,7 @@ namespace Game.Combat
         [SerializeField] private StaminaComponent stamina;
         [SerializeField] private GuardController guard;
         [SerializeField] private LockOnController lockOn;
+        [SerializeField] private DivineEnergyComponent divineEnergy;
         [SerializeField] private Game.Player.PlayerController locomotion;
 
         [Header("Stamina costs")]
@@ -30,6 +30,20 @@ namespace Game.Combat
         [SerializeField] private float heavyAttackCost = 25f;
         [SerializeField] private float dodgeCost = 20f;
         [SerializeField] private float finisherCost = 10f;
+
+        [Header("Ember Step (SPEC.md section 8.1)")]
+        [Tooltip("Divine energy spent per use.")]
+        [SerializeField] private float abilityCost = 20f;
+
+        [Tooltip("Seconds before Ember Step can be used again.")]
+        [SerializeField] private float abilityCooldown = 3f;
+
+        [SerializeField] private float abilityDashDuration = 0.25f;
+        [SerializeField] private float abilityDashSpeed = 14f;
+        [Tooltip("Seconds into the dash when invulnerability starts.")]
+        [SerializeField] private float abilityInvulnerabilityStart = 0.03f;
+        [Tooltip("Seconds into the dash when invulnerability ends at Normal difficulty; difficulty scales its length.")]
+        [SerializeField] private float abilityInvulnerabilityEnd = 0.18f;
 
         [Header("Combo")]
         [Tooltip("How long after a swing a follow-up still counts as part of the chain.")]
@@ -55,12 +69,19 @@ namespace Game.Combat
         private InputAction heavyAttackAction;
         private InputAction dodgeAction;
         private InputAction guardAction;
+        private InputAction abilityAction;
         private InputAction moveAction;
 
         private ComboTracker combo;
         private Coroutine dodgeRoutine;
+        private Coroutine abilityRoutine;
+        private float abilityReadyAt;
+        private int abilityUseCount;
 
         public bool IsDodging => dodgeRoutine != null;
+
+        /// <summary>Ember Step is mid-dash. Distinct from <see cref="IsDodging"/> so tests and animation can tell which one is playing.</summary>
+        public bool IsUsingAbility => abilityRoutine != null;
 
         /// <summary>The chain the last swing completed, or null. See <see cref="ComboTracker"/>.</summary>
         public ComboChain CurrentChain => combo?.Current;
@@ -83,6 +104,7 @@ namespace Game.Combat
             if (stamina == null) { stamina = GetComponent<StaminaComponent>(); }
             if (guard == null) { guard = GetComponent<GuardController>(); }
             if (lockOn == null) { lockOn = GetComponent<LockOnController>(); }
+            if (divineEnergy == null) { divineEnergy = GetComponent<DivineEnergyComponent>(); }
             if (locomotion == null) { locomotion = GetComponent<Game.Player.PlayerController>(); }
 
             if (inputActions == null)
@@ -104,6 +126,7 @@ namespace Game.Combat
             heavyAttackAction = gameplayMap.FindAction("HeavyAttack");
             dodgeAction = gameplayMap.FindAction("Dodge");
             guardAction = gameplayMap.FindAction("Guard");
+            abilityAction = gameplayMap.FindAction("Ability");
             moveAction = gameplayMap.FindAction("Move");
         }
 
@@ -113,6 +136,7 @@ namespace Game.Combat
             heavyAttackAction?.Enable();
             dodgeAction?.Enable();
             guardAction?.Enable();
+            abilityAction?.Enable();
 
             if (guard != null)
             {
@@ -126,6 +150,7 @@ namespace Game.Combat
             heavyAttackAction?.Disable();
             dodgeAction?.Disable();
             guardAction?.Disable();
+            abilityAction?.Disable();
 
             if (guard != null)
             {
@@ -150,6 +175,11 @@ namespace Game.Combat
             if (dodgeAction != null && dodgeAction.WasPressedThisFrame())
             {
                 TryDodge();
+            }
+
+            if (abilityAction != null && abilityAction.WasPressedThisFrame())
+            {
+                TryAbility();
             }
 
             if (lightAttackAction != null && lightAttackAction.WasPressedThisFrame())
@@ -262,6 +292,38 @@ namespace Game.Combat
         }
 
         /// <summary>
+        /// Attempts Ember Step (SPEC.md section 8.1): a short fire dash paid for with
+        /// divine energy rather than stamina, on its own cooldown so it cannot replace
+        /// the dodge. Publishes <see cref="EmberStepUsedEvent"/> so
+        /// <see cref="Game.Memory.MemoryManager"/> can apply the ability's cost —
+        /// "repeated use temporarily removes minor memories" — without this class
+        /// knowing Memory exists.
+        /// </summary>
+        public bool TryAbility()
+        {
+            if (!CanAct() || IsUsingAbility || Time.time < abilityReadyAt)
+            {
+                return false;
+            }
+
+            if (divineEnergy == null || !divineEnergy.TrySpend(abilityCost))
+            {
+                return false;
+            }
+
+            weapon?.CancelSwing();
+            ReleaseGuard();
+            combo.Record(ComboStep.Ability, Time.time, abilityDashDuration);
+            abilityReadyAt = Time.time + abilityCooldown;
+            abilityUseCount++;
+            abilityRoutine = StartCoroutine(AbilityRoutine());
+
+            GameLogger.Log(LogCategory.Combat, $"{name} used Ember Step (use #{abilityUseCount}).", this);
+            EventBus.Publish(new EmberStepUsedEvent(gameObject, abilityUseCount));
+            return true;
+        }
+
+        /// <summary>
         /// Raises the guard: a parry window now, a block if held. Refused mid-swing
         /// so a whiffed attack cannot be cancelled into a free parry.
         /// </summary>
@@ -286,7 +348,7 @@ namespace Game.Combat
         /// because Awake disables this component outright when no input asset is set.
         /// </summary>
         public void Configure(InputActionAsset actions, WeaponController weaponController = null,
-            StaminaComponent staminaComponent = null)
+            StaminaComponent staminaComponent = null, DivineEnergyComponent divineEnergyComponent = null)
         {
             inputActions = actions;
 
@@ -299,6 +361,11 @@ namespace Game.Combat
             {
                 stamina = staminaComponent;
             }
+
+            if (divineEnergyComponent != null)
+            {
+                divineEnergy = divineEnergyComponent;
+            }
         }
 
         /// <summary>Replaces the chain table, for tuning and tests. Resets the current chain.</summary>
@@ -306,6 +373,13 @@ namespace Game.Combat
         {
             comboWindow = window;
             combo = new ComboTracker(chains, window);
+        }
+
+        /// <summary>Test and tuning seam for Ember Step's cost and cooldown.</summary>
+        public void ConfigureAbility(float cost, float cooldown)
+        {
+            abilityCost = cost;
+            abilityCooldown = cooldown;
         }
 
         private bool CanAct()
@@ -427,6 +501,45 @@ namespace Game.Combat
             }
 
             dodgeRoutine = null;
+        }
+
+        /// <summary>Ember Step's dash. Shorter and faster than a dodge, always forward — it is a fire dash, not an evade.</summary>
+        private IEnumerator AbilityRoutine()
+        {
+            locomotion?.BeginDodge(transform.forward, abilityDashSpeed, abilityDashDuration);
+
+            var windowEnd = abilityInvulnerabilityStart
+                + Mathf.Max(0f, abilityInvulnerabilityEnd - abilityInvulnerabilityStart) * Difficulty.Modifiers.PlayerTimingWindow;
+            var elapsed = 0f;
+            var windowOpened = false;
+            var windowClosed = false;
+
+            while (elapsed < abilityDashDuration)
+            {
+                if (!windowOpened && elapsed >= abilityInvulnerabilityStart)
+                {
+                    windowOpened = true;
+                    health.IsInvulnerable = true;
+                }
+                else if (windowOpened && !windowClosed && elapsed >= windowEnd)
+                {
+                    windowClosed = true;
+                    if (!health.IsDead)
+                    {
+                        health.IsInvulnerable = false;
+                    }
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            if (!health.IsDead)
+            {
+                health.IsInvulnerable = false;
+            }
+
+            abilityRoutine = null;
         }
     }
 }

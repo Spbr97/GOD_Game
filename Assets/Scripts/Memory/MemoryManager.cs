@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Game.Core;
 using Game.Dialogue;
@@ -13,6 +14,14 @@ namespace Game.Memory
     /// The safety rules from SPEC.md section 20 are enforced here rather than left to
     /// callers: a memory marked Critical cannot be corrupted or forgotten, so no
     /// amount of ordinary gameplay can make story progression unreachable.
+    ///
+    /// Also reacts to <see cref="Game.Combat.EmberStepUsedEvent"/> (SPEC.md section 8.1,
+    /// TASK 011) — a deliberate exception to Memory otherwise never referencing Combat,
+    /// justified the same way <see cref="Game.AI.EnemyStagger"/> reacting to
+    /// <see cref="Game.Combat.ParryEvent"/> already is: reading another layer's
+    /// published payload, not a direct reference, and the exact narrative mechanic
+    /// section 20 describes ("some divine powers consume memory"). See
+    /// ARCHITECTURE.md's dependency list.
     /// </summary>
     public class MemoryManager : MonoBehaviour
     {
@@ -23,6 +32,16 @@ namespace Game.Memory
 
         [Tooltip("Every memory that exists, so states can be resolved by id from dialogue and save data.")]
         [SerializeField] private MemoryFragment[] catalogue;
+
+        [Header("Ember Step's cost (SPEC.md section 20)")]
+        [Tooltip("Overall integrity spent every time Ember Step is used.")]
+        [SerializeField] private float emberStepIntegrityCost = 0.02f;
+
+        [Tooltip("Every this many uses, one Optional memory the player knows is temporarily forgotten. Zero disables it.")]
+        [SerializeField] private int emberStepUsesPerForget = 3;
+
+        [Tooltip("Seconds before a memory Ember Step forgot comes back on its own.")]
+        [SerializeField] private float temporaryForgetSeconds = 20f;
 
         private readonly Dictionary<string, MemoryState> states = new();
         private readonly Dictionary<string, MemoryFragment> byId = new();
@@ -50,6 +69,7 @@ namespace Game.Memory
         private void OnEnable()
         {
             EventBus.Subscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+            EventBus.Subscribe<Game.Combat.EmberStepUsedEvent>(OnEmberStepUsed);
 
             // Dialogue asks "what state is memory X in?" through this hook so it does
             // not have to reference the Memory system (SPEC.md section 47).
@@ -59,6 +79,7 @@ namespace Game.Memory
         private void OnDisable()
         {
             EventBus.Unsubscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+            EventBus.Unsubscribe<Game.Combat.EmberStepUsedEvent>(OnEmberStepUsed);
 
             if (DialogueGraph.MemoryStateResolver == ResolveStateName)
             {
@@ -233,6 +254,30 @@ namespace Game.Memory
         }
 
         /// <summary>
+        /// Corrupts one memory and spends a slice of overall integrity as its cost —
+        /// SPEC.md section 20's "some divine powers consume memory", surfaced now as a
+        /// player-triggerable action (the Memory Archive screen) ahead of the ability
+        /// that will trigger it for real (ROADMAP TASK 011). Refused for a Critical
+        /// memory by <see cref="SetState"/>'s own protection, in which case no integrity
+        /// is spent either — a refused corruption must not still cost something.
+        /// </summary>
+        public bool Corrupt(MemoryFragment memory, float integrityCost = 0.1f)
+        {
+            if (!SetState(memory, MemoryState.Corrupted))
+            {
+                return false;
+            }
+
+            // Memory branch's "memory manipulation" skill (SPEC.md section 30, TASK
+            // 016): a bonus fraction, clamped so an overzealous skill value could
+            // reduce the cost but never turn it negative and refund integrity.
+            var skillDiscount = 1f + (Game.Progression.SkillTreeManager.Instance?.GetBonus(
+                Game.Progression.SkillEffectType.MemoryCorruptionCostMultiplier) ?? 0f);
+            ReduceIntegrity(Mathf.Max(0f, integrityCost * skillDiscount));
+            return true;
+        }
+
+        /// <summary>
         /// Reduces overall memory integrity, for divine powers that consume memory
         /// (SPEC.md section 20). Does not itself corrupt any memory — what integrity
         /// affects is cosmetic and is decided by the systems that read it.
@@ -287,6 +332,71 @@ namespace Game.Memory
             }
         }
 
+        /// <summary>
+        /// Ember Step's cost: a small constant drain on overall integrity every use,
+        /// and every <see cref="emberStepUsesPerForget"/>th use, one Optional memory
+        /// the player currently knows is temporarily forgotten (SPEC.md section 20:
+        /// "cosmetic memories can disappear"). Never touches a Supporting or Critical
+        /// memory — those are not "minor".
+        /// </summary>
+        private void OnEmberStepUsed(Game.Combat.EmberStepUsedEvent used)
+        {
+            ReduceIntegrity(emberStepIntegrityCost);
+
+            if (emberStepUsesPerForget <= 0 || used.TotalUses % emberStepUsesPerForget != 0)
+            {
+                return;
+            }
+
+            var memory = FindRandomKnownOptionalMemory();
+            if (memory == null)
+            {
+                return;
+            }
+
+            var previousState = GetState(memory.MemoryId);
+            if (!SetState(memory, MemoryState.Forgotten))
+            {
+                return;
+            }
+
+            GameLogger.Log(LogCategory.Memory,
+                $"Ember Step's repeated use temporarily forgot '{memory.Title}'.", this);
+            StartCoroutine(RestoreAfterDelay(memory, previousState, temporaryForgetSeconds));
+        }
+
+        private MemoryFragment FindRandomKnownOptionalMemory()
+        {
+            var candidates = new List<MemoryFragment>();
+            for (var i = 0; i < discovered.Count; i++)
+            {
+                var memory = discovered[i];
+                if (memory.Importance == MemoryImportance.Optional && GetState(memory.MemoryId) == MemoryState.Known)
+                {
+                    candidates.Add(memory);
+                }
+            }
+
+            return candidates.Count == 0 ? null : candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        }
+
+        /// <summary>
+        /// Restores a memory Ember Step temporarily forgot, but only if it is still
+        /// exactly where that left it — if something else changed it in the meantime
+        /// (the player corrupted it deliberately, say), that change owns the memory's
+        /// state now, and this timer has nothing to undo.
+        /// </summary>
+        private IEnumerator RestoreAfterDelay(MemoryFragment memory, MemoryState restoreTo, float delaySeconds)
+        {
+            yield return new WaitForSeconds(delaySeconds);
+
+            if (GetState(memory.MemoryId) == MemoryState.Forgotten)
+            {
+                SetState(memory, restoreTo);
+                GameLogger.Log(LogCategory.Memory, $"'{memory.Title}' is remembered again.", this);
+            }
+        }
+
         private void BuildCatalogue()
         {
             byId.Clear();
@@ -316,6 +426,14 @@ namespace Game.Memory
         {
             catalogue = memories;
             BuildCatalogue();
+        }
+
+        /// <summary>Test and tuning seam for Ember Step's memory cost.</summary>
+        public void ConfigureEmberStepCost(float integrityCostPerUse, int usesPerForget, float forgetSeconds)
+        {
+            emberStepIntegrityCost = integrityCostPerUse;
+            emberStepUsesPerForget = usesPerForget;
+            temporaryForgetSeconds = forgetSeconds;
         }
     }
 }

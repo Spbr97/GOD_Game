@@ -152,4 +152,25 @@ namespace Game.Combat
             Target = target;
         }
     }
+
+    /// <summary>
+    /// Raised when the player uses Ember Step (SPEC.md section 8.1, TASK 011).
+    /// <see cref="Game.Memory.MemoryManager"/> listens and applies the ability's cost —
+    /// "repeated use temporarily removes minor memories" — without Combat referencing
+    /// Memory, the same one-way-payload pattern <see cref="ParryEvent"/> already uses
+    /// for <see cref="Game.AI.EnemyStagger"/>.
+    /// </summary>
+    public readonly struct EmberStepUsedEvent
+    {
+        public readonly GameObject Player;
+
+        /// <summary>How many times this player has used the ability, ever. Starts at 1.</summary>
+        public readonly int TotalUses;
+
+        public EmberStepUsedEvent(GameObject player, int totalUses)
+        {
+            Player = player;
+            TotalUses = totalUses;
+        }
+    }
 }

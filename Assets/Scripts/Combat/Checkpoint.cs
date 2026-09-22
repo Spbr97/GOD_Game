@@ -67,6 +67,17 @@ namespace Game.Combat
             EventBus.Publish(new CheckpointActivatedEvent(this));
         }
 
+        /// <summary>
+        /// Marks this checkpoint as already activated, for restoring a save (SPEC.md
+        /// TASK 009). Deliberately not <see cref="Activate"/>: that publishes
+        /// <see cref="CheckpointActivatedEvent"/>, which auto-saves — replaying it
+        /// during a load would immediately overwrite the save being loaded.
+        /// </summary>
+        public void RestoreActivated()
+        {
+            HasBeenActivated = true;
+        }
+
         private void OnDrawGizmos()
         {
             Gizmos.color = HasBeenActivated ? Color.cyan : new Color(1f, 0.85f, 0.3f);

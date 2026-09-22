@@ -21,6 +21,9 @@ namespace Game.UI
         [SerializeField] private Text bodyLabel;
         [SerializeField] private Text continueHint;
 
+        [Tooltip("The panel's own backing image, hidden when SPEC.md section 43's subtitle-background setting is off.")]
+        [SerializeField] private Image panelBackground;
+
         [Tooltip("Parent the choice buttons are created under.")]
         [SerializeField] private RectTransform choiceContainer;
 
@@ -95,6 +98,45 @@ namespace Game.UI
             {
                 panel.SetActive(true);
             }
+
+            ApplyAccessibilitySettings();
+        }
+
+        /// <summary>SPEC.md section 43: subtitle background and text scale, applied once per conversation start.</summary>
+        private void ApplyAccessibilitySettings()
+        {
+            var settings = SettingsManager.Instance?.Current;
+            var scale = settings?.TextScale ?? 1f;
+            var showBackground = settings?.SubtitleBackground ?? true;
+
+            if (panelBackground != null)
+            {
+                var colour = panelBackground.color;
+                colour.a = showBackground ? 1f : 0f;
+                panelBackground.color = colour;
+            }
+
+            ScaleFont(speakerLabel, scale);
+            ScaleFont(bodyLabel, scale);
+            ScaleFont(continueHint, scale);
+        }
+
+        private readonly System.Collections.Generic.Dictionary<Text, int> baseFontSizes = new();
+
+        private void ScaleFont(Text label, float scale)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            if (!baseFontSizes.TryGetValue(label, out var baseSize))
+            {
+                baseSize = label.fontSize;
+                baseFontSizes[label] = baseSize;
+            }
+
+            label.fontSize = Mathf.Max(1, Mathf.RoundToInt(baseSize * scale));
         }
 
         private void OnNodeShown(DialogueNodeShownEvent shown)

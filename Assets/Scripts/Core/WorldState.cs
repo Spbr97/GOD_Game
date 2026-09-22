@@ -45,8 +45,9 @@ namespace Game.Core
         {
             if (instance != null && instance != this)
             {
+                // The component, not the GameObject: see GameManager.Awake for why.
                 GameLogger.LogWarning(LogCategory.Game, "A second WorldState was destroyed; only one may exist.", this);
-                Destroy(gameObject);
+                Destroy(this);
                 return;
             }
 

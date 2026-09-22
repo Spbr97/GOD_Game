@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using Game.Combat;
 using Game.Core;
 using Game.Dialogue;
+using Game.Inventory;
 using Game.Memory;
+using Game.Progression;
 using Game.Quests;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -35,6 +37,14 @@ namespace Game.Save
 
         /// <summary>Resolved on first access; see <see cref="SceneSingleton"/>.</summary>
         public static SaveManager Instance => SceneSingleton.Resolve(ref instance);
+
+        /// <summary>
+        /// Set by the Main Menu's Continue/Load before it asks <see cref="GameSceneManager"/>
+        /// to load the save's scene, then consumed by the <see cref="SaveManager"/> that
+        /// wakes up in that scene. Static because the menu and the destination scene
+        /// never coexist as loaded objects that could pass this to each other directly.
+        /// </summary>
+        public static SaveSlot? PendingLoad { get; set; }
 
         [Tooltip("Save automatically whenever a checkpoint is activated (SPEC.md section 31).")]
         [SerializeField] private bool autoSaveOnCheckpoint = true;
@@ -91,6 +101,21 @@ namespace Game.Save
                 instance = null;
             }
         }
+
+        private void Start()
+        {
+            if (instance != this || !PendingLoad.HasValue)
+            {
+                return;
+            }
+
+            var slot = PendingLoad.Value;
+            PendingLoad = null;
+            Load(slot);
+        }
+
+        /// <summary>Reads a slot without applying it. For Save/Load and Continue screens.</summary>
+        public LoadOutcome Peek(SaveSlot slot) => SaveBrowser.Peek(Root, slot);
 
         // ------------------------------------------------------------------ blocking
 
@@ -253,6 +278,18 @@ namespace Game.Save
                 }
             }
 
+            var inventory = InventoryManager.Instance;
+            if (inventory != null)
+            {
+                data.Inventory = inventory.CaptureEntries();
+            }
+
+            var skills = SkillTreeManager.Instance;
+            if (skills != null)
+            {
+                data.Abilities = new List<string>(skills.UnlockedIds);
+            }
+
             foreach (var participant in FindParticipants())
             {
                 var json = participant.CaptureJson();
@@ -316,11 +353,21 @@ namespace Game.Save
                 RestoreQuests(data, quests);
             }
 
+            InventoryManager.Instance?.RestoreEntries(data.Inventory);
+
+            // Before RestorePlayer: restoring the unlocked skill set recomputes the
+            // player's max health/energy (PlayerProgressionStats), and RestorePlayer's
+            // own HealthComponent.RestoreTo clamps to whatever max is current when it
+            // runs. Doing this after would clamp a skilled-up player back down.
+            SkillTreeManager.Instance?.RestoreUnlocked(data.Abilities);
+
             var player = Object.FindAnyObjectByType<PlayerDeath>(FindObjectsInactive.Include);
             if (player != null)
             {
                 RestorePlayer(player, data);
             }
+
+            CheckpointManager.Instance?.RestoreActiveCheckpoint(data.CheckpointId);
 
             var participants = FindParticipants();
             foreach (var participant in participants)

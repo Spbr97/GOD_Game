@@ -284,5 +284,107 @@ namespace Game.Tests.Play
                 "An optional memory should still be losable; only critical ones are protected.");
             Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_ORDINARY"));
         }
+
+        [UnityTest]
+        public IEnumerator Memory_EmberStepUsed_ReducesIntegrityEveryUse()
+        {
+            var memories = arena.SpawnMemoryManager();
+            memories.ConfigureEmberStepCost(0.1f, usesPerForget: 0, forgetSeconds: 20f);
+            yield return null;
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            Assert.AreEqual(0.9f, memories.Integrity, 0.001f);
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 2));
+            Assert.AreEqual(0.8f, memories.Integrity, 0.001f);
+        }
+
+        [UnityTest]
+        public IEnumerator Memory_EmberStepUsed_ForgetsAnOptionalMemoryEveryNthUse()
+        {
+            var minor = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            minor.Configure("MEM_MINOR", "A Small Thing", "body", "nobody", MemoryCategory.Lost, MemoryImportance.Optional);
+
+            var memories = arena.SpawnMemoryManager(minor);
+            memories.ConfigureEmberStepCost(0f, usesPerForget: 3, forgetSeconds: 20f);
+            memories.Discover("MEM_MINOR");
+            yield return null;
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 2));
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_MINOR"), "Should not forget before the third use.");
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 3));
+            Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
+        }
+
+        [UnityTest]
+        public IEnumerator Memory_EmberStepUsed_NeverForgetsASupportingOrCriticalMemory()
+        {
+            var supporting = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            supporting.Configure("MEM_SUPPORT", "Supporting", "body", "nobody", MemoryCategory.Historical, MemoryImportance.Supporting);
+            var critical = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            critical.Configure("MEM_CRIT", "Critical", "body", "nobody", MemoryCategory.Divine, MemoryImportance.Critical);
+
+            var memories = arena.SpawnMemoryManager(supporting, critical);
+            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 20f);
+            memories.Discover("MEM_SUPPORT");
+            memories.Discover("MEM_CRIT");
+            yield return null;
+
+            for (var i = 1; i <= 5; i++)
+            {
+                Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, i));
+            }
+
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_SUPPORT"),
+                "Only Optional memories are \"minor\" enough for Ember Step to touch.");
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_CRIT"));
+        }
+
+        [UnityTest]
+        public IEnumerator Memory_EmberStepsTemporaryForgetting_RestoresItselfAfterItsDelay()
+        {
+            var minor = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            minor.Configure("MEM_MINOR", "A Small Thing", "It will come back.", "Nobody",
+                MemoryCategory.Lost, MemoryImportance.Optional);
+
+            var memories = arena.SpawnMemoryManager(minor);
+            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 0.1f);
+            memories.Discover("MEM_MINOR");
+            yield return null;
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
+
+            yield return TestArena.Until(() => memories.GetState("MEM_MINOR") == MemoryState.Known,
+                "the temporarily forgotten memory to come back on its own", 2f);
+        }
+
+        [UnityTest]
+        public IEnumerator Memory_EmberStepsTemporaryForgetting_DoesNotOverwriteADeliberateLaterChange()
+        {
+            var minor = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            minor.Configure("MEM_MINOR", "A Small Thing", "It will come back.", "Nobody",
+                MemoryCategory.Lost, MemoryImportance.Optional);
+
+            var memories = arena.SpawnMemoryManager(minor);
+            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 0.1f);
+            memories.Discover("MEM_MINOR");
+            yield return null;
+
+            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
+
+            // The player (or some other system) deliberately corrupts it before the
+            // timer would have restored it. The timer must not clobber that later choice.
+            memories.Corrupt(minor);
+            Assert.AreEqual(MemoryState.Corrupted, memories.GetState("MEM_MINOR"));
+
+            yield return new WaitForSeconds(0.2f);
+
+            Assert.AreEqual(MemoryState.Corrupted, memories.GetState("MEM_MINOR"),
+                "Ember Step's restore timer overwrote a deliberate later change.");
+        }
     }
 }

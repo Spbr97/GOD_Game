@@ -3,15 +3,413 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 018 — Placeholder audio, animation and VFX pass
+
+### Attack timings were not moved to animation events
+
+This task's ROADMAP wording asks for "attack timings moved to animation
+events." `WeaponController`/`EnemyCombatant`'s windup/active/recovery
+durations are read from archetype data and rescaled by `Difficulty` at swing
+time, not authored into a clip. Real `AnimationEvent`-driven timing needs
+clips whose lengths already match that rescaled duration — impossible without
+a rig to author them against, and no rig exists. Doing it anyway would mean
+either duplicating the timing data into clips that immediately drift from
+`Difficulty`, or making clip length authoritative and losing per-difficulty
+rescaling entirely — a regression, not a placeholder. `PlaceholderAnimator`
+reads the existing `IsSwinging` state to drive a cosmetic-only tilt instead;
+timing authority stays exactly where it was. Closing this for real needs an
+authored rig and clips first.
+
+### No environmental ambience or music
+
+SPEC.md section 40 asks for temple ambience, wind, fire, water, insects,
+distant creatures, stone movement, supernatural whispers, and music with a
+unique identity per god. None of that exists — only five one-shot combat
+tones (`CombatAudio`) and two content tones (`MemoryDiscovered`,
+`PuzzleSolved`). A placeholder works for a one-shot cue (a beep marks the
+moment); it does not work for a texture meant to loop continuously, which
+would just read as a bug. Closing this needs either composed/recorded audio
+or a much more elaborate procedural ambience generator, neither of which fits
+this task's placeholder-first scope.
+
+### Several VFX categories have no content to trigger them yet
+
+SPEC.md section 36 lists 14 effect categories; this task wires up 7 (fire,
+sparks, dust, divine energy, memory fragments, glowing symbols, boss
+transformations). Water caustics, underwater particles, wind trails,
+lightning, time distortion and dream distortion are deferred — nothing in the
+game yet has a water area, a dream sequence, or open sky worth a wind trail.
+Smoke has no dedicated trigger either (it would need a source — a doused fire,
+rubble, a temple brazier freshly extinguished — and none of the existing
+triggers reads as "smoke" specifically rather than reusing the fire cue).
+
+### Enemies have no placeholder locomotion animation
+
+Only the player got a `PlaceholderAnimator`. Enemies already have a tint
+(`EnemyController.ApplyPhaseTint`) and a telegraph scale pulse
+(`EnemyCombatant`, TASK 017) covering combat readability, and a second
+placeholder-animation system for AI locomotion (idle/patrol/chase leans) was
+judged lower priority than finishing the player's within this task's scope.
+
+## TASK 017 — Accessibility, settings and remapping
+
+### Motion blur is not gated
+
+SPEC.md section 43 asks for a motion-blur toggle, but no URP motion-blur effect
+exists anywhere in the project to gate — there is nothing to turn off. Adding
+the setting without the effect would be a toggle that does nothing; deferred
+until a motion-blur effect is actually added (likely alongside TASK 018's VFX
+pass).
+
+### Settings and remapping are only reachable from the Main Menu
+
+`MainMenuController`'s Settings and Controls panels are the only place to
+change any of these options, including rebinding controls — there is no
+in-game or Pause-menu path to either once a game is running. A player who
+wants to rebind a key or adjust text scale mid-playthrough has to quit to the
+Main Menu first. Closing this means giving `PauseMenu` its own route to the
+same panels (or a lightweight in-game equivalent), sharing `MainMenuController`'s
+logic rather than duplicating it.
+
+### Gamepad navigation onto dynamically built rows is still unwired
+
+See "The journal has no gamepad navigation" below (TASK 010) — the fix this
+task adds is a first-selection only; rows built at runtime (quest list, memory
+list, remap rows) still have no explicit `Selectable.navigation` between them.
+
+## TASK 016 — Inventory, progression and skill tree
+
+### Eight of the twelve skills have no effect yet
+
+`SkillDefinition` assets exist for all twelve of SPEC.md section 30's named upgrades,
+and all twelve can be unlocked, cost points correctly, respect their prerequisite, and
+persist through a save — but only one per branch is actually read by a system
+(`SkillTreeManager.GetBonus` is generic; nothing calls it for the other eight's
+`SkillEffectType`). Specifically unwired: Warrior's combo extension and parry timing,
+Guardian's block and general damage reduction, Divine's ability dash speed and
+cooldown, Memory's detection range and Ember-Step-forget restore speed. Each needs a
+small, safe hookup into its own system (`ComboTracker`'s window, `CombatController`'s
+parry window/Ember Step cooldown, `GuardController`'s reduction, `MemoryPickup`'s
+interaction range) the same shape as the four already wired — deferred so this task
+stayed reviewable rather than touching seven more files' live behaviour in one pass.
+
+### No UI feedback for "why can't I unlock this"
+
+`ProgressionUI`'s Unlock button is simply disabled when `CanUnlock` is false, with no
+distinction shown between "can't afford it" and "prerequisite not met" — both read as
+a greyed-out button. Small, deferred as UI polish rather than a missing mechanic.
+
+### The inventory has three items, two of them symbolic
+
+Weapons and Divine Marks currently exist to prove the category works, not because the
+game has multiple weapons to carry or marks with their own effects — there is one
+Astra Blade (granted at the start, never removable, since no second weapon exists to
+swap to) and the Divine Mark is a stackable count with no gameplay significance beyond
+its own tally. Quest Items and Lore have no content at all: nothing in the game yet
+drops a quest-specific item or a piece of lore text. This matches section 28's own
+"avoid item clutter" instruction more than it undersells the system — the categories
+exist and work; only real per-temple/per-quest content is missing, the same shape as
+`ObjectiveType`'s still-unimplemented values from TASK 003.
+
+### Skill points have no visible source in the UI
+
+A player looking at "Skill Points: 0" has no in-game hint that finishing quests and
+defeating bosses is what grants them — that context currently lives only in this file
+and the tooltip text on `SkillTreeManager`'s Inspector fields. Worth a HUD toast or
+journal note once there is more than one quest and one boss to notice the pattern
+from.
+
+## TASK 015 — Agniya temple section
+
+### The temple is a walled-off area in Avarsha, not its own scene
+
+SPEC.md section 57 names `SCN_Temple_Agniya`, implying a separate scene, the way a
+real level structure for this kind of game normally works. It was built inside
+`Avarsha.unity` instead, at a location far from every other district, because
+`QuestManager`/`MemoryManager`/`DialogueRunner` are scene-scoped and nothing exists
+yet to carry their state across an *ordinary* scene transition (only a menu
+Continue/Load does, via `SaveManager.PendingLoad`) — a real second scene today would
+reset quest and memory progress every time the player walked in. Closing this needs
+an area-transition mechanism that saves and immediately reloads progress-only state
+(world flags, quest/memory state) without also restoring player position or the
+active checkpoint the way a full `Load` does; a good candidate is the first task that
+actually needs a second temple, since a single temple never has to prove the seam
+works.
+
+### Fire VFX is warm point lights, no particles
+
+SPEC.md section 36 asks for fire particles, sparks and smoke. `FireBrazier` already
+established colour as the placeholder for fire (no VFX assets exist yet, section 78);
+the temple's ambient lighting follows the same idiom rather than introducing
+`ParticleSystem` content that would need its own tuning pass. Needs the VFX pass
+(ROADMAP TASK 018).
+
+### Ember Step is still not truly Agniya's reward
+
+SPEC.md section 8.1 places Ember Step behind this temple's boss; it has been usable
+from the start since TASK 011 (already documented there) and this task does not close
+that gap. Retroactively gating it behind `BOSS_AGNIYA`'s defeat would need updating
+every existing test that calls `CombatController.TryAbility()` assuming it always
+works — a real cost, and not one this task's own scope (building the temple's
+content) required paying. The boss's reward is a memory fragment and a divine-mark
+flag instead; gating Ember Step for real is still open.
+
+### One enemy group, one boss — no difficulty curve within the temple
+
+The temple has exactly one `EnemyGroup` (two Ash Creatures, one Divine Guardian)
+between the entrance and the boss. A real temple would ramp difficulty across several
+encounters; this one demonstrates the enemy-variant and reused-framework claims
+without yet proving pacing across a longer dungeon.
+
+## TASK 014 — Cinematic system and the first cinematic
+
+### No camera control, no actors, no audio
+
+A beat is subtitle text and a duration — no camera cut, pan or focus target, no actor
+animation, and no narration audio (`AudioNarrationId` is a placeholder string with no
+clip behind it, same as `MemoryFragment.AudioNarrationId`). Nirvaan's voice plays as
+letterboxed silence with text. `CinematicBeat` has room to grow a camera target and an
+audio clip once a cinematic actually needs one; none of the beats built so far do.
+Needs SPEC.md section 41's audio pass and the animation/VFX pass (TASK 018).
+
+### Only one cinematic exists, and it is one of the smallest on section 69's list
+
+Section 69 names ten "major cinematics"; only "first Nirvaan voice" has one built.
+It was chosen because it needs no actor, arena or transformation to read correctly —
+a deliberate easy case to prove the skip/subtitle/freeze mechanics work before a
+harder one (temple boss transformation, the identity reveal) asks more of them.
+
+### The mini-boss's phase 3 tint and the puzzle's gate opening are not cinematics
+
+TASK 012 and TASK 013 each left a "scripted cinematic moment" as an empty `UnityEvent`
+hook rather than building a second `CinematicPlayer` instance for it. This was a
+deliberate sequencing choice — the framework needed to exist first — and closing it is
+now straightforward: wire those hooks to a `CinematicPlayer.Play()` call once content
+(camera work, dialogue) exists to justify one.
+
+## TASK 013 — Boss framework and mini-boss
+
+### The arena, cinematic moment and victory sequence are placeholders
+
+Section 18 asks for a unique arena, a scripted cinematic moment and a victory
+sequence. The arena is a tinted floor and four cylinder pillars; the cinematic moment
+and victory sequence are `UnityEvent` hooks (`onEncounterStarted`, `onDefeated`) with
+nothing wired into them yet. Needs TASK 014's cinematic system and TASK 018's
+animation/VFX pass; the hooks exist now specifically so wiring real content in later
+is a matter of plugging into them, not restructuring `BossController`.
+
+### No unique music
+
+Section 18 asks for unique music per boss. No music system exists yet at all (SPEC.md
+section 36 is unaddressed project-wide) — this is not specific to the boss framework.
+
+### Only one boss exists, and it never truly transforms
+
+The framework supports three phases and a mini-boss instance proves phases 1 and 2;
+phase 3's "major supernatural transformation" is currently a colour tint, the same
+placeholder-tint idiom `EnemyArchetype.BodyTint` already uses everywhere else in `AI`.
+A real transformation (a model swap, new attacks, an arena change) needs the
+animation/VFX pass (TASK 018) and is worth revisiting once a full `Boss`-class
+encounter (not just a `MiniBoss`) exists to justify the extra content cost.
+
+### The arena has no road leading to it
+
+`MiniBossArena` sits on Avarsha's single flat ground plane, reachable by walking
+there directly, the same way `AncientRuins` is — there is no authored path, gate or
+signpost connecting it to the rest of the city. Placeholder-first (SPEC.md section
+78); a real approach is set dressing, not a system, and belongs with whichever later
+pass gives Avarsha its roads.
+
+## TASK 012 — Puzzle system and first fire puzzle
+
+### The puzzle has no reward
+
+Solving it opens a passage into empty space — there is nothing behind the gate, since
+there is no inventory, no Agniya temple content, and nothing yet worth placing there
+(ROADMAP TASK 015, TASK 016). The system proves the mechanic; the content is later work.
+
+### One puzzle category exists of ten
+
+SPEC.md section 26 lists ten categories (element matching, pressure plates, light
+reflection, water movement, wind direction, time manipulation, memory reconstruction,
+symbol sequences, environmental traversal, multi-stage temple puzzles). Only the first
+concrete piece — braziers with a burn timer — exists. `IPuzzleElement` is deliberately
+generic enough for the other nine to be added as new classes without touching
+`PuzzleController`, but that is a claim the framework supports, not something this task
+proves nine more times over. Each temple's own puzzle work will be the real test.
+
+### No visual or audio cue for a brazier about to burn out
+
+A brazier's timer is only visible as its own lit/unlit tint — there is no warning
+flicker, no sound cue, before it goes out. The design rule (see the burn timer's own
+purpose) is satisfied in principle — the state is directly observable, not hidden —
+but a player watching from across the room has no early signal. Needs the VFX/audio
+pass (ROADMAP TASK 018).
+
+### The gate is a plain box, not a door
+
+Opening removes the collider and hides the whole `GameObject` — there is no open
+animation, no hinge, nothing suggesting a mechanism. Placeholder per SPEC.md section 78.
+
+## TASK 011 — Divine ability framework and Ember Step
+
+### Ember Step is always available
+
+SPEC.md section 8.1 places Ember Step at the Agniya temple's reward; here it works
+from the moment `DivineEnergyComponent` has energy to spend, with no unlock gate. This
+matches the placeholder-first policy (section 78) — the framework had to exist and be
+exercisable before any temple does — but the real gating (granted after Agniya's boss,
+ROADMAP TASK 015) is not built. There is also only one ability: the "framework" part of
+this task's name is the input/cost/combo plumbing in `CombatController`, not a
+registry of interchangeable abilities. A second ability would currently mean copying
+`TryAbility`/`AbilityRoutine` rather than plugging into a shared shape — acceptable for
+one ability, worth generalizing once a second one exists to compare against.
+
+### The dash has no visual identity
+
+"Fire dash" is presently the same `PlayerController.BeginDodge` impulse the ordinary
+dodge uses, just shorter, faster and on a cooldown. No trail, no colour, no sound — a
+player cannot currently tell Ember Step apart from a dodge except by the divine energy
+cost and the cooldown. Placeholder per section 78; needs the VFX/animation pass
+(ROADMAP TASK 018).
+
+### The memory cost is a guess, and only one of section 20's four effects exists
+
+See the updated TASK 010 entries below — `emberStepIntegrityCost` and
+`emberStepUsesPerForget` are first numbers with no economy to sit in yet, and only the
+"cosmetic memory loss" effect from section 20 is wired up.
+
+## TASK 010 — Quest log and memory archive
+
+### No scrolling
+
+The journal's rows are stacked at a fixed height with no `ScrollRect`. Avarsha has one
+quest and one memory today, so nothing overflows the panel yet; a `ScrollRect` +
+`Viewport` + `Mask` needs building before either list can grow past what fits on
+screen. Placeholder per SPEC.md section 78, tracked rather than silently left.
+
+### Corruption's cost is a guess — partially addressed in TASK 011
+
+`corruptionCost` (0.1) still has nothing to balance it against on the "spend" side, but
+TASK 011 gave integrity a real drain the other way: Ember Step costs a slice of it per
+use (`emberStepIntegrityCost`, 0.02). Neither number is tuned against the other yet —
+there is still no economy where the player weighs corrupting a memory deliberately
+against the drain from ordinary ability use.
+
+### Low memory integrity mostly does nothing yet — one of four effects landed in TASK 011
+
+SPEC.md section 20 lists four things integrity should affect once it drops: cosmetic
+memory loss, optional dialogue changes, incomplete flashbacks, minor NPC recognition
+changes. Ember Step's repeated use temporarily forgetting an Optional memory
+(`MemoryManager.OnEmberStepUsed`) is the first of these — a real, timed, reversible
+instance of "cosmetic memories can disappear". The other three (dialogue changes,
+incomplete flashbacks, NPC recognition) still read nothing from `Integrity` or from a
+`Forgotten` state; they need the systems that would show them (a flashback needs a
+cinematic, section 68; NPC recognition needs more than three NPCs to vary between).
+
+### The journal has no gamepad navigation (partially fixed, TASK 017)
+
+`JournalUI`/`ProgressionUI`/`PauseMenu` now select a first control through
+`EventSystem.SetSelectedGameObject` when their panel opens, so a controller has
+somewhere to start rather than nothing selected at all. What remains open:
+nothing moves the gamepad's focus between the *dynamically built* rows below
+that first selection (quest list, memory list, remap rows) — those still rely
+on whatever `InputSystemUIInputModule`'s default navigation happens to reach,
+with no explicit `Selectable.navigation` wiring between rows built at runtime.
+
+### Corrupting from the archive has no confirmation or undo
+
+Clicking Corrupt acts immediately — no "are you sure", and no way to reverse it beyond
+`MemoryManager.SetState` from a debug context. A permanent-feeling choice with no
+confirmation step is a rough edge for a real player, acceptable for a placeholder
+screen exercising the mechanic but worth a confirm dialog before this ships.
+
+## TASK 009 — World save identity
+
+### Hazards have no per-object state, by design
+
+`DamageVolume` is stateless — a hazard is always active, so there is nothing to
+remember across a save. "Hazards restore with the player" from the ROADMAP line is
+satisfied trivially: a fresh scene load rebuilds them exactly as authored. If a future
+hazard gains state (a one-shot trap that expends itself, say), it needs a
+`SaveIdentity` and its own `WorldObjectState` flag the same way `EnemyHealth` does.
+
+### Avarsha has no checkpoint yet
+
+The checkpoint-restoration mechanism (`CheckpointManager.RestoreActiveCheckpoint`) has
+nothing to exercise in `Avarsha.unity` — the scene has never had a `Checkpoint` object
+(true since TASK 003, not something this task introduced). `Test.unity`'s
+`Checkpoint_01` and the PlayMode tests are the only places it currently runs. Placing a
+checkpoint in Avarsha is content work, not a systems gap.
+
+### No anti-softlock protection for items or doors, because neither exists
+
+SPEC.md section 55 also requires quest items to be unloseable and essential doors to
+have recovery states. There is no inventory (`ROADMAP` TASK 016) and no door/lock
+system yet, so there is nothing to protect. The memory system's equivalent protection
+(a critical memory cannot be permanently corrupted) already exists and predates this
+task; enemy and pickup persistence here is the rest of section 55's "world-reset
+rules" that this task's scope actually covers.
+
+### A world flag is the only persistence primitive; there is no per-object blob
+
+`WorldObjectState` can remember that something happened (dead, collected) but not
+arbitrary per-object data (an enemy's remaining poise, a chest's exact loot roll). That
+scale of state has `ISaveParticipant` already; `WorldObjectState` intentionally covers
+only the common "did this happen yet" case cheaply, without a new save-file version.
+
+## TASK 008 — Menus and save/load UI
+
+### There is one manual slot, not several
+
+The Save/Load screen lists the three `SaveSlot` values (Checkpoint, Manual, Chapter),
+not several independently-numbered manual slots. SPEC.md section 31 lists "manual
+save" as one save type, not a bank of slots, so this matches the spec as written; if
+the intent was several manual slots, `SaveSlot` needs numbered `Manual1..N` entries and
+`SaveBrowser`/`MainMenuController` extended to list them.
+
+### ~~Continuing does not restore the active checkpoint's spawn behaviour~~ — closed in TASK 009
+
+`CheckpointManager.RestoreActiveCheckpoint` now hands `SaveData.CheckpointId` back to
+`CheckpointManager` during `SaveManager.Apply`.
+
+### `Application.Quit()` does nothing in the Editor and is unverified in a build
+
+The Quit button calls `EditorApplication.isPlaying = false` in the Editor and
+`Application.Quit()` otherwise; only the Editor path has been exercised, since there is
+no build pipeline yet (that is TASK 019's job).
+
+### Master Volume has nothing to control
+
+The Settings screen's volume slider writes to `SettingsManager.Current.MasterVolume`
+and persists it, but nothing reads that field — there is no audio system yet
+(ROADMAP TASK 018). The slider is honest about being a placeholder control with no
+effect, per section 78.
+
+### Menu UI is built by an editor script, not laid out by hand
+
+`MainMenu.unity`'s whole hierarchy, and the pause panel's new buttons, were generated
+by a one-off editor script (the same approach TASK 007 used for the HUD) rather than
+placed in the Scene view. Programmer art: flat colours, `LegacyRuntime.ttf`, no
+transitions. A real UI pass replaces this wholesale rather than editing it in place.
+
+### Fixed this task, noted for anyone touching scene-level singletons
+
+`GameManager`, `GameSceneManager`, `SettingsManager`, `WorldState` and
+`CheckpointManager` share a `GameSystems` GameObject with scene-scoped systems in
+`Avarsha.unity`. Any of those five destroying `gameObject` instead of `this` on
+finding a duplicate will again take the whole object — and everything on it — down
+with it the next time a scene is revisited. See `CHANGELOG.md`'s TASK 008 entry for
+the full story; the fix is `Destroy(this)`, never `Destroy(gameObject)`, in a duplicate
+singleton's `Awake`. The same reasoning is why `SaveManager` now lives on its own
+GameObject rather than sharing one with anything that calls `DontDestroyOnLoad`.
+
 ## TASK 007 — Combat completion and HUD
 
-### The divine ability is still missing
+### ~~The divine ability is still missing~~ — closed in TASK 011
 
-SPEC.md section 13 lists nine actions; eight now exist. The divine ability has a
-resource (`DivineEnergyComponent`, filled by perfect parries) and a combo step
-(`ComboStep.Ability`, so Ability→Light is in the chain table), but nothing spends the
-energy or performs an ability. It belongs with Ember Step and the first temple
-(ROADMAP TASK 011); building it before any temple exists would be inventing content.
+`CombatController.TryAbility` (Ember Step) spends `DivineEnergyComponent` and records
+`ComboStep.Ability`. All nine SPEC.md section 13 actions now exist.
 
 ### Combo multipliers and windows are untuned placeholders
 
@@ -467,13 +865,15 @@ dialogue UI, `PlayerDialogueLock` suspending and restoring control, and the
 supernatural event's sequence over time. Those are still verified only by a scripted
 play-mode run, which is a manual check rather than a regression test.
 
-### Gamepad bindings are saturated
+### Gamepad bindings are saturated (remapping now available, TASK 017)
 
-Interact is bound to `E` on keyboard and to **d-pad up** on gamepad, because all four
-face buttons are already taken by Jump, Light Attack, Heavy Attack and Dodge. D-pad up
-is a poor place for the most-used contextual button. The control scheme needs a pass
-before gamepad play is reasonable — this was already flagged for dodge in TASK 002 and
-has now forced a second bad binding.
+Interact is still bound to `E` on keyboard and to **d-pad up** on gamepad by
+default, because all four face buttons are already taken by Jump, Light Attack,
+Heavy Attack and Dodge — d-pad up remains a poor default place for the
+most-used contextual button. TASK 017's `RemapUI` (Main Menu → Controls) now
+lets a player move any binding themselves, so this is no longer a hard
+limitation, but the shipped default is unchanged and still forces a bad
+binding on anyone who never opens the remap screen.
 
 ## TASK 002 — Combat Foundation
 
@@ -518,18 +918,19 @@ It was added because "player can die" and "checkpoint restores player" are accep
 criteria and nothing else in this task could damage the player. It is a real system
 rather than a test fixture, but it was not part of the specified scope.
 
-### `CheckpointManager` is not persisted
+### ~~`CheckpointManager` is not persisted~~ — closed in TASK 009
 
-The active checkpoint lives in memory only and is lost on scene reload or quit. This
-belongs with the save system (SPEC.md section 32) and was deliberately not invented here.
-Until then, `CheckpointManager.CaptureFallback` uses the player's start position so the
-first death before any checkpoint still resolves.
+The active checkpoint now survives a save via `CheckpointManager.RestoreActiveCheckpoint`.
+`CaptureFallback`'s player-start-position fallback still applies before any checkpoint
+has ever been activated, in either a fresh game or an old save from before one was.
 
-### Respawn does not reset world state
+### Respawn does not reset world state — unchanged, and this is intentional
 
-`PlayerDeath` restores the player and moves them to the checkpoint, but enemies stay dead
-and hazards stay as they were. Whether death should roll the world back is a design
-decision the spec does not settle, and implementing either answer needs the save system.
+`PlayerDeath` restores the player and moves them to the checkpoint; enemies killed
+before the death stay dead and are not the topic here. This entry is about mid-session
+respawn (dying and getting back up) never being confused with loading a save: death
+must not roll back quest or memory progress made since the last checkpoint, so it
+deliberately touches nothing WorldObjectState-flagged.
 
 ### Difficulty scaling is absent — closed in TASK 004 and TASK 007
 
@@ -544,12 +945,13 @@ sprint and jump, which is itself a sign the control scheme needs a pass.
 
 ## TASK 001 — Project Foundation
 
-### Gamepad look speed is wrong
+### Gamepad look speed is wrong — CLOSED (TASK 017)
 
-`PlayerCamera` applies one sensitivity value to the Look action, but mouse delta is
-per-frame pixels while a gamepad stick is a -1..1 rate. The value is tuned for mouse, so
-stick look is very slow. Fixing it means splitting the two paths and multiplying the
-stick by `Time.deltaTime`; deferred until gamepad support is actually exercised.
+`PlayerCamera` applied one sensitivity value to the Look action, but mouse delta is
+per-frame pixels while a gamepad stick is a -1..1 rate, tuned for mouse, so stick look
+was very slow. Fixed by splitting the two paths: mouse still uses `sensitivity`
+directly, and a gamepad stick now multiplies by its own
+`gamepadLookDegreesPerSecond * Time.deltaTime`.
 
 ### `Assets/Settings/SampleSceneProfile.asset` is unused
 

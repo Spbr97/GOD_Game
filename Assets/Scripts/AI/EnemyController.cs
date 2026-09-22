@@ -87,6 +87,7 @@ namespace Game.AI
         private bool hasDisturbance;
         private bool canRetreat = true;
         private bool alertedGroup;
+        private float speedMultiplier = 1f;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         public EnemyState State { get; private set; } = EnemyState.Idle;
@@ -290,6 +291,39 @@ namespace Game.AI
             group = enemyGroup;
         }
 
+        /// <summary>
+        /// Scales every movement speed this enemy sets on itself, from now on. Used by
+        /// <see cref="BossController"/> to make later phases more dangerous through pace
+        /// rather than health or damage (SPEC.md section 18).
+        /// </summary>
+        public void SetSpeedMultiplier(float multiplier)
+        {
+            speedMultiplier = Mathf.Max(0.1f, multiplier);
+
+            // Re-apply immediately so a phase change is felt on the spot rather than
+            // waiting for the next state transition to pick up the new pace.
+            switch (State)
+            {
+                case EnemyState.Chase:
+                case EnemyState.Retreat:
+                case EnemyState.Search:
+                case EnemyState.Investigate:
+                    navigator?.SetSpeed(archetype.ChaseSpeed * speedMultiplier);
+                    break;
+
+                case EnemyState.Patrol:
+                case EnemyState.ReturnHome:
+                    navigator?.SetSpeed(archetype.PatrolSpeed * speedMultiplier);
+                    break;
+            }
+        }
+
+        /// <summary>Public seam for a boss's supernatural-transformation tint (SPEC.md section 18 phase 3).</summary>
+        public void ApplyPhaseTint(Color colour)
+        {
+            ApplyTint(colour);
+        }
+
         private EnemySenses Sense()
         {
             var targetPosition = perception != null && perception.Target != null
@@ -357,7 +391,7 @@ namespace Game.AI
             switch (state)
             {
                 case EnemyState.Chase:
-                    navigator?.SetSpeed(archetype.ChaseSpeed);
+                    navigator?.SetSpeed(archetype.ChaseSpeed * speedMultiplier);
 
                     if (!alertedGroup)
                     {
@@ -382,7 +416,7 @@ namespace Game.AI
                 case EnemyState.Retreat:
                 case EnemyState.Search:
                 case EnemyState.Investigate:
-                    navigator?.SetSpeed(archetype.ChaseSpeed);
+                    navigator?.SetSpeed(archetype.ChaseSpeed * speedMultiplier);
                     if (state == EnemyState.Search)
                     {
                         searchPoint = perception != null ? perception.LastKnownPosition : transform.position;
@@ -391,7 +425,7 @@ namespace Game.AI
                     break;
 
                 case EnemyState.ReturnHome:
-                    navigator?.SetSpeed(archetype.PatrolSpeed);
+                    navigator?.SetSpeed(archetype.PatrolSpeed * speedMultiplier);
                     alertedGroup = false;
                     hasDisturbance = false;
                     perception?.Forget();
@@ -399,7 +433,7 @@ namespace Game.AI
                     break;
 
                 case EnemyState.Patrol:
-                    navigator?.SetSpeed(archetype.PatrolSpeed);
+                    navigator?.SetSpeed(archetype.PatrolSpeed * speedMultiplier);
                     if (patrolRoute != null && previous != EnemyState.Patrol)
                     {
                         patrolIndex = patrolRoute.NearestIndex(transform.position);

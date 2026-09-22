@@ -24,9 +24,14 @@ namespace Game.AI
         [Tooltip("Tinted during the telegraph so the swing is readable without animation (SPEC.md section 78).")]
         [SerializeField] private Renderer[] telegraphRenderers;
 
+        [Tooltip("Telegraph scale multiplier — a shape-based tell independent of the tint, so the wind-up still reads for a colorblind player (SPEC.md section 43: never colour alone).")]
+        [SerializeField] private float telegraphScalePulse = 1.12f;
+
         private Coroutine attackRoutine;
         private float nextAttackAllowedAt;
+        private float cooldownMultiplier = 1f;
         private MaterialPropertyBlock propertyBlock;
+        private Vector3[] telegraphOriginalScales;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         /// <summary>True from the start of a telegraph to the end of a recovery.</summary>
@@ -104,6 +109,7 @@ namespace Game.AI
             IsTelegraphing = false;
             hitbox?.Deactivate();
             ClearTint();
+            ClearTelegraphPulse();
         }
 
         private void OnDisable()
@@ -117,13 +123,15 @@ namespace Game.AI
             var active = archetype != null ? archetype.AttackActiveDuration : 0.18f;
             var recovery = archetype != null ? archetype.AttackRecovery : 0.4f;
             var damage = archetype != null ? archetype.DamageFor() : 10f;
-            var cooldown = archetype != null ? archetype.CooldownFor() : 1.5f;
+            var cooldown = (archetype != null ? archetype.CooldownFor() : 1.5f) * cooldownMultiplier;
 
             IsTelegraphing = true;
             ApplyTint(archetype != null ? archetype.TelegraphColour : Color.yellow);
+            ApplyTelegraphPulse();
             yield return new WaitForSeconds(telegraph);
             IsTelegraphing = false;
             ClearTint();
+            ClearTelegraphPulse();
 
             hitbox?.Activate(new DamageData
             {
@@ -151,6 +159,57 @@ namespace Game.AI
             if (renderers != null)
             {
                 telegraphRenderers = renderers;
+            }
+        }
+
+        /// <summary>
+        /// Scales the gap between attacks, from the next swing on. Used by
+        /// <see cref="BossController"/> so later phases attack faster rather than
+        /// harder (SPEC.md section 18).
+        /// </summary>
+        public void SetCooldownMultiplier(float multiplier)
+        {
+            cooldownMultiplier = Mathf.Max(0.1f, multiplier);
+        }
+
+        private void ApplyTelegraphPulse()
+        {
+            if (telegraphRenderers == null || telegraphScalePulse <= 0f)
+            {
+                return;
+            }
+
+            if (telegraphOriginalScales == null || telegraphOriginalScales.Length != telegraphRenderers.Length)
+            {
+                telegraphOriginalScales = new Vector3[telegraphRenderers.Length];
+            }
+
+            for (var i = 0; i < telegraphRenderers.Length; i++)
+            {
+                if (telegraphRenderers[i] == null)
+                {
+                    continue;
+                }
+
+                var rendererTransform = telegraphRenderers[i].transform;
+                telegraphOriginalScales[i] = rendererTransform.localScale;
+                rendererTransform.localScale = telegraphOriginalScales[i] * telegraphScalePulse;
+            }
+        }
+
+        private void ClearTelegraphPulse()
+        {
+            if (telegraphRenderers == null || telegraphOriginalScales == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < telegraphRenderers.Length && i < telegraphOriginalScales.Length; i++)
+            {
+                if (telegraphRenderers[i] != null)
+                {
+                    telegraphRenderers[i].transform.localScale = telegraphOriginalScales[i];
+                }
             }
         }
 

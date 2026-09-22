@@ -33,6 +33,12 @@ namespace Game.Player
         /// <summary>True while a dodge impulse is overriding normal movement input.</summary>
         public bool IsDodging => Time.time < dodgeEndsAt;
 
+        /// <summary>True on the ground, per the same <see cref="CharacterController.isGrounded"/> the movement itself reads.</summary>
+        public bool IsGrounded => controller.isGrounded;
+
+        /// <summary>True while the Sprint action is held, the same check <see cref="HandleMovement"/> uses for speed.</summary>
+        public bool IsSprinting { get; private set; }
+
         /// <summary>
         /// When set, the player faces this instead of their movement direction, so
         /// movement becomes strafing. Set by Game.Combat.LockOnController; this class
@@ -132,6 +138,7 @@ namespace Game.Player
         {
             var input = moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
             var isSprinting = sprintAction != null && sprintAction.IsPressed();
+            IsSprinting = isSprinting;
             var speed = isSprinting ? sprintSpeed : walkSpeed;
 
             Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;

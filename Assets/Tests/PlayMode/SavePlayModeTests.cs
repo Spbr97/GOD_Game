@@ -1,11 +1,15 @@
 using System.Collections;
 using System.IO;
+using Game.AI;
 using Game.Combat;
 using Game.Core;
 using Game.Dialogue;
+using Game.Inventory;
 using Game.Memory;
+using Game.Progression;
 using Game.Quests;
 using Game.Save;
+using Game.World;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -70,6 +74,7 @@ namespace Game.Tests.Play
         public void TearDown()
         {
             arena.Dispose();
+            SaveManager.PendingLoad = null;
 
             if (Directory.Exists(root))
             {
@@ -319,6 +324,402 @@ namespace Game.Tests.Play
 
             Assert.AreEqual(42, participant.Value,
                 "A system saving through ISaveParticipant did not get its data back.");
+        }
+
+        [UnityTest]
+        public IEnumerator PendingLoad_IsAppliedAutomaticallyWhenASaveManagerWakesUpInTheDestinationScene()
+        {
+            // Stands in for the Main Menu's Continue/Load: it sets PendingLoad and hands
+            // off to a scene load, then a SaveManager it never touches directly applies
+            // the save once it exists (MainMenuController does this for real).
+            var player = arena.SpawnPlayer(new Vector3(9f, 0f, 3f));
+            yield return null;
+
+            player.Health.TakeDamage(DamageData.Create(20f, null));
+            WorldState.Instance.SetFlag("BEFORE_PENDING_LOAD");
+            saves.Save(SaveSlot.Manual);
+
+            WorldState.Instance.SetFlag("AFTER_THE_SAVE");
+            player.Position = Vector3.zero;
+
+            // Simulate the scene tear-down and wake-up a real scene load would do: the
+            // old SaveManager goes away, a fresh one arrives with PendingLoad already set.
+            Object.DestroyImmediate(saves.gameObject);
+            SaveManager.PendingLoad = SaveSlot.Manual;
+
+            var freshGo = arena.Track(new GameObject("SaveManager_Fresh"));
+            freshGo.SetActive(false);
+            var fresh = freshGo.AddComponent<SaveManager>();
+            fresh.Configure(root, autoSave: false);
+            freshGo.SetActive(true);
+
+            yield return null;
+
+            Assert.IsNull(SaveManager.PendingLoad, "PendingLoad was not consumed.");
+            Assert.IsTrue(WorldState.Instance.GetFlag("BEFORE_PENDING_LOAD"));
+            Assert.IsFalse(WorldState.Instance.GetFlag("AFTER_THE_SAVE"),
+                "State from after the save survived the pending load.");
+            Assert.Less(Vector3.Distance(player.Position, new Vector3(9f, 0f, 3f)), 0.01f);
+
+            saves = fresh;
+        }
+
+        [UnityTest]
+        public IEnumerator Enemy_DeathSurvivesASaveAndDoesNotResurrectOnLoad()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+            var dummy = arena.SpawnDummy("Enemy_Persistent", new Vector3(3f, 0f, 3f));
+
+            // Inactive while wiring: AddComponent runs Awake immediately on an active
+            // object, and EnemyHealth.Awake resolves SaveIdentity via GetComponent, so
+            // it must already be present (see TestArena's note on this exact gotcha).
+            dummy.Root.SetActive(false);
+            dummy.Root.AddComponent<SaveIdentity>().Configure("ENEMY_PERSISTENT");
+            dummy.Root.AddComponent<EnemyHealth>();
+            dummy.Root.SetActive(true);
+            yield return null;
+
+            dummy.Health.Kill(DamageData.Create(999f, null));
+            yield return null;
+
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // Undo the death in memory, the way a fresh scene load would hand back a
+            // live enemy before the save is applied.
+            dummy.Health.RestoreTo(dummy.Health.MaxHealth);
+            Assert.IsFalse(dummy.Health.IsDead);
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.IsTrue(dummy.Health.IsDead, "The load did not re-apply the enemy's death.");
+            Assert.IsTrue(dummy.Root == null || !dummy.Root.activeInHierarchy,
+                "A restored-dead enemy should be gone, not standing around fully healed a moment later.");
+        }
+
+        [UnityTest]
+        public IEnumerator Enemy_ThatDiesAfterTheSceneAlreadyHasTheDeadFlag_ResurrectsOnlyOnce()
+        {
+            // A save loaded before this enemy exists (TestArena builds the whole scene
+            // up front, unlike a real level, so this proves the check-now half of
+            // EnemyHealth.OnEnable, not just the subscribe-for-later half).
+            arena.EnsureWorldState();
+            WorldState.Instance.SetFlag(WorldObjectState.DeadFlag("ENEMY_PRE_DEAD"));
+
+            var dummy = arena.SpawnDummy("Enemy_PreDead", Vector3.zero);
+            dummy.Root.SetActive(false);
+            dummy.Root.AddComponent<SaveIdentity>().Configure("ENEMY_PRE_DEAD");
+            dummy.Root.AddComponent<EnemyHealth>();
+            dummy.Root.SetActive(true);
+            yield return null;
+
+            Assert.IsTrue(dummy.Health.IsDead, "An enemy spawned after its dead flag was already set should never have been alive.");
+        }
+
+        [UnityTest]
+        public IEnumerator Pickup_CollectionSurvivesASaveAndDoesNotReappearOnLoad()
+        {
+            var memory = TestMemory();
+            var memories = arena.SpawnMemoryManager(memory);
+            arena.SpawnPlayer(Vector3.zero);
+
+            var pickupGo = arena.Track(new GameObject("Pickup"));
+            pickupGo.SetActive(false);
+            var collider = pickupGo.AddComponent<SphereCollider>();
+            collider.isTrigger = true;
+            var pickup = pickupGo.AddComponent<MemoryPickup>();
+            pickup.Configure(memory);
+            pickupGo.AddComponent<SaveIdentity>().Configure("PICKUP_MEM_SAVE");
+            pickupGo.SetActive(true);
+            yield return null;
+
+            pickup.Interact(null);
+            yield return null;
+
+            Assert.IsTrue(pickup.Collected);
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh pickup, as a scene reload would produce, with the same identity.
+            Object.DestroyImmediate(pickupGo);
+            memories.SetState(memory, MemoryState.Forgotten);
+
+            var reloadedGo = arena.Track(new GameObject("Pickup_Reloaded"));
+            reloadedGo.SetActive(false);
+            var reloadedCollider = reloadedGo.AddComponent<SphereCollider>();
+            reloadedCollider.isTrigger = true;
+            var reloadedPickup = reloadedGo.AddComponent<MemoryPickup>();
+            reloadedPickup.Configure(memory);
+            reloadedGo.AddComponent<SaveIdentity>().Configure("PICKUP_MEM_SAVE");
+            reloadedGo.SetActive(true);
+            yield return null;
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.IsTrue(reloadedPickup.Collected, "The reloaded pickup did not pick up the save's collected state.");
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_SAVE"),
+                "MemoryManager's own restore, not a duplicate Discover from the pickup, should own this.");
+        }
+
+        [UnityTest]
+        public IEnumerator Checkpoint_ActiveOneIsRestoredByALoad()
+        {
+            var originalManager = arena.SpawnCheckpointManager();
+            arena.SpawnPlayer(Vector3.zero);
+
+            var checkpointGo = arena.Track(new GameObject("Checkpoint_Restore"));
+            checkpointGo.SetActive(false);
+            var box = checkpointGo.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            var checkpoint = checkpointGo.AddComponent<Checkpoint>();
+            checkpointGo.SetActive(true);
+            yield return null;
+
+            checkpoint.Activate();
+            yield return null;
+
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh CheckpointManager, as a scene reload would produce: the old one is
+            // gone (CheckpointManager.Instance would otherwise refuse a second one) and
+            // nothing has restored an active checkpoint into the new one yet.
+            Object.DestroyImmediate(originalManager.gameObject);
+            var freshManagerGo = arena.Track(new GameObject("CheckpointManager_Fresh"));
+            var freshManager = freshManagerGo.AddComponent<CheckpointManager>();
+            yield return null;
+
+            Assert.IsNull(freshManager.ActiveCheckpoint);
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.AreEqual(checkpoint, freshManager.ActiveCheckpoint, "The load did not restore the active checkpoint.");
+            Assert.IsTrue(checkpoint.HasBeenActivated);
+        }
+
+        [UnityTest]
+        public IEnumerator Puzzle_SolvedStateSurvivesASaveAndAppliesToAFreshControllerOnLoad()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+
+            GameObject NewBrazier(string goName)
+            {
+                var go = arena.Track(new GameObject(goName));
+                go.SetActive(false);
+                var collider = go.AddComponent<SphereCollider>();
+                collider.isTrigger = true;
+                var brazier = go.AddComponent<FireBrazier>();
+                brazier.ConfigureBrazier(0f);
+                go.SetActive(true);
+                return go;
+            }
+
+            var braziersGo = new[] { NewBrazier("Brazier_A"), NewBrazier("Brazier_B") };
+            var braziers = new MonoBehaviour[] { braziersGo[0].GetComponent<FireBrazier>(), braziersGo[1].GetComponent<FireBrazier>() };
+
+            var controllerGo = arena.Track(new GameObject("Puzzle_Save"));
+            controllerGo.SetActive(false);
+            var controller = controllerGo.AddComponent<PuzzleController>();
+            controller.Configure(braziers, "SAVE_PUZZLE_SOLVED", "SAVE_PUZZLE");
+            controllerGo.SetActive(true);
+            yield return null;
+
+            foreach (var go in braziersGo)
+            {
+                go.GetComponent<FireBrazier>().Light();
+            }
+            yield return null;
+
+            Assert.IsTrue(controller.IsSolved, "The puzzle did not solve in the live game.");
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh scene load: the old controller and braziers are gone, and WorldState
+            // (which survives scene loads by design, so a stray true flag from the live
+            // game above would otherwise still be sitting there) is wiped the way a real
+            // scene transition's own reset would leave it, before anything restores it.
+            Object.DestroyImmediate(controllerGo);
+            WorldState.Instance.ResetAll();
+            var freshBraziersGo = new[] { NewBrazier("Brazier_A_Fresh"), NewBrazier("Brazier_B_Fresh") };
+            var freshBraziers = new MonoBehaviour[]
+            {
+                freshBraziersGo[0].GetComponent<FireBrazier>(), freshBraziersGo[1].GetComponent<FireBrazier>()
+            };
+
+            var gateGo = arena.Track(new GameObject("Gate_Save"));
+            gateGo.SetActive(false);
+            gateGo.AddComponent<BoxCollider>();
+            var gate = gateGo.AddComponent<PuzzleGate>();
+            gate.Configure("SAVE_PUZZLE");
+            gateGo.SetActive(true);
+
+            var freshControllerGo = arena.Track(new GameObject("Puzzle_Save_Fresh"));
+            freshControllerGo.SetActive(false);
+            var freshController = freshControllerGo.AddComponent<PuzzleController>();
+            freshController.Configure(freshBraziers, "SAVE_PUZZLE_SOLVED", "SAVE_PUZZLE");
+            freshControllerGo.SetActive(true);
+            yield return null;
+
+            Assert.IsFalse(freshController.IsSolved, "The fresh controller started solved before the load applied anything.");
+            Assert.IsFalse(gate.IsOpen);
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.IsTrue(freshController.IsSolved, "The load did not restore the puzzle's solved state.");
+            Assert.IsTrue(gate.IsOpen, "The restored solve did not reach the gate.");
+        }
+
+        [UnityTest]
+        public IEnumerator Boss_DefeatSurvivesASaveAndRevealsTheRewardOnAFreshLoad()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+
+            GameObject NewBoss(string goName, string identityId, GameObject rewardObject)
+            {
+                var go = arena.Track(new GameObject(goName));
+                go.SetActive(false);
+                var health = go.AddComponent<HealthComponent>();
+                health.Configure(50f);
+                go.AddComponent<SaveIdentity>().Configure(identityId);
+                go.AddComponent<EnemyHealth>();
+                var boss = go.AddComponent<BossController>();
+                boss.Configure("SAVE_BOSS", "Test Boss", null, null, rewardObject);
+                go.SetActive(true);
+                return go;
+            }
+
+            var reward = arena.Track(new GameObject("Reward"));
+            reward.SetActive(false);
+
+            var bossGo = NewBoss("Boss_Save", "SAVE_BOSS_ENEMY", reward);
+            var boss = bossGo.GetComponent<BossController>();
+            yield return null;
+
+            bossGo.GetComponent<HealthComponent>().Kill(DamageData.Create(999f, null));
+            yield return null;
+
+            Assert.IsTrue(boss.Defeated, "The boss did not register its own live death.");
+            Assert.IsTrue(reward.activeSelf, "The reward was not revealed by the live death.");
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh scene load: the old boss is gone, and WorldState (see the puzzle
+            // test above) is wiped the way a real scene transition's own reset would
+            // leave it, before anything restores it.
+            Object.DestroyImmediate(bossGo);
+            WorldState.Instance.ResetAll();
+
+            var freshReward = arena.Track(new GameObject("Reward_Fresh"));
+            freshReward.SetActive(false);
+            var freshBossGo = NewBoss("Boss_Save_Fresh", "SAVE_BOSS_ENEMY", freshReward);
+            var freshBoss = freshBossGo.GetComponent<BossController>();
+            yield return null;
+
+            Assert.IsFalse(freshBoss.Defeated, "A fresh boss before Load should not already be defeated.");
+            Assert.IsFalse(freshReward.activeSelf);
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.IsTrue(freshBoss.Defeated, "The load did not restore the boss's defeat.");
+            Assert.IsTrue(freshReward.activeSelf, "The load did not reveal the reward.");
+        }
+
+        [UnityTest]
+        public IEnumerator MemoryToll_PaymentSurvivesASaveAndDoesNotChargeTwiceOnLoad()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+            var memories = arena.SpawnMemoryManager();
+
+            GameObject NewToll(string goName, string identityId, GameObject barrierObject)
+            {
+                var go = arena.Track(new GameObject(goName));
+                go.SetActive(false);
+                var collider = go.AddComponent<SphereCollider>();
+                collider.isTrigger = true;
+                var toll = go.AddComponent<MemoryToll>();
+                toll.Configure(0.2f, "TOLL_SAVE_PAID", barrierObject);
+                go.AddComponent<SaveIdentity>().Configure(identityId);
+                go.SetActive(true);
+                return go;
+            }
+
+            var barrier = arena.Track(new GameObject("Barrier"));
+            var tollGo = NewToll("Toll_Save", "TOLL_SAVE", barrier);
+            yield return null;
+
+            tollGo.GetComponent<MemoryToll>().Interact(null);
+            yield return null;
+
+            Assert.AreEqual(0.8f, memories.Integrity, 0.0001f);
+            Assert.IsFalse(barrier.activeSelf);
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh scene load: the old toll and barrier are gone, integrity is back
+            // to full (nothing has restored it yet), and WorldState is wiped the way a
+            // real scene transition's own reset would leave it before anything restores it.
+            Object.DestroyImmediate(tollGo);
+            Object.DestroyImmediate(barrier);
+            WorldState.Instance.ResetAll();
+            memories.RestoreIntegrity01(1f);
+
+            var freshBarrier = arena.Track(new GameObject("Barrier_Fresh"));
+            var freshTollGo = NewToll("Toll_Save_Fresh", "TOLL_SAVE", freshBarrier);
+            yield return null;
+
+            Assert.IsFalse(freshTollGo.GetComponent<MemoryToll>().Paid, "A fresh toll before Load should not already be paid.");
+            Assert.IsTrue(freshBarrier.activeSelf);
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.IsTrue(freshTollGo.GetComponent<MemoryToll>().Paid, "The load did not restore the toll's payment.");
+            Assert.IsFalse(freshBarrier.activeSelf, "The load did not reopen the barrier.");
+            Assert.AreEqual(0.8f, memories.Integrity, 0.0001f, "The load should restore the spent integrity, not charge it again.");
+        }
+
+        [UnityTest]
+        public IEnumerator Inventory_AndSkillTree_SurviveASaveAndLoadOnFreshManagers()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+
+            var potion = ScriptableObject.CreateInstance<InventoryItem>();
+            potion.Configure("POTION_SAVE", "Potion", ItemCategory.Consumable);
+            arena.TrackAsset(potion);
+
+            var skill = ScriptableObject.CreateInstance<SkillDefinition>();
+            skill.Configure("SKILL_SAVE", "Test Skill", SkillBranch.Warrior, 1, SkillEffectType.AttackDamageMultiplier, 0.1f);
+            arena.TrackAsset(skill);
+
+            var inventory = arena.SpawnInventoryManager(potion);
+            var skills = arena.SpawnSkillTreeManager(skill);
+            yield return null;
+
+            inventory.Add(potion, 2);
+            WorldState.Instance.AddToCounter(SkillTreeManager.SkillPointsFlag, 5);
+            Assert.IsTrue(skills.Unlock("SKILL_SAVE"));
+            yield return null;
+
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            // A fresh scene load: new managers with no state, the way a real reload
+            // would produce, plus WorldState wiped the way its own reset would leave it.
+            Object.DestroyImmediate(inventory.gameObject);
+            Object.DestroyImmediate(skills.gameObject);
+            WorldState.Instance.ResetAll();
+
+            var freshInventory = arena.SpawnInventoryManager(potion);
+            var freshSkills = arena.SpawnSkillTreeManager(skill);
+            yield return null;
+
+            Assert.AreEqual(0, freshInventory.GetCount(potion));
+            Assert.IsFalse(freshSkills.IsUnlocked("SKILL_SAVE"));
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            yield return null;
+
+            Assert.AreEqual(2, freshInventory.GetCount(potion), "The load did not restore the held potion count.");
+            Assert.IsTrue(freshSkills.IsUnlocked("SKILL_SAVE"), "The load did not restore the unlocked skill.");
+            Assert.AreEqual(4, freshSkills.AvailablePoints, "The load did not restore the skill points counter (5 granted, 1 spent).");
         }
 
         [UnityTest]

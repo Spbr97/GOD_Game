@@ -256,5 +256,39 @@ namespace Game.Tests
             Assert.AreEqual(75f, SaveStorage.Read(root, SaveSlot.Checkpoint).Data.PlayerStats.Health, 0.001f);
             Assert.IsFalse(SaveStorage.Exists(root, SaveSlot.Chapter));
         }
+
+        // ---------------------------------------------------------------------- browser
+
+        [Test]
+        public void Browser_Peek_ReadsWithoutNeedingASaveManager()
+        {
+            SaveStorage.Write(root, SaveSlot.Manual, NewSave(health: 55f), out _);
+
+            var outcome = SaveBrowser.Peek(root, SaveSlot.Manual);
+
+            Assert.IsTrue(outcome.Loaded);
+            Assert.AreEqual(55f, outcome.Data.PlayerStats.Health, 0.001f);
+        }
+
+        [Test]
+        public void Browser_TryFindMostRecent_PicksTheNewestTimestampAcrossSlots()
+        {
+            var older = NewSave();
+            older.TimestampUtc = new System.DateTime(2020, 1, 1).ToString("o");
+            SaveStorage.Write(root, SaveSlot.Checkpoint, older, out _);
+
+            var newer = NewSave();
+            newer.TimestampUtc = new System.DateTime(2025, 1, 1).ToString("o");
+            SaveStorage.Write(root, SaveSlot.Manual, newer, out _);
+
+            Assert.IsTrue(SaveBrowser.TryFindMostRecent(root, out var slot));
+            Assert.AreEqual(SaveSlot.Manual, slot, "The older Checkpoint save was picked over the newer Manual one.");
+        }
+
+        [Test]
+        public void Browser_TryFindMostRecent_FailsCleanlyWithNothingOnDisk()
+        {
+            Assert.IsFalse(SaveBrowser.TryFindMostRecent(root, out _));
+        }
     }
 }

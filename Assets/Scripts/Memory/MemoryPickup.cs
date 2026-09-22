@@ -1,4 +1,6 @@
+using Game.Audio;
 using Game.Core;
+using Game.VFX;
 using Game.World;
 using UnityEngine;
 
@@ -26,6 +28,9 @@ namespace Game.Memory
         [SerializeField] private float bobSpeed = 1.5f;
         [SerializeField] private float spinDegreesPerSecond = 40f;
 
+        [Tooltip("Optional. If set, collecting this fragment survives a save (SPEC.md TASK 009) — a load will not un-collect it.")]
+        [SerializeField] private SaveIdentity identity;
+
         private Vector3 restPosition;
         private MaterialPropertyBlock propertyBlock;
 
@@ -40,12 +45,79 @@ namespace Game.Memory
         {
             restPosition = transform.position;
 
+            if (identity == null)
+            {
+                identity = GetComponent<SaveIdentity>();
+            }
+
             if (visual == null)
             {
                 visual = GetComponentInChildren<Renderer>();
             }
 
             ApplyTint();
+        }
+
+        private void OnEnable()
+        {
+            if (identity == null)
+            {
+                return;
+            }
+
+            EventBus.Subscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
+
+            // See EnemyHealth.OnEnable for why both a check-now and a subscription are
+            // needed: this covers a save already applied before this pickup existed.
+            if (WorldObjectState.IsMarked(WorldObjectState.CollectedFlag(identity.Id)))
+            {
+                ApplyRestoredCollection();
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (identity != null)
+            {
+                EventBus.Unsubscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
+            }
+        }
+
+        private void OnWorldFlagChanged(WorldFlagChangedEvent changed)
+        {
+            if (changed.Value && identity != null && changed.Flag == WorldObjectState.CollectedFlag(identity.Id))
+            {
+                ApplyRestoredCollection();
+            }
+        }
+
+        /// <summary>
+        /// Applies a remembered collection from a save directly, without calling
+        /// <see cref="MemoryManager.Discover"/> — the save already restored that grant
+        /// through <c>MemoryStates</c>, and discovering it again would be a duplicate
+        /// (SPEC.md section 56: no duplicate rewards).
+        ///
+        /// Guarded by <c>Collected</c> for the same reason <c>EnemyHealth</c> guards on
+        /// <c>IsDead</c>: <see cref="Interact"/> marking the flag publishes the very
+        /// event this method listens for, so an ordinary in-session collection would
+        /// otherwise call back into itself. Harmless here since both paths set the same
+        /// state, but the guard keeps the two paths honestly separate.
+        /// </summary>
+        private void ApplyRestoredCollection()
+        {
+            if (Collected)
+            {
+                return;
+            }
+
+            Collected = true;
+
+            if (visual != null)
+            {
+                visual.enabled = false;
+            }
+
+            transform.position = restPosition;
         }
 
         private void Update()
@@ -83,7 +155,21 @@ namespace Game.Memory
             // (already discovered), the object still retires, because leaving a
             // permanently inert prompt in the world is worse than a no-op.
             MemoryManager.Instance.Discover(memory);
+
+            // Cosmetic only, and only on a live collection — a save's restore replays
+            // no VFX/audio, the same way it replays no other one-off effect.
+            VfxSpawner.Spawn(VfxKind.MemoryFragment, transform.position);
+            SfxSpawner.Play(SfxKind.MemoryDiscovered, transform.position);
+
+            // Set before marking the flag: Mark publishes the event this object also
+            // listens for, and Collected is what ApplyRestoredCollection's guard checks
+            // to tell an ordinary collection apart from a genuine restore.
             Collected = true;
+
+            if (identity != null)
+            {
+                WorldObjectState.Mark(WorldObjectState.CollectedFlag(identity.Id));
+            }
 
             if (visual != null)
             {

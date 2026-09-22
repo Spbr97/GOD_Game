@@ -1,5 +1,6 @@
 using System.Collections;
 using Game.Core;
+using Game.Progression;
 using UnityEngine;
 
 namespace Game.Combat
@@ -145,7 +146,11 @@ namespace Game.Combat
                     break;
             }
 
-            var damage = BaseDamage(type) * damageMultiplier;
+            // Warrior branch's "attack damage" skill (SPEC.md section 30, TASK 016):
+            // a bonus fraction added to a base multiplier of 1, so an unlocked skill
+            // never needs a matching baseline change here.
+            var skillBonus = 1f + (SkillTreeManager.Instance?.GetBonus(SkillEffectType.AttackDamageMultiplier) ?? 0f);
+            var damage = BaseDamage(type) * damageMultiplier * skillBonus;
 
             // Heavies and finishers go through a block (SPEC.md section 15 still
             // lets them be parried, which is the guard's decision, not the weapon's).

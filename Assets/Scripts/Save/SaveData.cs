@@ -100,14 +100,17 @@ namespace Game.Save
 
     /// <summary>
     /// Everything a save file holds (SPEC.md section 31). Field names follow the spec's
-    /// list, and several of them are empty because the system behind them does not
-    /// exist yet: <see cref="Inventory"/>, <see cref="Abilities"/>, <see cref="NpcStates"/>,
-    /// <see cref="BossStates"/>, <see cref="DialogueFlags"/> and <see cref="EndingFlags"/>
-    /// are all reserved rather than used.
+    /// list. <see cref="Inventory"/> (TASK 016's <c>InventoryManager</c>) and
+    /// <see cref="Abilities"/> (TASK 016's <c>SkillTreeManager</c>, the unlocked skill
+    /// ids) are filled now; <see cref="NpcStates"/>, <see cref="BossStates"/>,
+    /// <see cref="DialogueFlags"/> and <see cref="EndingFlags"/> remain reserved
+    /// because the system behind each does not exist yet, or — for boss state —
+    /// already round-trips a different way (a boss's death is an ordinary
+    /// <c>WorldObjectState</c> flag via <c>SaveIdentity</c>, the same as any enemy's).
     ///
-    /// They are here on purpose. The shape of the file is what version migration has to
-    /// reason about, and adding a field later is a migration where filling an existing
-    /// empty one is not.
+    /// The still-empty fields are here on purpose. The shape of the file is what
+    /// version migration has to reason about, and adding a field later is a migration
+    /// where filling an existing empty one is not.
     ///
     /// This is a plain serializable class, not a ScriptableObject and not a struct,
     /// because <c>JsonUtility</c> round-trips exactly this shape.
@@ -136,10 +139,10 @@ namespace Game.Save
         public Quaternion PlayerRotation = Quaternion.identity;
         public PlayerStatsData PlayerStats = new();
 
-        /// <summary>Reserved. There is no inventory system (SPEC.md section 31).</summary>
+        /// <summary>Held items as "itemId:count" pairs (TASK 016's <c>InventoryManager</c>).</summary>
         public List<string> Inventory = new();
 
-        /// <summary>Reserved. There is no ability system.</summary>
+        /// <summary>Unlocked skill ids (TASK 016's <c>SkillTreeManager</c>; skill points are a <see cref="WorldCounters"/> entry instead).</summary>
         public List<string> Abilities = new();
 
         public List<QuestEntry> QuestStates = new();
@@ -152,7 +155,7 @@ namespace Game.Save
         public List<MemoryEntry> MemoryStates = new();
         public float MemoryIntegrity = 1f;
 
-        /// <summary>Reserved. There are no bosses.</summary>
+        /// <summary>Reserved. A boss's death is an ordinary <c>WorldObjectState</c> flag via its <c>SaveIdentity</c>, the same as any enemy's, rather than a record here.</summary>
         public List<FlagEntry> BossStates = new();
 
         /// <summary>Reserved. Dialogue records its consequences as world flags.</summary>

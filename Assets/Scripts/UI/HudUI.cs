@@ -1,3 +1,4 @@
+using Game.AI;
 using Game.Combat;
 using Game.Core;
 using UnityEngine;
@@ -7,9 +8,10 @@ namespace Game.UI
 {
     /// <summary>
     /// The always-on HUD (SPEC.md section 42): health, stamina, divine energy, the
-    /// lock-on target and the last combo performed. The objective is
-    /// <see cref="QuestTrackerUI"/>'s and the equipped ability and boss health wait
-    /// for the systems behind them.
+    /// lock-on target, the last combo performed, and a boss health bar (SPEC.md
+    /// section 18) that appears only while a <see cref="BossController"/> encounter is
+    /// live. The objective is <see cref="QuestTrackerUI"/>'s and the equipped ability
+    /// still waits for the system behind it.
     ///
     /// Bars are polled rather than event-driven because stamina regenerates every
     /// frame and a bar that only moved on spend would look broken. Everything else
@@ -38,9 +40,17 @@ namespace Game.UI
         [Tooltip("How long a combo name stays on screen.")]
         [SerializeField] private float comboLingerSeconds = 1.2f;
 
+        [Header("Boss (SPEC.md section 18)")]
+        [Tooltip("Parent of the boss bar, hidden until a boss encounter starts.")]
+        [SerializeField] private GameObject bossHealthRoot;
+
+        [SerializeField] private RectTransform bossHealthFill;
+        [SerializeField] private Text bossNameLabel;
+
         private HealthComponent health;
         private StaminaComponent stamina;
         private DivineEnergyComponent divine;
+        private HealthComponent bossHealth;
         private float comboHideAt;
         private bool visible = true;
 
@@ -53,9 +63,12 @@ namespace Game.UI
             EventBus.Subscribe<ParryEvent>(OnParry);
             EventBus.Subscribe<GuardBrokenEvent>(OnGuardBroken);
             EventBus.Subscribe<PlayerRespawnedEvent>(OnRespawned);
+            EventBus.Subscribe<BossEncounterStartedEvent>(OnBossEncounterStarted);
+            EventBus.Subscribe<BossDefeatedEvent>(OnBossDefeated);
 
             SetText(lockOnLabel, string.Empty);
             SetText(comboLabel, string.Empty);
+            SetBossVisible(false);
         }
 
         private void OnDisable()
@@ -65,6 +78,8 @@ namespace Game.UI
             EventBus.Unsubscribe<ParryEvent>(OnParry);
             EventBus.Unsubscribe<GuardBrokenEvent>(OnGuardBroken);
             EventBus.Unsubscribe<PlayerRespawnedEvent>(OnRespawned);
+            EventBus.Unsubscribe<BossEncounterStartedEvent>(OnBossEncounterStarted);
+            EventBus.Unsubscribe<BossDefeatedEvent>(OnBossDefeated);
         }
 
         private void Update()
@@ -101,6 +116,11 @@ namespace Game.UI
             {
                 comboHideAt = 0f;
                 SetText(comboLabel, string.Empty);
+            }
+
+            if (bossHealth != null)
+            {
+                SetBar(bossHealthFill, bossHealth.HealthFraction);
             }
         }
 
@@ -153,6 +173,32 @@ namespace Game.UI
         {
             SetText(lockOnLabel, string.Empty);
             SetText(comboLabel, string.Empty);
+        }
+
+        private void OnBossEncounterStarted(BossEncounterStartedEvent started)
+        {
+            bossHealth = started.Boss != null ? started.Boss.GetComponent<HealthComponent>() : null;
+            SetText(bossNameLabel, started.DisplayName);
+            SetBossVisible(bossHealth != null);
+        }
+
+        private void OnBossDefeated(BossDefeatedEvent defeated)
+        {
+            if (bossHealth != null && defeated.Boss != null && bossHealth.gameObject != defeated.Boss)
+            {
+                return;
+            }
+
+            bossHealth = null;
+            SetBossVisible(false);
+        }
+
+        private void SetBossVisible(bool show)
+        {
+            if (bossHealthRoot != null)
+            {
+                bossHealthRoot.SetActive(show);
+            }
         }
 
         private void Flash(string message)

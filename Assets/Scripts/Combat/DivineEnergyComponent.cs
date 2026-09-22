@@ -69,5 +69,17 @@ namespace Game.Combat
             maxEnergy = Mathf.Max(1f, newMax);
             CurrentEnergy = Mathf.Clamp(startingEnergy, 0f, maxEnergy);
         }
+
+        /// <summary>
+        /// Recomputes max energy to an exact value (TASK 016's Divine skill bonus).
+        /// Never raises current energy — see <see cref="HealthComponent.SetMaxHealth"/>
+        /// for why a cap change is not also a free top-up, and why calling this
+        /// repeatedly with the same total is a safe no-op.
+        /// </summary>
+        public void SetMaxEnergy(float newMax)
+        {
+            maxEnergy = Mathf.Max(1f, newMax);
+            CurrentEnergy = Mathf.Min(CurrentEnergy, maxEnergy);
+        }
     }
 }

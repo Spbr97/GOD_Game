@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06706c8155d566f4f9b3420499a577d2, type: 3}
+  m_Name: Enemy_DivineGuardian
+  m_EditorClassIdentifier: Game.Runtime::Game.AI.EnemyArchetype
+  archetypeId: ENEMY_DIVINE_GUARDIAN
+  displayName: Divine Guardian
+  enemyClass: 7
+  bodyTint: {r: 0.75, g: 0.35, b: 0.1, a: 1}
+  maxHealth: 100
+  poise: 50
+  poiseRecoveryPerSecond: 10
+  staggerDuration: 1.1
+  patrolSpeed: 1.3
+  chaseSpeed: 3.6
+  turnSpeedDegrees: 340
+  leashRange: 20
+  sightRange: 18
+  sightAngle: 110
+  hearingRange: 6
+  loseTargetAfter: 4
+  investigateDuration: 4
+  searchDuration: 5
+  searchRadius: 5
+  attackRange: 2.8
+  attackDamage: 18
+  telegraphDuration: 0.6
+  attackActiveDuration: 0.2
+  attackRecovery: 0.6
+  attackCooldown: 1.8
+  telegraphColour: {r: 1, g: 0.55, b: 0.1, a: 1}
+  retreatHealthFraction: 0
+  retreatDuration: 2.5

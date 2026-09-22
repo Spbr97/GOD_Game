@@ -230,5 +230,94 @@ namespace Game.Tests.Play
             Assert.IsTrue(player.Combat.TryAttack(AttackType.Light));
             Assert.IsFalse(player.Combat.IsGuarding, "Attacking should lower the guard.");
         }
+
+        [UnityTest]
+        public IEnumerator Ability_SpendsDivineEnergyAndOpensAnInvulnerabilityWindow()
+        {
+            // No PlayerController in this rig (see TestArena.SpawnPlayer), so the dash's
+            // actual displacement is untestable here, the same reason the Dodge tests
+            // check the i-frame window rather than position too.
+            var player = arena.SpawnPlayer(Vector3.zero, withCombatInput: true);
+            player.DivineEnergy.Configure(100f, 100f);
+            player.Combat.ConfigureAbility(20f, 3f);
+            yield return null;
+
+            Assert.IsFalse(player.Health.IsInvulnerable);
+            Assert.IsTrue(player.Combat.TryAbility());
+            Assert.AreEqual(80f, player.DivineEnergy.CurrentEnergy, 0.01f);
+
+            yield return TestArena.Until(() => player.Health.IsInvulnerable, "Ember Step's i-frame window to open", 1f);
+            yield return TestArena.Until(() => !player.Health.IsInvulnerable, "Ember Step's i-frame window to close", 1f);
+            yield return TestArena.Until(() => !player.Combat.IsUsingAbility, "the dash to end", 1f);
+
+            Assert.IsFalse(player.Health.IsInvulnerable, "The player was left invulnerable after Ember Step.");
+        }
+
+        [UnityTest]
+        public IEnumerator Ability_RefusedWithoutEnoughDivineEnergy()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero, withCombatInput: true);
+            yield return null;
+
+            Assert.AreEqual(0f, player.DivineEnergy.CurrentEnergy, "The test assumes divine energy starts empty.");
+            Assert.IsFalse(player.Combat.TryAbility());
+            Assert.IsFalse(player.Combat.IsUsingAbility);
+        }
+
+        [UnityTest]
+        public IEnumerator Ability_IsRefusedDuringItsOwnCooldownThenWorksAgain()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero, withCombatInput: true);
+            player.DivineEnergy.Configure(1000f, 1000f);
+            player.Combat.ConfigureAbility(10f, 0.3f);
+            yield return null;
+
+            Assert.IsTrue(player.Combat.TryAbility());
+            yield return TestArena.Until(() => !player.Combat.IsUsingAbility, "the first dash to finish", 2f);
+
+            Assert.IsFalse(player.Combat.TryAbility(), "A second use during the cooldown should be refused.");
+
+            yield return new WaitForSeconds(0.35f);
+
+            Assert.IsTrue(player.Combat.TryAbility(), "The cooldown should have elapsed by now.");
+        }
+
+        [UnityTest]
+        public IEnumerator Ability_PublishesAnIncrementingUseCount()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero, withCombatInput: true);
+            player.DivineEnergy.Configure(1000f, 1000f);
+            player.Combat.ConfigureAbility(10f, 0.1f);
+            yield return null;
+
+            var uses = new List<int>();
+            Listen<EmberStepUsedEvent>(e => uses.Add(e.TotalUses));
+
+            Assert.IsTrue(player.Combat.TryAbility());
+            yield return TestArena.Until(() => !player.Combat.IsUsingAbility, "the first dash to finish", 2f);
+            yield return new WaitForSeconds(0.15f);
+
+            Assert.IsTrue(player.Combat.TryAbility());
+            yield return null;
+
+            CollectionAssert.AreEqual(new[] { 1, 2 }, uses);
+        }
+
+        [UnityTest]
+        public IEnumerator Ability_RecordsTheComboStepSoAbilityStrikeCanFollow()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero, withWeapon: true, withCombatInput: true);
+            player.DivineEnergy.Configure(1000f, 1000f);
+            player.Combat.ConfigureAbility(10f, 0.1f);
+            yield return null;
+
+            Assert.IsTrue(player.Combat.TryAbility());
+            yield return TestArena.Until(() => !player.Combat.IsUsingAbility, "the dash to finish", 2f);
+
+            Assert.IsTrue(player.Combat.TryAttack(AttackType.Light));
+
+            Assert.IsNotNull(player.Combat.CurrentChain);
+            Assert.AreEqual("Ability Strike", player.Combat.CurrentChain.Name);
+        }
     }
 }

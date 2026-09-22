@@ -18,7 +18,8 @@ namespace Game.Core
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                // The component, not the GameObject: see GameManager.Awake for why.
+                Destroy(this);
                 return;
             }
 

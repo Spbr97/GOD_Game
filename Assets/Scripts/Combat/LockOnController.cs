@@ -35,6 +35,9 @@ namespace Game.Combat
         [Tooltip("Weight of angle versus distance when ranking candidates. Higher prefers what is in front over what is close.")]
         [SerializeField] private float angleWeight = 0.05f;
 
+        [Tooltip("Multiplies acquireHalfAngle while SettingsManager.Current.AimAssistEnabled is on (SPEC.md section 43's aim/lock-on assistance).")]
+        [SerializeField] private float aimAssistAngleMultiplier = 1.4f;
+
         private InputAction lockOnAction;
         private Game.Player.PlayerController locomotion;
         private Game.Player.PlayerCamera playerCamera;
@@ -190,6 +193,12 @@ namespace Game.Combat
 
             viewForward.Normalize();
 
+            // SPEC.md section 43's aim/lock-on assistance: a wider acquisition cone,
+            // not a different targeting rule, so assisted and unassisted play pick the
+            // same candidate whenever both would find one at all.
+            var assistOn = SettingsManager.Instance == null || SettingsManager.Instance.Current.AimAssistEnabled;
+            var effectiveHalfAngle = assistOn ? acquireHalfAngle * aimAssistAngleMultiplier : acquireHalfAngle;
+
             HealthComponent best = null;
             var bestScore = float.PositiveInfinity;
 
@@ -210,7 +219,7 @@ namespace Game.Combat
                 }
 
                 var angle = Vector3.Angle(viewForward, offset);
-                if (angle > acquireHalfAngle)
+                if (angle > effectiveHalfAngle)
                 {
                     continue;
                 }

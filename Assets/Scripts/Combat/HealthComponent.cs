@@ -177,6 +177,19 @@ namespace Game.Combat
         }
 
         /// <summary>
+        /// Recomputes max health to an exact value (TASK 016's Guardian skill bonus,
+        /// applied on top of a base the caller remembers). Deliberately does not heal
+        /// to the new max — only <see cref="RestoreTo"/> and <see cref="Configure"/>
+        /// do that — so raising the cap mid-fight is not also a free full heal, and
+        /// calling this repeatedly with the same total is a safe no-op.
+        /// </summary>
+        public void SetMaxHealth(float newMax)
+        {
+            maxHealth = Mathf.Max(1f, newMax);
+            CurrentHealth = Mathf.Min(CurrentHealth, maxHealth);
+        }
+
+        /// <summary>
         /// Returns false when this attack id has already been applied. Ids of 0 are
         /// treated as "untracked" and always allowed, for damage sources that do not
         /// come from a swing (fall damage, hazards).
