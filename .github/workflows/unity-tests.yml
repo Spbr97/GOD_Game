@@ -10,7 +10,17 @@ jobs:
     permissions:
       contents: read
       checks: write
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
     steps:
+      - name: Check Unity Personal CI credentials
+        run: |
+          if [ -z "$UNITY_LICENSE" ] || [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
+            echo "::error::Set UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD repository secrets for the free Unity Personal test runner."
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
           lfs: true
@@ -24,7 +34,6 @@ jobs:
         with:
           projectPath: .
           testMode: editmode
-          coverageEnabled: false
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           artifactsPath: editmode-results
       - name: Run PlayMode tests
@@ -37,7 +46,6 @@ jobs:
         with:
           projectPath: .
           testMode: playmode
-          coverageEnabled: false
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           artifactsPath: playmode-results
       - uses: actions/upload-artifact@v4

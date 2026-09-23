@@ -237,7 +237,7 @@ work come before the work.
 
 ### Current implementation status (23 September 2026)
 
-TASK 027–038 are implemented locally. Unity 6000.6.2f1 with the user's Personal license ran 180 EditMode and 130 PlayMode tests, all passing. Dialogue validation found 3 graphs and 0 errors or warnings. TASK 028 moved the embedded baked NavMesh to `AvarshaNavMesh.asset`, converted `Avarsha.unity` to YAML and was committed separately as `8a96485`; all 8 scene integrity checks pass after conversion. TASK 030's free GameCI workflow is present, but its first GitHub run still requires the Unity Personal license secrets and a push. Manual gameplay and visual checks remain for release.
+TASK 027–038 are implemented locally. Unity 6000.6.2f1 with the user's Personal license ran 180 EditMode and 130 PlayMode tests, all passing. Dialogue validation found 3 graphs and 0 errors or warnings. TASK 028 moved the embedded baked NavMesh to `AvarshaNavMesh.asset`, converted `Avarsha.unity` to YAML and was committed separately as `8a96485`; all 8 scene integrity checks pass after conversion. TASK 030's free GameCI workflow is pushed. Its first GitHub run could not start Unity tests because the repository has no `UNITY_LICENSE`, `UNITY_EMAIL` or `UNITY_PASSWORD` secrets; configure those Personal license secrets to activate remote CI. Manual gameplay and visual checks remain for release.
 
 ## Later (after the vertical slice)
 
