@@ -23,6 +23,7 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 | `STORY_BIBLE.md` | The fiction. **Read before writing any character line, place name or inscription** (SPEC.md section 82). |
 | `TEST_PLAN.md` | How to run the tests, what they cover, and the manual pass. |
 | `ROADMAP.md` | The ordered task list. |
+| `RESOLUTION_PLAN.md` | Triage of every open issue — which are real bugs, which are placeholders, and what order to close them in. |
 | `CHANGELOG.md` | What changed, per task. |
 | `KNOWN_ISSUES.md` | Every open limitation, with why it was left. |
 | `ASSET_LICENSES.md` | Provenance for anything not written here. |
