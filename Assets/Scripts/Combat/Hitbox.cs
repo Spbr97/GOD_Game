@@ -26,6 +26,7 @@ namespace Game.Combat
         private readonly HashSet<Hurtbox> hitThisSwing = new();
         private Collider volume;
         private DamageData template;
+        private Vector3 previousCenter;
 
         public bool IsActive { get; private set; }
 
@@ -72,6 +73,7 @@ namespace Game.Combat
 
             IsActive = true;
             volume.enabled = true;
+            previousCenter = volume.bounds.center;
 
             // OnTriggerEnter does not fire for colliders that are already overlapping
             // when the volume is enabled, which is the common case for a short swing
@@ -98,10 +100,37 @@ namespace Game.Combat
             TryHit(other);
         }
 
+        private void LateUpdate()
+        {
+            if (!IsActive || volume == null)
+            {
+                return;
+            }
+
+            var bounds = volume.bounds;
+            var displacement = bounds.center - previousCenter;
+            if (displacement.sqrMagnitude > 0.000001f)
+            {
+                // The world-space bounds conservatively enclose rotated hitboxes.
+                // Cast from the last sampled position so a thin target crossed
+                // between physics steps cannot be skipped.
+                var hits = Physics.BoxCastAll(previousCenter, bounds.extents,
+                    displacement.normalized, Quaternion.identity, displacement.magnitude,
+                    hittableLayers, QueryTriggerInteraction.Collide);
+                foreach (var hit in hits)
+                {
+                    TryHit(hit.collider);
+                }
+            }
+
+            SweepCurrentOverlaps();
+            previousCenter = bounds.center;
+        }
+
         private void SweepCurrentOverlaps()
         {
             var bounds = volume.bounds;
-            var overlaps = Physics.OverlapBox(bounds.center, bounds.extents, transform.rotation, hittableLayers, QueryTriggerInteraction.Collide);
+            var overlaps = Physics.OverlapBox(bounds.center, bounds.extents, Quaternion.identity, hittableLayers, QueryTriggerInteraction.Collide);
             foreach (var other in overlaps)
             {
                 TryHit(other);

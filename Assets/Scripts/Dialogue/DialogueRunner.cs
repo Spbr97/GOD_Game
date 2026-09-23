@@ -30,9 +30,6 @@ namespace Game.Dialogue
         /// <summary>Resolved on first access; see <see cref="Game.Core.SceneSingleton"/>.</summary>
         public static DialogueRunner Instance => SceneSingleton.Resolve(ref instance);
 
-        [Tooltip("Prefix for the WorldState counter that stores relationship values.")]
-        [SerializeField] private string relationshipCounterPrefix = "REL_";
-
         public bool IsRunning => CurrentNode != null;
         public DialogueGraph CurrentGraph { get; private set; }
         public DialogueNode CurrentNode { get; private set; }
@@ -312,13 +309,6 @@ namespace Game.Dialogue
 
                     case ConsequenceType.ClearFlag:
                         WorldState.Instance?.SetFlag(consequence.Target, false);
-                        break;
-
-                    case ConsequenceType.ChangeRelationship:
-                        // Relationships are stored as WorldState counters rather than in
-                        // their own system: nothing in TASK 003 reads them back yet, and
-                        // a counter is honest about that. See KNOWN_ISSUES.md.
-                        WorldState.Instance?.AddToCounter(relationshipCounterPrefix + consequence.Target, consequence.Amount);
                         break;
 
                     default:

@@ -62,7 +62,13 @@ namespace Game.UI
 
             if (bodyLabel != null)
             {
-                bodyLabel.text = memory.Description;
+                var integrity = MemoryManager.Instance?.Integrity ?? 1f;
+                var text = memory.Description;
+                if (!memory.IsProtected && integrity < 0.5f && !string.IsNullOrEmpty(text))
+                {
+                    text = text.Substring(0, Mathf.Max(1, text.Length / 2)) + "… [memory incomplete]";
+                }
+                bodyLabel.text = text;
             }
 
             if (accent != null)

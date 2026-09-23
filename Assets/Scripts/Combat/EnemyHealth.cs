@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Game.Core;
 using UnityEngine;
 
@@ -6,7 +7,7 @@ namespace Game.Combat
 {
     /// <summary>
     /// Enemy-side reaction to the shared <see cref="HealthComponent"/> (SPEC.md TASK 002):
-    /// hit flash, then death cleanup and despawn.
+    /// hit flash, death cleanup, and encounter-safe visual hiding.
     ///
     /// The health pool itself is deliberately not duplicated here. This component only
     /// reacts, which keeps enemies and the player on one damage path.
@@ -19,7 +20,7 @@ namespace Game.Combat
         [SerializeField] private float hitFlashDuration = 0.1f;
 
         [Header("Death")]
-        [Tooltip("Seconds between dying and despawning. Placeholder stand-in for a death animation (SPEC.md section 78).")]
+        [Tooltip("Seconds between dying and hiding the corpse. Placeholder stand-in for a death animation (SPEC.md section 78).")]
         [SerializeField] private float despawnDelay = 2f;
 
         [SerializeField] private bool despawnOnDeath = true;
@@ -30,6 +31,9 @@ namespace Game.Combat
         private HealthComponent health;
         private Color[] originalColours;
         private Coroutine flashRoutine;
+        private readonly Dictionary<Collider, bool> originalColliderStates = new();
+        private readonly Dictionary<Hurtbox, bool> originalHurtboxStates = new();
+        private readonly Dictionary<Renderer, bool> originalRendererStates = new();
 
         private void Awake()
         {
@@ -48,7 +52,19 @@ namespace Game.Combat
             originalColours = new Color[renderersToFlash.Length];
             for (var i = 0; i < renderersToFlash.Length; i++)
             {
-                originalColours[i] = renderersToFlash[i].material.color;
+                if (renderersToFlash[i] != null)
+                    originalColours[i] = renderersToFlash[i].material.color;
+            }
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+                originalRendererStates[renderer] = renderer.enabled;
+
+            foreach (var collider in GetComponentsInChildren<Collider>(true))
+            {
+                originalColliderStates[collider] = collider.enabled;
+            }
+            foreach (var hurtbox in GetComponentsInChildren<Hurtbox>(true))
+            {
+                originalHurtboxStates[hurtbox] = hurtbox.enabled;
             }
         }
 
@@ -116,7 +132,10 @@ namespace Game.Combat
 
             health.RestoreTo(0f, dead: true);
             DisableCombatParts();
-            Destroy(gameObject);
+            foreach (var renderer in originalRendererStates.Keys)
+            {
+                if (renderer != null) renderer.enabled = false;
+            }
         }
 
         private void HandleDamaged(DamageData damage)
@@ -189,7 +208,40 @@ namespace Game.Combat
         private IEnumerator DespawnRoutine()
         {
             yield return new WaitForSeconds(despawnDelay);
-            Destroy(gameObject);
+            // Keep the encounter object so a death respawn can restore it without
+            // fabricating a replacement from a prefab or replaying quest events.
+            foreach (var renderer in originalRendererStates.Keys)
+            {
+                if (renderer != null) { renderer.enabled = false; }
+            }
+        }
+
+        /// <summary>Restores an ordinary encounter enemy without replaying a kill or reward.</summary>
+        public void ResetForEncounter()
+        {
+            StopAllCoroutines();
+            flashRoutine = null;
+            health.ResetHealth();
+            if (identity != null)
+            {
+                WorldState.Instance?.SetFlag(WorldObjectState.DeadFlag(identity.Id), false);
+            }
+            foreach (var pair in originalRendererStates)
+            {
+                if (pair.Key != null) { pair.Key.enabled = pair.Value; }
+            }
+            foreach (var pair in originalHurtboxStates)
+            {
+                if (pair.Key != null) { pair.Key.enabled = pair.Value; }
+            }
+            foreach (var pair in originalColliderStates)
+            {
+                if (pair.Key != null && pair.Key.GetComponent<Hitbox>() == null)
+                {
+                    pair.Key.enabled = pair.Value;
+                }
+            }
+            SetColour(default, useOriginal: true);
         }
     }
 }

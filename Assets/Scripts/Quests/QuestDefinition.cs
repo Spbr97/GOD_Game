@@ -30,8 +30,10 @@ namespace Game.Quests
         [SerializeField] private string[] failureFlags;
 
         [TextArea(1, 3)]
-        [Tooltip("Human-readable rewards. No inventory or progression system exists yet to grant them.")]
+        [Tooltip("Human-readable reward summary for the quest log. Concrete grants are in Rewards.")]
         [SerializeField] private string rewardsSummary;
+
+        [SerializeField] private QuestReward[] rewards;
 
         public string QuestId => string.IsNullOrEmpty(questId) ? name : questId;
         public string Title => title;
@@ -41,6 +43,7 @@ namespace Game.Quests
         public IReadOnlyList<string> CompletionFlags => completionFlags;
         public IReadOnlyList<string> FailureFlags => failureFlags;
         public string RewardsSummary => rewardsSummary;
+        public IReadOnlyList<QuestReward> Rewards => rewards;
 
         public int ObjectiveCount => objectives?.Length ?? 0;
 
@@ -82,7 +85,8 @@ namespace Game.Quests
 
         /// <summary>Replaces this quest's content. Used by editor tooling and tests.</summary>
         public void Configure(string id, string questTitle, string questDescription, QuestObjective[] questObjectives,
-            string[] completion = null, string[] required = null, string[] failure = null, string rewards = null)
+            string[] completion = null, string[] required = null, string[] failure = null, string rewards = null,
+            QuestReward[] rewardDefinitions = null)
         {
             questId = id;
             title = questTitle;
@@ -92,6 +96,7 @@ namespace Game.Quests
             requiredFlags = required;
             failureFlags = failure;
             rewardsSummary = rewards;
+            this.rewards = rewardDefinitions;
         }
     }
 }

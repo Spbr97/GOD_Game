@@ -249,6 +249,23 @@ namespace Game.Tests
         // ----------------------------------------------------------------- block
 
         [Test]
+        public void Guard_DoesNotBlockOrParryAnAttackerBehindThePlayer()
+        {
+            var defender = NewDefender();
+            var attacker = NewObject("Rear attacker");
+            attacker.transform.position = Vector3.back * 2f;
+
+            defender.Guard.BeginGuard();
+            now = 0.05f;
+            Assert.IsTrue(defender.Health.TakeDamage(Swing(10f, attacker)));
+            Assert.AreEqual(90f, defender.Health.CurrentHealth);
+
+            attacker.transform.position = Vector3.forward * 2f;
+            Assert.IsFalse(defender.Health.TakeDamage(Swing(10f, attacker)));
+            Assert.AreEqual(90f, defender.Health.CurrentHealth);
+        }
+
+        [Test]
         public void Block_AbsorbsDamageInExchangeForStamina()
         {
             var defender = NewDefender(staminaPerDamage: 0.5f);

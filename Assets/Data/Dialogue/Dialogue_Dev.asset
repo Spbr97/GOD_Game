@@ -21,6 +21,7 @@ MonoBehaviour:
   - DialogueId: DEV_INTRO
     Speaker: Dev
     Text: There he is. Thirty laps of the training ground before sunrise and he still walks like he is being marked on it.
+    LowIntegrityText: You look familiar, but I cannot place where we met. Were you one of the guards?
     RequiredFlags: []
     BlockingFlags:
     - QUEENS_CHARGE_GIVEN
@@ -63,10 +64,7 @@ MonoBehaviour:
     BlockingFlags: []
     RequiredMemoryId: 
     RequiredMemoryState: 
-    Consequences:
-    - Type: 5
-      Target: DEV
-      Amount: 1
+    Consequences: []
     Choices: []
     NextDialogueId: 
     Subtitle: 

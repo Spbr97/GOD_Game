@@ -1,4 +1,5 @@
 using Game.Core;
+using Game.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -85,7 +86,8 @@ namespace Game.Combat
             }
 
             if (Target.IsDead || !Target.gameObject.activeInHierarchy
-                || Vector3.Distance(transform.position, Target.transform.position) > breakRange)
+                || Vector3.Distance(transform.position, Target.transform.position) > breakRange
+                || !CanSee(Target))
             {
                 Release();
             }
@@ -224,6 +226,11 @@ namespace Game.Combat
                     continue;
                 }
 
+                if (!CanSee(health))
+                {
+                    continue;
+                }
+
                 var score = distance + angle * angleWeight * acquireRange;
                 if (score < bestScore)
                 {
@@ -233,6 +240,15 @@ namespace Game.Combat
             }
 
             return best;
+        }
+
+        private bool CanSee(HealthComponent target)
+        {
+            var targetCollider = target.GetComponentInChildren<Collider>();
+            var destination = targetCollider != null
+                ? targetCollider.bounds.center : target.transform.position + Vector3.up;
+            return Visibility.HasLineOfSight(transform, transform.position + Vector3.up,
+                target.transform, destination);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Game.Combat;
 using Game.Core;
 using Game.World;
 using NUnit.Framework;
@@ -75,9 +76,9 @@ namespace Game.Tests.Play
             Assert.AreEqual(GameState.Cutscene, gameManager.CurrentState, "Playing did not freeze the world.");
             Assert.AreEqual(0f, Time.timeScale);
 
-            yield return WaitFrames(120);
+            yield return new WaitForSecondsRealtime(0.2f);
 
-            Assert.IsTrue(player.HasPlayed, "The cinematic never finished within 120 frames.");
+            Assert.IsTrue(player.HasPlayed, "The cinematic never finished within the realtime wait.");
             Assert.AreEqual(GameState.Playing, gameManager.CurrentState, "Completion did not hand control back.");
             Assert.AreEqual(1f, Time.timeScale);
             Assert.IsTrue(WorldState.Instance.GetFlag("TEST_CINE_DONE"));
@@ -96,7 +97,7 @@ namespace Game.Tests.Play
                 var player = NewCinematic("TEST_BEATS", "TEST_BEATS_DONE", 0.01f, 0.01f, 0.01f);
                 player.Play();
 
-                yield return WaitFrames(120);
+                yield return new WaitForSecondsRealtime(0.2f);
 
                 Assert.IsTrue(player.HasPlayed);
                 CollectionAssert.AreEqual(new[] { 0, 1, 2 }, shown);
@@ -171,6 +172,34 @@ namespace Game.Tests.Play
             WorldState.Instance.SetFlag("START_CINE");
 
             Assert.IsTrue(player.IsPlaying, "Setting the trigger flag should have started the cinematic.");
+        }
+        [UnityTest]
+        public IEnumerator EdgeCase01_PlayerDiesDuringCutscene_ReleasesCutsceneAndCompletesBeat()
+        {
+            yield return WaitFrames(1);
+            var cinematic = NewCinematic("DEATH_CINE", "DEATH_CINE_DONE", 30f);
+            var player = arena.SpawnPlayer(Vector3.zero);
+            Assert.IsTrue(cinematic.Play());
+            Assert.AreEqual(GameState.Cutscene, gameManager.CurrentState);
+            player.Health.Kill(DamageData.Create(100f, player.Root));
+            Assert.AreEqual(GameState.Playing, gameManager.CurrentState);
+            Assert.IsFalse(cinematic.IsPlaying);
+            Assert.IsTrue(WorldState.Instance.GetFlag("DEATH_CINE_DONE"));
+            player.Death.RespawnNow();
+        }
+
+        [UnityTest]
+        public IEnumerator EdgeCase19_PauseDuringCinematic_IsRefusedAndCinematicCanFinish()
+        {
+            yield return WaitFrames(1);
+            var cinematic = NewCinematic("PAUSE_CINE", "PAUSE_CINE_DONE", 30f);
+            Assert.IsTrue(cinematic.Play());
+            gameManager.Pause();
+            Assert.AreEqual(GameState.Cutscene, gameManager.CurrentState);
+            cinematic.Skip();
+            yield return WaitFrames(2);
+            Assert.AreEqual(GameState.Playing, gameManager.CurrentState);
+            Assert.IsTrue(WorldState.Instance.GetFlag("PAUSE_CINE_DONE"));
         }
     }
 }

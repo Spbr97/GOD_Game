@@ -4,8 +4,7 @@ Required by SPEC.md sections 81 and 53. Section 53 asks that **every major
 system have automated and manual tests**; this document says which tests exist,
 what each is for, what is deliberately not automated, and how to run any of it.
 
-Current state: **170 EditMode + 111 PlayMode = 281 automated tests, all
-passing.**
+Last verified: **180 EditMode + 130 PlayMode = 310 passing tests** on Unity 6000.6.2f1 with Unity Personal. After the Avarsha YAML conversion, all 8 scene integrity tests passed again.
 
 ---
 
@@ -20,6 +19,15 @@ unity command run_tests --mode playmode   # PlayMode  (~60 s)
 # Long runs: start it async and poll instead of blocking.
 unity command run_tests --mode playmode --async_tests
 unity command test_status
+```
+
+On Windows, the installed Unity Editor can run the same suites with a Unity Personal
+license. Omit `-quit`: the test runner exits on its own after writing the results.
+Keep result files outside `Temp`, which Unity clears on exit.
+
+```powershell
+& "<Unity install>\Editor\Unity.exe" -batchmode -nographics -projectPath "<project>" -runTests -testPlatform EditMode -testResults "<project>\editmode-results.xml" -logFile "<project>\unity-editmode.log"
+& "<Unity install>\Editor\Unity.exe" -batchmode -nographics -projectPath "<project>" -runTests -testPlatform PlayMode -testResults "<project>\playmode-results.xml" -logFile "<project>\unity-playmode.log"
 ```
 
 Or through the editor's Test Runner window (Window → General → Test Runner).
@@ -127,6 +135,17 @@ tested system in the project — it was made testable first.
 
 | # | Edge case | Covered by |
 |---|---|---|
+| 1 | Death during cutscene | `CinematicPlayModeTests.EdgeCase01_*` (new, passed) |
+| 2 | Quit or save during boss phase transition | `SavePlayModeTests.EdgeCase02_*` (new, passed) |
+| 3 | Save before scripted event | `SavePlayModeTests.EdgeCase03_*` (new, passed) |
+| 4 | Load an older save after ability unlock | `SavePlayModeTests.EdgeCase04_*` (new, passed) |
+| 8 | Boss dies during phase transition | `BossPlayModeTests.EdgeCase08_*` (new, passed) |
+| 12 | Missing asset bundle | `SceneIntegrityTests.EdgeCase12_*` asserts no bundle dependency (new, passed) |
+| 13–14 | Missing audio or animation asset | `SpecAuditPlayModeTests.EdgeCase13_*`, `EdgeCase14_*` (new, passed) |
+| 19 | Pause during cinematic | `CinematicPlayModeTests.EdgeCase19_*` (new, passed) |
+| 27 | Boss defeated before dialogue | `SpecAuditPlayModeTests.EdgeCase27_*` (new, passed) |
+| 28 | Required NPC killed before dialogue | `SceneIntegrityTests.EdgeCase28_*` (new, passed) |
+| 29–30 | Early or unintended area entry | `SpecAuditPlayModeTests.EdgeCase29_*`, `EdgeCase30_*` (new, passed) |
 | 5 | Quest completed twice | `Quest_ReportingTheSameObjectiveTwice_CountsOnce` |
 | 6 | NPC interaction during dialogue | `Dialogue_SecondConversation_IsRefusedWhileOneIsRunning` |
 | 7 | Player leaves a boss arena | `SpecAuditPlayModeTests.BossArena_ResetsTheEncounter...`, `...LeavesTheFightAlone...` |
@@ -142,8 +161,11 @@ tested system in the project — it was made testable first.
 | 25 | Rapid interaction presses | `Checkpoint_Activate_IsIdempotent`, dialogue advance cooldown |
 | 26 | Repeated checkpoint triggering | `Checkpoint_Activate_IsIdempotent` |
 
-Edge cases **1–4, 8, 12–14, 19, 24, 27–30** are handled in code but not yet
-covered by a test. They are listed in KNOWN_ISSUES.md rather than claimed here.
+TASK 038 adds named tests for cases **1–4, 8, 12–14, 19, 27–30** in
+`CinematicPlayModeTests`, `SavePlayModeTests`, `BossPlayModeTests`,
+`SpecAuditPlayModeTests` and `SceneIntegrityTests`. Case 12 asserts that shipped
+content has no asset-bundle dependency. Case 24 still needs a named test.
+The new tests passed in Unity 6000.6.2f1.
 
 ## 5. Manual test plan
 

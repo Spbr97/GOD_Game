@@ -8,9 +8,8 @@ namespace Game.Combat
     /// Player-side reaction to death and the respawn that follows (SPEC.md TASK 002).
     /// Also marks the object as the player for <see cref="Checkpoint"/> trigger checks.
     ///
-    /// Respawn restores the player at the current checkpoint rather than reloading the
-    /// scene, so enemies stay as they were. Resetting world state on death belongs with
-    /// the save system (SPEC.md section 32) and is not part of this task.
+    /// Respawn restores the player at the current checkpoint without rolling back
+    /// quests or memories. Encounter listeners reset surviving enemies and live bosses.
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
     public class PlayerDeath : MonoBehaviour
@@ -95,14 +94,9 @@ namespace Game.Combat
         private void Respawn()
         {
             var manager = CheckpointManager.Instance;
-            if (manager != null && manager.TryGetRespawn(out var position, out var rotation, out var restore))
+            if (manager != null && manager.TryGetRespawn(out var position, out var rotation, out _))
             {
                 Teleport(position, rotation);
-
-                if (restore)
-                {
-                    stamina?.ResetStamina();
-                }
             }
             else
             {
@@ -110,6 +104,7 @@ namespace Game.Combat
             }
 
             health.ResetHealth();
+            stamina?.ResetStamina();
             SetControlsEnabled(true);
 
             GameLogger.Log(LogCategory.Player, $"Player respawned at {transform.position}.", this);

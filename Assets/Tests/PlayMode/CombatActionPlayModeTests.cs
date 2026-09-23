@@ -66,6 +66,7 @@ namespace Game.Tests.Play
             var archetype = arena.NewArchetype(telegraph: 0.6f, attackRange: 2.5f, damage: 25f, health: 200f);
             var enemy = arena.SpawnEnemy("Attacker", Vector3.zero, archetype);
             var player = arena.SpawnPlayer(new Vector3(0f, 0f, 2f), withWeapon: true, withCombatInput: true);
+            player.Root.transform.rotation = Quaternion.LookRotation(Vector3.back);
 
             // A generous window so the press can be made at the start of the telegraph
             // rather than on the exact frame the hitbox opens; the EditMode tests own
@@ -93,6 +94,7 @@ namespace Game.Tests.Play
             var archetype = arena.NewArchetype(telegraph: 0.5f, attackRange: 2.5f, damage: 25f, health: 200f);
             var enemy = arena.SpawnEnemy("Attacker", Vector3.zero, archetype);
             var player = arena.SpawnPlayer(new Vector3(0f, 0f, 2f), withWeapon: true, withCombatInput: true);
+            player.Root.transform.rotation = Quaternion.LookRotation(Vector3.back);
 
             // A tiny parry window, raised well before the swing, so the hit meets a
             // held block rather than a parry.

@@ -6,10 +6,7 @@ namespace Game.Quests
     /// <summary>
     /// The objective kinds SPEC.md section 23 requires.
     ///
-    /// TASK 003 implements Talk, Interact, ReachLocation and ObtainMemory, which are
-    /// what the Avarsha quest needs. DefeatEnemy, CollectItem, SolvePuzzle, Survive,
-    /// Escort and ChooseDialogue are declared but have no completion path yet — the
-    /// systems they depend on do not exist. See KNOWN_ISSUES.md.
+    /// Each kind has a world adapter that reports its objective id to QuestManager.
     /// </summary>
     public enum ObjectiveType
     {

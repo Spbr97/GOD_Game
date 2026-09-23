@@ -138,24 +138,17 @@ margin; there are no ranged player attacks yet, so this is latent.
 
 ## SPEC AUDIT (second pass, during TASK 020–026) — newly found, still open
 
-### The motion blur toggle (section 43) does not exist
+### CLOSED — Motion blur policy (TASK 034)
 
-Section 43's accessibility list names a motion blur toggle. The game renders no
-motion blur — there is no post-processing volume with a motion blur override —
-so a toggle would govern nothing. A dead control is worse than a missing one and
-much harder to notice, which is exactly how the Master Volume slider survived
-eighteen tasks doing nothing. Closing this means adding motion blur to a URP
-volume profile first, then a toggle that gates it. Recorded here rather than
-shipped as a checkbox that lies.
+The game renders no motion blur. SPEC.md section 43 now requires a toggle only if
+the effect is introduced, so there is no inert control in Settings. Add the toggle
+with the effect if a later visual pass uses motion blur.
 
-### Section 54's edge cases 1–4, 8, 12–14, 19, 27–30 have no tests
+### CLOSED — Section 54 edge case tests run in Unity (TASK 038)
 
-They are handled in code — cutscene state, save blockers, quest restore, missing
-asset fallbacks, cinematic pause — but none has an automated test naming it, so
-nothing would catch a regression. TEST_PLAN.md section 4 lists which are covered
-and which are not. The gap is coverage, not behaviour.
+Named tests for cases 1–4, 8, 12–14, 19 and 27–30 are now in the EditMode and PlayMode suites (TASK 038). They pass in the 180 EditMode and 130 PlayMode Unity test runs. Case 12 is guarded by an editor test asserting the project has no asset-bundle dependency.
 
-### Colour-blind indicators (section 43) are satisfied by convention, not by a mode
+### [DESIGN DECISION] Colour-blind indicators (section 43) are satisfied by convention, not by a mode
 
 Section 43 asks for "colorblind-friendly indicators" and says important
 information must never be communicated by colour alone. The project satisfies
@@ -166,7 +159,7 @@ enough to close the requirement is a judgement call that has not been made.
 
 ## TASK 018 — Placeholder audio, animation and VFX pass
 
-### Attack timings were not moved to animation events
+### [PLACEHOLDER] Attack timings were not moved to animation events
 
 This task's ROADMAP wording asks for "attack timings moved to animation
 events." `WeaponController`/`EnemyCombatant`'s windup/active/recovery
@@ -181,7 +174,7 @@ reads the existing `IsSwinging` state to drive a cosmetic-only tilt instead;
 timing authority stays exactly where it was. Closing this for real needs an
 authored rig and clips first.
 
-### No environmental ambience or music
+### [MISSING CONTENT] No environmental ambience or music
 
 SPEC.md section 40 asks for temple ambience, wind, fire, water, insects,
 distant creatures, stone movement, supernatural whispers, and music with a
@@ -193,7 +186,7 @@ would just read as a bug. Closing this needs either composed/recorded audio
 or a much more elaborate procedural ambience generator, neither of which fits
 this task's placeholder-first scope.
 
-### Several VFX categories have no content to trigger them yet
+### [MISSING CONTENT] Several VFX categories have no content to trigger them yet
 
 SPEC.md section 36 lists 14 effect categories; this task wires up 7 (fire,
 sparks, dust, divine energy, memory fragments, glowing symbols, boss
@@ -204,7 +197,7 @@ Smoke has no dedicated trigger either (it would need a source — a doused fire,
 rubble, a temple brazier freshly extinguished — and none of the existing
 triggers reads as "smoke" specifically rather than reusing the fire cue).
 
-### Enemies have no placeholder locomotion animation
+### [PLACEHOLDER] Enemies have no placeholder locomotion animation
 
 Only the player got a `PlaceholderAnimator`. Enemies already have a tint
 (`EnemyController.ApplyPhaseTint`) and a telegraph scale pulse
@@ -214,15 +207,11 @@ judged lower priority than finishing the player's within this task's scope.
 
 ## TASK 017 — Accessibility, settings and remapping
 
-### Motion blur is not gated
+### CLOSED — Motion blur is not gated (TASK 034)
 
-SPEC.md section 43 asks for a motion-blur toggle, but no URP motion-blur effect
-exists anywhere in the project to gate — there is nothing to turn off. Adding
-the setting without the effect would be a toggle that does nothing; deferred
-until a motion-blur effect is actually added (likely alongside TASK 018's VFX
-pass).
+This duplicates the motion blur decision above. The game currently renders no motion blur, so the accessibility control will be considered when an effect is added.
 
-### Settings and remapping are only reachable from the Main Menu
+### [POLISH] Settings and remapping are only reachable from the Main Menu
 
 `MainMenuController`'s Settings and Controls panels are the only place to
 change any of these options, including rebinding controls — there is no
@@ -232,7 +221,7 @@ Main Menu first. Closing this means giving `PauseMenu` its own route to the
 same panels (or a lightweight in-game equivalent), sharing `MainMenuController`'s
 logic rather than duplicating it.
 
-### Gamepad navigation onto dynamically built rows is still unwired
+### [POLISH] Gamepad navigation onto dynamically built rows is still unwired
 
 See "The journal has no gamepad navigation" below (TASK 010) — the fix this
 task adds is a first-selection only; rows built at runtime (quest list, memory
@@ -240,7 +229,7 @@ list, remap rows) still have no explicit `Selectable.navigation` between them.
 
 ## TASK 016 — Inventory, progression and skill tree
 
-### Eight of the twelve skills have no effect yet
+### [ARCHITECTURAL GAP] Eight of the twelve skills have no effect yet
 
 `SkillDefinition` assets exist for all twelve of SPEC.md section 30's named upgrades,
 and all twelve can be unlocked, cost points correctly, respect their prerequisite, and
@@ -254,13 +243,13 @@ parry window/Ember Step cooldown, `GuardController`'s reduction, `MemoryPickup`'
 interaction range) the same shape as the four already wired — deferred so this task
 stayed reviewable rather than touching seven more files' live behaviour in one pass.
 
-### No UI feedback for "why can't I unlock this"
+### [POLISH] No UI feedback for "why can't I unlock this"
 
 `ProgressionUI`'s Unlock button is simply disabled when `CanUnlock` is false, with no
 distinction shown between "can't afford it" and "prerequisite not met" — both read as
 a greyed-out button. Small, deferred as UI polish rather than a missing mechanic.
 
-### The inventory has three items, two of them symbolic
+### [MISSING CONTENT] The inventory has three items, two of them symbolic
 
 Weapons and Divine Marks currently exist to prove the category works, not because the
 game has multiple weapons to carry or marks with their own effects — there is one
@@ -272,7 +261,7 @@ drops a quest-specific item or a piece of lore text. This matches section 28's o
 exist and work; only real per-temple/per-quest content is missing, the same shape as
 `ObjectiveType`'s still-unimplemented values from TASK 003.
 
-### Skill points have no visible source in the UI
+### [POLISH] Skill points have no visible source in the UI
 
 A player looking at "Skill Points: 0" has no in-game hint that finishing quests and
 defeating bosses is what grants them — that context currently lives only in this file
@@ -282,7 +271,7 @@ from.
 
 ## TASK 015 — Agniya temple section
 
-### The temple is a walled-off area in Avarsha, not its own scene
+### [ARCHITECTURAL GAP] The temple is a walled-off area in Avarsha, not its own scene
 
 SPEC.md section 57 names `SCN_Temple_Agniya`, implying a separate scene, the way a
 real level structure for this kind of game normally works. It was built inside
@@ -297,15 +286,11 @@ active checkpoint the way a full `Load` does; a good candidate is the first task
 actually needs a second temple, since a single temple never has to prove the seam
 works.
 
-### Fire VFX is warm point lights, no particles
+### CLOSED — Fire VFX is warm point lights, no particles (TASK 018)
 
-SPEC.md section 36 asks for fire particles, sparks and smoke. `FireBrazier` already
-established colour as the placeholder for fire (no VFX assets exist yet, section 78);
-the temple's ambient lighting follows the same idiom rather than introducing
-`ParticleSystem` content that would need its own tuning pass. Needs the VFX pass
-(ROADMAP TASK 018).
+FireBrazierVfx now emits a fire particle burst whenever a brazier lights.
 
-### Ember Step is still not truly Agniya's reward
+### [DESIGN DECISION] Ember Step is still not truly Agniya's reward
 
 SPEC.md section 8.1 places Ember Step behind this temple's boss; it has been usable
 from the start since TASK 011 (already documented there) and this task does not close
@@ -315,16 +300,13 @@ works — a real cost, and not one this task's own scope (building the temple's
 content) required paying. The boss's reward is a memory fragment and a divine-mark
 flag instead; gating Ember Step for real is still open.
 
-### One enemy group, one boss — no difficulty curve within the temple
+### [DESIGN DECISION] One enemy group before Agniya — no difficulty curve within the temple
 
-The temple has exactly one `EnemyGroup` (two Ash Creatures, one Divine Guardian)
-between the entrance and the boss. A real temple would ramp difficulty across several
-encounters; this one demonstrates the enemy-variant and reused-framework claims
-without yet proving pacing across a longer dungeon.
+The Agniya temple has one group (two Ash Creatures and one Divine Guardian) before its boss. A longer temple would ramp difficulty across several encounters. This vertical slice demonstrates enemy variants and the boss framework but does not prove pacing across a full dungeon.
 
 ## TASK 014 — Cinematic system and the first cinematic
 
-### No camera control, no actors, no audio
+### [PLACEHOLDER] No camera control, no actors, no audio
 
 A beat is subtitle text and a duration — no camera cut, pan or focus target, no actor
 animation, and no narration audio (`AudioNarrationId` is a placeholder string with no
@@ -333,14 +315,14 @@ letterboxed silence with text. `CinematicBeat` has room to grow a camera target 
 audio clip once a cinematic actually needs one; none of the beats built so far do.
 Needs SPEC.md section 41's audio pass and the animation/VFX pass (TASK 018).
 
-### Only one cinematic exists, and it is one of the smallest on section 69's list
+### [MISSING CONTENT] Only one cinematic exists, and it is one of the smallest on section 69's list
 
 Section 69 names ten "major cinematics"; only "first Nirvaan voice" has one built.
 It was chosen because it needs no actor, arena or transformation to read correctly —
 a deliberate easy case to prove the skip/subtitle/freeze mechanics work before a
 harder one (temple boss transformation, the identity reveal) asks more of them.
 
-### The mini-boss's phase 3 tint and the puzzle's gate opening are not cinematics
+### [PLACEHOLDER] The mini-boss's phase 3 tint and the puzzle's gate opening are not cinematics
 
 TASK 012 and TASK 013 each left a "scripted cinematic moment" as an empty `UnityEvent`
 hook rather than building a second `CinematicPlayer` instance for it. This was a
@@ -350,7 +332,7 @@ now straightforward: wire those hooks to a `CinematicPlayer.Play()` call once co
 
 ## TASK 013 — Boss framework and mini-boss
 
-### The arena, cinematic moment and victory sequence are placeholders
+### [PLACEHOLDER] The arena, cinematic moment and victory sequence are placeholders
 
 Section 18 asks for a unique arena, a scripted cinematic moment and a victory
 sequence. The arena is a tinted floor and four cylinder pillars; the cinematic moment
@@ -359,21 +341,16 @@ nothing wired into them yet. Needs TASK 014's cinematic system and TASK 018's
 animation/VFX pass; the hooks exist now specifically so wiring real content in later
 is a matter of plugging into them, not restructuring `BossController`.
 
-### No unique music
+### [MISSING CONTENT] No unique music
 
 Section 18 asks for unique music per boss. No music system exists yet at all (SPEC.md
 section 36 is unaddressed project-wide) — this is not specific to the boss framework.
 
-### Only one boss exists, and it never truly transforms
+### [MISSING CONTENT] Two boss encounters exist; later bosses and transformations need content
 
-The framework supports three phases and a mini-boss instance proves phases 1 and 2;
-phase 3's "major supernatural transformation" is currently a colour tint, the same
-placeholder-tint idiom `EnemyArchetype.BodyTint` already uses everywhere else in `AI`.
-A real transformation (a model swap, new attacks, an arena change) needs the
-animation/VFX pass (TASK 018) and is worth revisiting once a full `Boss`-class
-encounter (not just a `MiniBoss`) exists to justify the extra content cost.
+Avarsha contains the Temple Guardian and Agniya encounters. The framework supports three phases; phase 3 currently uses a tint rather than a model, attack-set or arena transformation. Later bosses and a full transformation need authored art, animation, VFX and encounter content.
 
-### The arena has no road leading to it
+### [MISSING CONTENT] The arena has no road leading to it
 
 `MiniBossArena` sits on Avarsha's single flat ground plane, reachable by walking
 there directly, the same way `AncientRuins` is — there is no authored path, gate or
@@ -383,13 +360,11 @@ pass gives Avarsha its roads.
 
 ## TASK 012 — Puzzle system and first fire puzzle
 
-### The puzzle has no reward
+### [MISSING CONTENT] The first puzzle has no direct item reward
 
-Solving it opens a passage into empty space — there is nothing behind the gate, since
-there is no inventory, no Agniya temple content, and nothing yet worth placing there
-(ROADMAP TASK 015, TASK 016). The system proves the mechanic; the content is later work.
+Solving the early fire puzzle opens a passage. Inventory and the Agniya temple now exist, but this first puzzle does not grant an item or skill. Any reward added should fit the route and be authored as scene or quest data rather than assumed from the puzzle framework.
 
-### One puzzle category exists of ten
+### [MISSING CONTENT] One puzzle category exists of ten
 
 SPEC.md section 26 lists ten categories (element matching, pressure plates, light
 reflection, water movement, wind direction, time manipulation, memory reconstruction,
@@ -399,7 +374,7 @@ generic enough for the other nine to be added as new classes without touching
 `PuzzleController`, but that is a claim the framework supports, not something this task
 proves nine more times over. Each temple's own puzzle work will be the real test.
 
-### No visual or audio cue for a brazier about to burn out
+### [POLISH] No visual or audio cue for a brazier about to burn out
 
 A brazier's timer is only visible as its own lit/unlit tint — there is no warning
 flicker, no sound cue, before it goes out. The design rule (see the burn timer's own
@@ -407,14 +382,14 @@ purpose) is satisfied in principle — the state is directly observable, not hid
 but a player watching from across the room has no early signal. Needs the VFX/audio
 pass (ROADMAP TASK 018).
 
-### The gate is a plain box, not a door
+### [PLACEHOLDER] The gate is a plain box, not a door
 
 Opening removes the collider and hides the whole `GameObject` — there is no open
 animation, no hinge, nothing suggesting a mechanism. Placeholder per SPEC.md section 78.
 
 ## TASK 011 — Divine ability framework and Ember Step
 
-### Ember Step is always available
+### [DESIGN DECISION] Ember Step is always available
 
 SPEC.md section 8.1 places Ember Step at the Agniya temple's reward; here it works
 from the moment `DivineEnergyComponent` has energy to spend, with no unlock gate. This
@@ -426,30 +401,24 @@ registry of interchangeable abilities. A second ability would currently mean cop
 `TryAbility`/`AbilityRoutine` rather than plugging into a shared shape — acceptable for
 one ability, worth generalizing once a second one exists to compare against.
 
-### The dash has no visual identity
+### CLOSED — The dash has no visual identity (TASK 018)
 
-"Fire dash" is presently the same `PlayerController.BeginDodge` impulse the ordinary
-dodge uses, just shorter, faster and on a cooldown. No trail, no colour, no sound — a
-player cannot currently tell Ember Step apart from a dodge except by the divine energy
-cost and the cooldown. Placeholder per section 78; needs the VFX/animation pass
-(ROADMAP TASK 018).
+Ember Step now emits divine-energy VFX and a sound through the existing presentation listeners.
 
-### The memory cost is a guess, and only one of section 20's four effects exists
+### [DESIGN DECISION] Ember Step memory costs remain untuned
 
-See the updated TASK 010 entries below — `emberStepIntegrityCost` and
-`emberStepUsesPerForget` are first numbers with no economy to sit in yet, and only the
-"cosmetic memory loss" effect from section 20 is wired up.
+`emberStepIntegrityCost` and `emberStepUsesPerForget` are first-pass numbers. TASK 037 adds the remaining section 20 presentation paths, but the cost still needs playtesting against how often players use the ability and restore memories.
 
 ## TASK 010 — Quest log and memory archive
 
-### No scrolling
+### [POLISH] No scrolling
 
 The journal's rows are stacked at a fixed height with no `ScrollRect`. Avarsha has one
 quest and one memory today, so nothing overflows the panel yet; a `ScrollRect` +
 `Viewport` + `Mask` needs building before either list can grow past what fits on
 screen. Placeholder per SPEC.md section 78, tracked rather than silently left.
 
-### Corruption's cost is a guess — partially addressed in TASK 011
+### [DESIGN DECISION] Corruption's cost is a guess — partially addressed in TASK 011
 
 `corruptionCost` (0.1) still has nothing to balance it against on the "spend" side, but
 TASK 011 gave integrity a real drain the other way: Ember Step costs a slice of it per
@@ -457,18 +426,11 @@ use (`emberStepIntegrityCost`, 0.02). Neither number is tuned against the other 
 there is still no economy where the player weighs corrupting a memory deliberately
 against the drain from ordinary ability use.
 
-### Low memory integrity mostly does nothing yet — one of four effects landed in TASK 011
+### [DESIGN DECISION] Low memory integrity presentation needs more authored content
 
-SPEC.md section 20 lists four things integrity should affect once it drops: cosmetic
-memory loss, optional dialogue changes, incomplete flashbacks, minor NPC recognition
-changes. Ember Step's repeated use temporarily forgetting an Optional memory
-(`MemoryManager.OnEmberStepUsed`) is the first of these — a real, timed, reversible
-instance of "cosmetic memories can disappear". The other three (dialogue changes,
-incomplete flashbacks, NPC recognition) still read nothing from `Integrity` or from a
-`Forgotten` state; they need the systems that would show them (a flashback needs a
-cinematic, section 68; NPC recognition needs more than three NPCs to vary between).
+Ember Step can temporarily forget optional memories. TASK 037 adds low-integrity dialogue variation, an incomplete memory-discovery description, and a confused-recognition line for Dev. These paths now read Integrity, but most dialogue and memories still have no authored variants. Dialogue validation and the Unity test suites pass; these particular presentation paths still need an in-editor visual review.
 
-### The journal has no gamepad navigation (partially fixed, TASK 017)
+### [POLISH] The journal has no gamepad navigation (partially fixed, TASK 017)
 
 `JournalUI`/`ProgressionUI`/`PauseMenu` now select a first control through
 `EventSystem.SetSelectedGameObject` when their panel opens, so a controller has
@@ -478,7 +440,7 @@ that first selection (quest list, memory list, remap rows) — those still rely
 on whatever `InputSystemUIInputModule`'s default navigation happens to reach,
 with no explicit `Selectable.navigation` wiring between rows built at runtime.
 
-### Corrupting from the archive has no confirmation or undo
+### [POLISH] Corrupting from the archive has no confirmation or undo
 
 Clicking Corrupt acts immediately — no "are you sure", and no way to reverse it beyond
 `MemoryManager.SetState` from a debug context. A permanent-feeling choice with no
@@ -487,7 +449,7 @@ screen exercising the mechanic but worth a confirm dialog before this ships.
 
 ## TASK 009 — World save identity
 
-### Hazards have no per-object state, by design
+### [DEFERRED] Hazards have no per-object state, by design
 
 `DamageVolume` is stateless — a hazard is always active, so there is nothing to
 remember across a save. "Hazards restore with the player" from the ROADMAP line is
@@ -495,24 +457,15 @@ satisfied trivially: a fresh scene load rebuilds them exactly as authored. If a 
 hazard gains state (a one-shot trap that expends itself, say), it needs a
 `SaveIdentity` and its own `WorldObjectState` flag the same way `EnemyHealth` does.
 
-### Avarsha has no checkpoint yet
+### CLOSED — Avarsha has no checkpoint yet (TASK 013)
 
-The checkpoint-restoration mechanism (`CheckpointManager.RestoreActiveCheckpoint`) has
-nothing to exercise in `Avarsha.unity` — the scene has never had a `Checkpoint` object
-(true since TASK 003, not something this task introduced). `Test.unity`'s
-`Checkpoint_01` and the PlayMode tests are the only places it currently runs. Placing a
-checkpoint in Avarsha is content work, not a systems gap.
+Avarsha gained checkpoints on both sides of the Temple Guardian encounter.
 
-### No anti-softlock protection for items or doors, because neither exists
+### [ARCHITECTURAL GAP] Quest-item and essential-door recovery need authored rules
 
-SPEC.md section 55 also requires quest items to be unloseable and essential doors to
-have recovery states. There is no inventory (`ROADMAP` TASK 016) and no door/lock
-system yet, so there is nothing to protect. The memory system's equivalent protection
-(a critical memory cannot be permanently corrupted) already exists and predates this
-task; enemy and pickup persistence here is the rest of section 55's "world-reset
-rules" that this task's scope actually covers.
+Inventory and puzzle gates now exist. Critical memories are protected, but quest items are not marked or enforced as unloseable, and puzzle gates have no alternate recovery state if their puzzle becomes impossible. Define which shipped items and doors are essential, then test each recovery path before release.
 
-### A world flag is the only persistence primitive; there is no per-object blob
+### [ARCHITECTURAL GAP] A world flag is the only persistence primitive; there is no per-object blob
 
 `WorldObjectState` can remember that something happened (dead, collected) but not
 arbitrary per-object data (an enemy's remaining poise, a chest's exact loot roll). That
@@ -521,7 +474,7 @@ only the common "did this happen yet" case cheaply, without a new save-file vers
 
 ## TASK 008 — Menus and save/load UI
 
-### There is one manual slot, not several
+### [POLISH] There is one manual slot, not several
 
 The Save/Load screen lists the three `SaveSlot` values (Checkpoint, Manual, Chapter),
 not several independently-numbered manual slots. SPEC.md section 31 lists "manual
@@ -534,7 +487,7 @@ the intent was several manual slots, `SaveSlot` needs numbered `Manual1..N` entr
 `CheckpointManager.RestoreActiveCheckpoint` now hands `SaveData.CheckpointId` back to
 `CheckpointManager` during `SaveManager.Apply`.
 
-### `Application.Quit()` does nothing in the Editor and is unverified in a build
+### [POLISH] `Application.Quit()` does nothing in the Editor and is unverified in a build
 
 The Quit button calls `EditorApplication.isPlaying = false` in the Editor and
 `Application.Quit()` otherwise; only the Editor path has been exercised, since there is
@@ -549,14 +502,14 @@ control rather than an honest placeholder, which the spec audit caught.
 `SettingsManager.Apply` now pushes it to `AudioListener.volume`, the same
 push-not-pull shape `Difficulty` already uses, and the slider applies live.
 
-### Menu UI is built by an editor script, not laid out by hand
+### [POLISH] Menu UI is built by an editor script, not laid out by hand
 
 `MainMenu.unity`'s whole hierarchy, and the pause panel's new buttons, were generated
 by a one-off editor script (the same approach TASK 007 used for the HUD) rather than
 placed in the Scene view. Programmer art: flat colours, `LegacyRuntime.ttf`, no
 transitions. A real UI pass replaces this wholesale rather than editing it in place.
 
-### Fixed this task, noted for anyone touching scene-level singletons
+### [DEFERRED] Fixed this task, noted for anyone touching scene-level singletons
 
 `GameManager`, `GameSceneManager`, `SettingsManager`, `WorldState` and
 `CheckpointManager` share a `GameSystems` GameObject with scene-scoped systems in
@@ -574,14 +527,14 @@ GameObject rather than sharing one with anything that calls `DontDestroyOnLoad`.
 `CombatController.TryAbility` (Ember Step) spends `DivineEnergyComponent` and records
 `ComboStep.Ability`. All nine SPEC.md section 13 actions now exist.
 
-### Combo multipliers and windows are untuned placeholders
+### [DESIGN DECISION] Combo multipliers and windows are untuned placeholders
 
 The seven chain multipliers (1.2×–2×), the 0.7s window, the finisher threshold of 20%
 and the parry windows (0.2s, perfect 0.08s) are first guesses. They cannot be tuned
 honestly until attacks have animations, because the window a player perceives is the
 animation, not the number. Section 78 applies: tune when the placeholder is replaced.
 
-### The finisher is a big swing, not an execution
+### [PLACEHOLDER] The finisher is a big swing, not an execution
 
 A finisher is `AttackType.Finisher` on the same weapon path: unblockable, lethal,
 slower. There is no animation, no camera move, no invulnerability for the player
@@ -589,27 +542,19 @@ during it and no lunge, so an enemy just outside `finisherRange` is not pulled i
 Section 69's cinematic direction for executions needs the animation and camera
 systems first.
 
-### Lock-on has no target cycling and ignores line of sight
+### [POLISH] Lock-on has no target cycling
 
-One press acquires the best candidate in view; the only way to change target is to
-release and re-acquire. There is no switch-left/right, no cycling, and an enemy
-behind a wall is as acquirable as one in the open. The camera also does nothing about
-a target directly above or below the player. Cycling is a control-scheme question
-(the gamepad is already out of buttons — see TASK 003) rather than a code one.
+One press acquires the best visible candidate in view; the only way to change target is to release and re-acquire. TASK 032 adds a shared solid-obstruction check to lock-on and interaction, with PlayMode coverage pending a Unity run. The camera still does not handle a target directly above or below the player. Cycling needs an input choice because the gamepad layout is already full.
 
-### Blocking does not slow the player or turn them
+### [POLISH] Blocking does not slow the player
 
-While holding guard the player moves and turns at full speed and the guard has no
-direction: a hit from behind is blocked exactly like one from the front. Both are
-deliberate omissions until there is a facing-aware hit reaction system; without one,
-a directional block would just be a source of unexplained damage.
+While holding guard the player moves and turns at full speed. TASK 033 adds a directional guard cone, so attacks from behind now pass through guard. Its EditMode test compiles, and the PlayMode guard scenarios need a Unity run.
 
-### Guard break has no visible reaction
+### CLOSED — Guard break has no visible reaction (TASK 018)
 
-A broken guard is a 0.8s stun with a HUD message. No animation, no knockback, no
-camera shake. The player learns it happened by being unable to act.
+GuardBrokenEvent already drives dust VFX, guard-break audio, a HUD message and camera shake.
 
-### The HUD is placeholder text on flat bars
+### [PLACEHOLDER] The HUD is placeholder text on flat bars
 
 `HudUI` draws three bars and two labels with the built-in font. Partly overtaken by
 later tasks: the boss health bar arrived with TASK 013 and a damage flash with
@@ -619,7 +564,7 @@ TASK 011, so the system it was waiting for is now there), and no minimap. It is
 hideable through `SetVisible`, but nothing binds that to an input or a setting, so
 SPEC.md section 42's "HUD must be hideable" is still a method rather than a feature.
 
-### The canvas renders in camera space, which can be occluded
+### [POLISH] The canvas renders in camera space, which can be occluded
 
 `UI_Canvas` was switched from Screen Space – Overlay to Screen Space – Camera at a
 plane distance of 0.5 so it appears in the Scene view next to the world. A camera-space
@@ -627,28 +572,22 @@ canvas is geometry: anything closer than 0.5 m to the camera would draw over it.
 camera's collision clamp keeps it at least 0.8 m from surfaces, so this does not
 happen today, but a future camera change could. Switch back to Overlay if it does.
 
-### Scene-view UI placement was not visually verified
+### [POLISH] Scene-view UI placement was not visually verified
 
 The Game view was screenshotted with the HUD showing; the Scene view could not be,
 because Unity draws canvases in the Scene view in its own pass that a manual camera
 render does not include. The change is the documented fix for the symptom, not one
 that was watched working.
 
-### Difficulty scales the dodge window but nothing else on the player
+### CLOSED — Difficulty scales the dodge window but nothing else on the player (TASK 007)
 
-`PlayerTimingWindow` now scales dodge i-frames and both parry windows, which is what
-section 15 requires. It does not touch stamina costs, block cost or combo windows.
-Whether it should is a design call not made in the spec.
+Difficulty scales both the dodge and parry timing windows.
 
-### `Avarsha.unity` is serialized as binary
+### CLOSED — `Avarsha.unity` uses YAML (TASK 028)
 
-`ProjectSettings/EditorSettings.asset` says Force Text, but `Avarsha.unity` has been
-binary since its first commit (`Test.unity` is text). Diffs of the hub scene are
-therefore opaque and merges impossible. Fixing it is a one-off re-save with the
-serialization mode confirmed; not done here because it is unrelated to this task and
-touches the whole file.
+`ProjectSettings/EditorSettings.asset` uses Force Text. The baked NavMesh was embedded in Avarsha, forcing the scene to binary. TASK 028 moved it to `AvarshaNavMesh.asset`, converted the scene to YAML and committed the one-time change separately as `8a96485`. All 8 scene integrity tests pass.
 
-### Deprecated `FindObjectsSortMode` overloads were removed
+### [DEFERRED] Deprecated `FindObjectsSortMode` overloads were removed
 
 Unity 6000.6 deprecates `FindObjectsByType<T>(FindObjectsSortMode)`. Two sites in
 `SaveManager` and `EnemyAiPlayModeTests` predated this task and were fixed alongside
@@ -658,47 +597,29 @@ made on.
 
 ## TASK 006 — Save system
 
-### Six of the save's fields are reserved and always empty
+### [ARCHITECTURAL GAP] Four save fields remain reserved and empty
 
-`SaveData` carries every field SPEC.md section 31 names, but `Inventory`, `Abilities`,
-`NpcStates`, `BossStates`, `DialogueFlags` and `EndingFlags` have no system behind them
-and are written empty every time. They exist now so the file's shape is settled and a
-later system fills a field instead of triggering a version migration. Nothing reads
-them, and nothing validates them.
+`Inventory` and `Abilities` are filled since TASK 016. `NpcStates`, `BossStates`,
+`DialogueFlags` and `EndingFlags` remain reserved; boss defeat currently persists
+through a WorldObjectState flag instead. These fields await systems that need them.
 
-### The world is not saved, only the player's progress
+### CLOSED — The world is not saved, only the player's progress (TASK 009)
 
-Quest states, world flags and counters, memories and the player all round-trip. The
-*world* does not: a killed enemy is alive again after a load, a collected memory pickup
-is sitting in the world again, and a fired `LocationTrigger` has forgotten it fired.
-Everything gated on a world flag behaves correctly, so story progression is safe; what
-is wrong is everything gated on an object's own state. Closing this needs per-object
-save identity — a stable id on each saveable object — which `ISaveParticipant` can
-carry but nothing implements yet.
+SaveIdentity and WorldObjectState now persist enemy deaths and collected pickups through world flags.
 
-### Loading does not change scene
+### CLOSED — Loading does not change scene (TASK 008)
 
-`SaveData.SceneName` is recorded and then ignored. `Load` applies a save into whichever
-scene is already open, so loading a save made elsewhere silently puts the player at
-coordinates that mean nothing. `GameSceneManager` exists and could do the load first;
-the two are not connected, and doing so needs a defined point at which restoring
-happens after the new scene's managers have woken.
+SaveManager now loads the saved scene before applying scene state.
 
-### Nothing in the game offers to save or load
+### CLOSED — Nothing in the game offers to save or load (TASK 008)
 
-`SaveManager` sits on `GameSystems` in Avarsha and auto-saves when a checkpoint is
-activated. That is the only save anything writes. There is no save menu, no load menu,
-no slot browser and no way for a player to write a `Manual` or `Chapter` save —
-`SaveSlot` declares all three and only one is ever used. Saving and loading are
-currently reachable only from code and from tests.
+SaveBrowser now exposes manual save and load from the menu.
 
-### The required corruption message is published but never shown
+### CLOSED — The required corruption message is published but never shown (TASK 008)
 
-`SaveManager` raises `SaveRecoveredFromBackupEvent` carrying SPEC.md section 32's
-sentence verbatim, and a PlayMode test asserts the exact wording. No UI subscribes to
-it, so in a real session the player is not told. The same is true of `SaveFailedEvent`.
+RecoveryMessageUI shows the specified backup-recovery message to the player.
 
-### The checksum detects corruption, not editing
+### [DEFERRED] The checksum detects corruption, not editing
 
 `SaveSerializer` uses FNV-1a, which catches a truncated, half-written or bit-rotted
 file — the failure SPEC.md section 32 is about. It is not a signature: anyone who
@@ -706,14 +627,14 @@ wants to edit their own save can recompute it. That is a deliberate scope decisi
 a single-player game, not an oversight, but it means the checksum must never be relied
 on as an anti-cheat measure.
 
-### Migration has never migrated anything
+### [DEFERRED] Migration has never migrated anything
 
 There is one save version, so `SaveMigration` has no steps and its loop has never run.
 The refusal path is tested; the upgrade path cannot be until there is a version 2. The
 first real migration should arrive with a test that loads a genuine version 1 file
 captured from this build, not a hand-written one.
 
-### Settings live in two places
+### [ARCHITECTURAL GAP] Settings live in two places
 
 `SettingsManager` persists the difficulty in `PlayerPrefs` and `SaveData.Difficulty`
 persists it again in the save file. Loading a save applies the save's value, which can
@@ -721,7 +642,7 @@ then disagree with what the options screen would show. SPEC.md section 31 lists
 `Settings` as save data and also names a separate settings save, so both are wanted —
 but which one wins is currently decided by whichever ran last.
 
-### Saving is only blocked for two of the cases that should block it
+### [ARCHITECTURAL GAP] Saving is only blocked for two of the cases that should block it
 
 `SaveManager` refuses to save during a conversation and while the player is dead.
 SPEC.md section 31 says never to save during a critical state transition, and SPEC.md
@@ -729,14 +650,14 @@ section 33 names irreversible story decisions, boss transitions and temple compl
 None of those exist yet, and none of them call `BlockSaves`. The hook is public and
 reason-keyed so they can when they do.
 
-### Quarantined saves accumulate forever
+### [POLISH] Quarantined saves accumulate forever
 
 A save that fails validation is renamed `*.corrupt-<timestamp>` and left on disk,
 because SPEC.md section 32 forbids deleting user saves. Nothing ever removes them,
 counts them or tells the player they are there, so a player hitting repeated corruption
 slowly fills their save folder with files they do not know about.
 
-### Two tests deliberately log console errors
+### [DEFERRED] Two tests deliberately log console errors
 
 `Load_ACorruptPrimary_...` and `Storage_ACorruptPrimary_...` feed the loader a shredded
 file on purpose, and `SaveStorage` logs that at error level as SPEC.md section 32 step
@@ -746,7 +667,7 @@ behind that are expected rather than real.
 
 ## TASK 005 — PlayMode tests
 
-### Whole systems still have no PlayMode coverage
+### [ARCHITECTURAL GAP] Whole systems still have no PlayMode coverage
 
 `Assets/Tests/PlayMode/` covers combat, enemy AI, quests and memories — the systems
 whose failures were expensive. Dialogue, the interaction prompt, every UI screen, the
@@ -754,15 +675,11 @@ pause menu, the third-person camera and player locomotion have none. Locomotion 
 the camera are the two most obviously frame-dependent systems in the project and are
 still checked only by eye.
 
-### Nothing tests the shipped scenes
+### CLOSED — Shipped scene integrity tests run in Unity (TASK 029)
 
-Every test builds its arena in code, including its own NavMesh. That is deliberate —
-a test that depends on `Avarsha.unity` breaks whenever a designer moves a building —
-but it means no test would notice if the hub scene lost its `NavMesh`, its
-`QuestManager` or a serialized reference. A separate, small set of scene-integrity
-tests would close this; they do not exist.
+TASK 029 adds EditMode tests opening each shipped scene and checking missing scripts and key wiring, plus Avarsha's encounter guards and baked NavMesh. All 8 scene tests pass after Avarsha's YAML conversion.
 
-### The suite is wall-clock and tolerance-based
+### [POLISH] The suite is wall-clock and tolerance-based
 
 PlayMode tests run in real seconds: the current 25 take about 42. Assertions about
 movement are distance thresholds ("closed more than 2m in two seconds") and every wait
@@ -770,20 +687,15 @@ has a deadline, so a heavily loaded machine could fail a test that is not actual
 broken. Nothing is time-scaled or deterministic. If flakes appear, the fix is to drive
 the systems from a fixed clock rather than to widen the tolerances.
 
-### SPEC.md section 53 lists tests for systems that do not exist
+### CLOSED — SPEC.md section 53 lists tests for systems that do not exist (TASK 005)
 
-Parry, combos and boss phases (combat), and save, load, backup, corrupted data and
-version migration (save) are all named in section 53 and none are covered, because
-none are implemented. They are listed here so the gap is not mistaken for an oversight
-in the test suite.
+The listed systems gained automated tests as their implementations were added.
 
-### Nothing runs the tests automatically
+### [ARCHITECTURAL GAP] GitHub CI has not been exercised
 
-Both suites are run by hand through the Unity CLI. There is no CI, no pre-commit hook
-and no record of which commit last passed. The coverage only protects the project if
-somebody remembers to run it.
+TASK 030 adds a GitHub Actions workflow for EditMode and PlayMode using GameCI's free runner. It needs Unity Personal credentials in GitHub secrets, a push, and a successful run before CI can be considered verified. The local editor is currently blocked by its licensing-client connection.
 
-### `CombatController.Configure` exists only for the tests
+### [DEFERRED] `CombatController.Configure` exists only for the tests
 
 `CombatController` disables itself in `Awake` when it has no `InputActionAsset`, so a
 test-built player needs one before activation. `Configure` is the seam for that,
@@ -792,16 +704,14 @@ gameplay component that shipping code never calls.
 
 ## TASK 004 — Enemy AI
 
-### Three enemy archetypes exist out of ten
+### [MISSING CONTENT] Five enemy archetype assets exist; the full roster is still missing
 
-SPEC.md section 16 lists ten enemy classes. `EnemyClass` declares all ten, but only
-**Forgotten Soldier**, **Ash Creature** and **Stone Guardian** have archetype assets
-and a place in the world. Naga-Raksh, Sky Hunter, Dream Stalker, Time Wraith, Divine
-Guardian, mini-boss and boss are enum values with nothing behind them. Each needs an
-archetype asset and, for the later ones, behaviour the current state machine does not
-have — flight, phasing, phase transitions.
+SPEC.md section 16 lists ten enemy classes. There are now five archetype assets:
+Forgotten Soldier, Stone Guardian, Divine Guardian, Temple Guardian and Agniya.
+The later roster still needs authored assets and, for some classes, new behaviours
+such as flight or phasing.
 
-### Enemies have one attack, and it is a serialized timer
+### [MISSING CONTENT] Enemies have one attack, and it is a serialized timer
 
 `EnemyCombatant` plays one swing: telegraph, active window, recovery. SPEC.md section
 16 asks for attack *patterns*. There is no second attack, no ranged option, no combo
@@ -809,14 +719,14 @@ and no choice between them, so every enemy of a class fights identically. The ti
 are serialized numbers rather than animation events, the same limitation recorded for
 `WeaponController` in TASK 002, and for the same reason: there are no animations yet.
 
-### The telegraph is a colour flash
+### [PLACEHOLDER] The telegraph is a colour flash
 
 SPEC.md section 16 requires readable telegraphs. What exists is the body tinting to
 the archetype's telegraph colour during the wind-up. That is legible but it is not a
 wind-up animation, a VFX or an audio cue — SPEC.md section 16 asks for audio cues and
 death animations, and there is no audio system at all yet.
 
-### `EnemyHealth` and `EnemyCombatant` tint through different mechanisms
+### [POLISH] `EnemyHealth` and `EnemyCombatant` tint through different mechanisms
 
 `EnemyHealth` (TASK 002) writes `renderer.material.color`, which instantiates a
 material. `EnemyCombatant` and `EnemyController` use a `MaterialPropertyBlock`. A
@@ -825,7 +735,7 @@ be masked, and clearing the block reveals whatever the material instance was lef
 Closing this means moving all three onto one tinting path — worth doing when real
 materials replace the placeholder ones.
 
-### Group coordination is attack slots and a shout
+### [POLISH] Group coordination is attack slots and a shout
 
 `EnemyGroup` limits how many members may swing at once and forwards an alert to
 members within a radius. SPEC.md section 17's "group coordination" implies more:
@@ -833,7 +743,7 @@ flanking, surrounding, ranged members holding back, coordinated openings. None o
 that exists. Grouping is also purely hierarchical — an enemy's group is whatever
 `EnemyGroup` is on a parent — so enemies cannot join or leave a group at runtime.
 
-### Factions are a three-value enum, not a relationship model
+### [DESIGN DECISION] Factions are a three-value enum, not a relationship model
 
 The first play-mode run had the Ash Creature killed by an ally's swing, because
 `Hitbox` refused only hurtboxes belonging to its own owner. That is fixed: `Faction`
@@ -847,20 +757,20 @@ entirely so that anything predating factions — the player's weapon, the traini
 dummy — behaves exactly as before; that also means a neutral entity can still be hit
 by its own side.
 
-### Enemies cannot target anything but the player
+### [MISSING CONTENT] Enemies cannot target anything but the player
 
 `EnemyPerception` resolves its target by finding the one `PlayerDeath` in the scene.
 There is no faction model, so an enemy cannot deliberately target an NPC and the
 Avarsha civilians are in no danger. Same fix as the defect above.
 
-### Retreat is the only self-preservation behaviour
+### [POLISH] Retreat is the only self-preservation behaviour
 
 An enemy backs off once when it drops below its archetype's health fraction, then
 never again unless it heals. It does not call for help while retreating, does not
 seek cover, and does not flee the encounter entirely. The one-shot rule exists to
 stop a retreat/re-engage loop rather than because it is the right behaviour.
 
-### Navigation failure returns to patrol but never retries
+### [POLISH] Navigation failure returns to patrol but never retries
 
 SPEC.md section 50's fallback is implemented in `EnemyNavigator.SetDestination`:
 stop, recalculate, sample the nearest valid point, and failing that abandon the
@@ -868,7 +778,7 @@ destination so `EnemyController` sends the enemy back to patrol. What it does no
 is remember that a destination was unreachable, so an enemy can re-target the same
 bad point on the next tick and log the same fallback repeatedly.
 
-### Without a baked NavMesh, enemies walk through walls
+### [ARCHITECTURAL GAP] Without a baked NavMesh, enemies walk through walls
 
 `EnemyNavigator` falls back to steering the transform straight at its destination
 when there is no `NavMeshAgent` or the agent is not on a NavMesh. That keeps an
@@ -876,7 +786,7 @@ unbaked scene playable instead of filling it with frozen enemies, but the fallba
 ignores obstacles entirely. It logs once per enemy when it engages. Avarsha's NavMesh
 is baked, so this only affects scenes built later.
 
-### The NavMesh is baked once and does not react to the world
+### [DEFERRED] The NavMesh is baked once and does not react to the world
 
 `Navigation` carries a `NavMeshSurface` baked at edit time over the whole scene.
 Nothing rebuilds it, and nothing in the scene is a `NavMeshObstacle`, so a door, a
@@ -884,30 +794,22 @@ collapsing bridge or the act-by-act changes to Avarsha would not change where en
 can walk. SPEC.md section 17 points at the AI Navigation package's runtime baking and
 links for exactly this; neither is used yet.
 
-### Difficulty is implemented but cannot be changed in game
+### CLOSED — Difficulty is implemented but cannot be changed in game (TASK 008)
 
-`Difficulty` implements SPEC.md section 44's four modes and scales enemy damage,
-telegraph length, attack cooldown and group aggression — deliberately not health, per
-sections 15 and 44. `SettingsManager.SetDifficulty` persists it. But there is no
-options menu, so the only way to leave Normal is from code (menu: ROADMAP TASK 008).
-`PlayerTimingWindow` is read since TASK 007 by the dodge and parry windows.
+Difficulty is selectable in the Settings screen.
 
-### `Q002 The Ash at the Gate` is a demonstration, not designed content
+### [MISSING CONTENT] `Q002 The Ash at the Gate` is a demonstration, not designed content
 
 The quest exists so `ObjectiveType.DefeatEnemy` has a real driver end to end. Its
 text is a placeholder, no NPC gives it, it is started by walking into a trigger, and
 its reward is a sentence saying there is no reward system. It should be replaced when
 Avarsha's Act I content is actually written.
 
-### Killed enemies despawn and never come back
+### [POLISH] Encounter reset needs manual gameplay review
 
-`EnemyHealth` destroys an enemy two seconds after death, and nothing respawns it.
-There is no encounter reset, so reloading a checkpoint leaves the ruins empty — the
-same gap recorded under TASK 002's "respawn does not reset world state", now with
-something in the world it actually loses. `QuestTarget` guards against a kill being
-counted twice, so a future respawn will not break the quest count.
+TASK 034 changes `EnemyHealth` to hide defeated ordinary enemies so a player death can restore their health, collider, hurtbox and visuals. `EnemyController` sends them home and forgets aggro on respawn; live bosses reset phase and health. Quest and memory progress remain. The PlayMode respawn test passes; a manual gameplay check remains.
 
-### Knockback and the enemy tint are still unverified
+### [POLISH] Knockback and the enemy tint are still unverified
 
 `EnemyStagger` pushes an enemy along `DamageData.Direction` when poise breaks, and
 `EnemyController` and `EnemyCombatant` tint the body. TASK 005 covers the stagger
@@ -918,7 +820,7 @@ they were left rather than tested.
 
 ## TASK 003 — Avarsha
 
-### Avarsha is one flat scene, not the hub the spec describes
+### [MISSING CONTENT] Avarsha is one flat scene, not the hub the spec describes
 
 SPEC.md section 24 lists eight districts and says the hub changes across five acts.
 What exists is one `Avarsha.unity` with all eight districts blocked out as primitives
@@ -926,7 +828,7 @@ on a single ground plane, in the Act I state only. There is no streaming, no int
 and no mechanism for the act-by-act changes. The world-state flags the act changes
 would key off do exist (`WorldState`), so the hook is there; the content is not.
 
-### The supernatural event is a scripted placeholder
+### [PLACEHOLDER] The supernatural event is a scripted placeholder
 
 `SupernaturalEvent` plays SPEC.md section 68 scenes 5 and 7 — everyone falls asleep,
 then the statues bleed — as a rotation, a colour lerp and a light change. There is no
@@ -936,7 +838,7 @@ does not exist yet. Scenes 1-4, 6, 8 and 10 of that sequence are not implemented
 all: no sunrise, no training scene, no empty-city exploration state, no dead soldier,
 no Nirvaan.
 
-### Dialogue has no voice, no localization and no history
+### [MISSING CONTENT] Dialogue has no voice, no localization and no history
 
 `DialogueNode` carries `VoiceAssetId` and `Subtitle`, and nothing reads the first —
 there is no audio (SPEC.md section 41). Text is authored in English directly in the
@@ -944,85 +846,58 @@ assets rather than through string keys, so SPEC.md section 73 localization would
 the data reworked. There is also no backlog or replay of lines already shown, and no
 typewriter reveal or skip.
 
-### Dialogue graphs are authored in code, not an editor
+### CLOSED — Dialogue graphs are authored in code, not an editor (TASK 003)
 
-The three conversations were built by a script calling `DialogueGraph.Configure`. The
-asset is editable as a flat list of nodes in the Inspector, but there is no graph view,
-no validation that `NextDialogueId` links resolve, and no warning for an unreachable
-node. A misauthored link is only caught at runtime, where it ends the conversation and
-logs a fallback.
+DialogueGraph assets are ScriptableObjects under Assets/Data/Dialogue and are editable in the Inspector.
 
-### Relationship values are stored but never read
+### CLOSED — Relationship counters removed (TASK 034)
 
-`ConsequenceType.ChangeRelationship` writes to a `WorldState` counter named `REL_<id>`.
-Nothing reads those counters — no NPC behaviour, dialogue gate or ending condition
-depends on them (SPEC.md sections 22 and 72). The plumbing is real; the consequences
-are not.
+The user selected the resolution plan's removal option. `ChangeRelationship` consequences and their authored uses are removed; new saves omit legacy `REL_` counters and old saves ignore them. NPC behaviour can gain a designed relationship model later. Unity imported the authored dialogue assets and the save tests pass.
 
-### Most quest objective types cannot complete
+### [ARCHITECTURAL GAP] New quest objective adapters need scene authoring
 
-`ObjectiveType` declares the ten kinds SPEC.md section 23 requires. Only
-`ReachLocation`, `Talk`, `Interact` and `ObtainMemory` have anything in the world that
-can report them. `DefeatEnemy` needs enemy AI (TASK 004), `CollectItem` needs the
-inventory system (section 28), `SolvePuzzle` needs section 26, and `Survive`, `Escort`
-and `ChooseDialogue` have no driver. The enum value is currently only a label on the
-quest log entry.
+TASK 035 adds CollectItem, ChooseDialogue, Survive and Escort adapters. DefeatEnemy and SolvePuzzle already had drivers (`QuestTarget` and `PuzzleController`), so all ten enum values now have a reporting path. Content authors must assign matching objective ids in each scene. Their PlayMode tests pass in Unity; shipped scenes still need objective ids authored where the story uses them.
 
-### Quest rewards are a string
+### [ARCHITECTURAL GAP] Concrete quest rewards need authored use
 
-`QuestDefinition.RewardsSummary` is descriptive text. There is no inventory,
-progression or skill-tree system (SPEC.md sections 28-30) to grant anything, so
-completing "The Queen's Charge" changes flags and nothing else.
+TASK 035 adds `QuestReward` grants for items, ability unlocks, memory restoration, skill points and world flags. `RewardsSummary` remains display text. Existing quest assets still need rewards authored where the story calls for them; the grant tests pass in Unity.
 
-### Memory corruption is a number nothing consumes
+### [ARCHITECTURAL GAP] Memory integrity consequences need broader content
 
-`MemoryManager.Integrity` implements the 0..1 model from SPEC.md section 20 and
-protects `Critical` memories from degrading, which is tested. But nothing reduces
-integrity during play — no divine ability exists to consume memory — and nothing reads
-it, so the cosmetic consequences the spec describes (memories disappearing, dialogue
-changing, incomplete flashbacks) do not happen.
+Ember Step drains integrity and can temporarily forget optional memories. TASK 037 adds integrity-driven dialogue, incomplete memory-discovery text and a confused NPC-recognition line. The mechanisms compile and Unity tests pass; broader authored variants and in-editor presentation still need review.
 
-### Memory visualization is a text panel
+### [PLACEHOLDER] Memory visualization is a text panel
 
 SPEC.md section 70 asks for memory visualization. `MemoryDiscoveryUI` shows the title
 and description on a flat panel with a coloured bar. There is no flashback, no visual
 representation per memory beyond a tint colour, and no narration.
 
-### No memory log or quest log screen
+### CLOSED — No memory log or quest log screen (TASK 010)
 
-The player can see the one tracked quest and a transient memory banner. There is no
-screen listing memories collected or quests taken, so a player who dismisses the banner
-cannot read that memory again. This matters more as soon as there is a second memory.
+JournalUI provides the quest log and memory archive screens.
 
-### Nothing persists across a scene load or quit
+### CLOSED — Nothing persists across a scene load or quit (TASK 006–009)
 
-`WorldState`, `QuestManager` and `MemoryManager` hold everything in memory. Quitting
-loses the quest, the flags and the memory. This is the save system (SPEC.md sections
-31-32) and was deliberately not invented here. `WorldState` survives a scene load via
-`DontDestroyOnLoad`; the quest and memory managers do not, because they are scene
-objects.
+SaveManager restores player, quest, memory and world-object state across scene loads and process restarts.
 
-### Entering Avarsha is a trigger, not a scene transition
+### [DEFERRED] Entering Avarsha is a trigger, not a scene transition
 
 Acceptance criterion 1 is satisfied by a `LocationTrigger` at the city gate inside
 `Avarsha.unity`, which sets `ENTERED_AVARSHA`. There is no loading of Avarsha from
 another scene and no door or transition system; `GameSceneManager` can load scenes but
 nothing in the world calls it.
 
-### The NPCs do nothing but talk
+### [MISSING CONTENT] The NPCs do nothing but talk
 
 Amara, Dev and Mira are capsules that turn to face the player. No routines, no
 schedules, no idle animation, no walking (SPEC.md section 25 asks for NPC routines).
 They also have no colliders tuned for anything but standing still.
 
-### Interaction selection is a sphere overlap capped at 16 colliders
+### CLOSED — Interaction visibility and collider cap (TASK 032)
 
-`PlayerInteractor` uses `OverlapSphereNonAlloc` with a fixed 16-entry buffer. In a
-denser scene than this one, interactables beyond the sixteenth collider in range would
-be invisible to it. There is also no line-of-sight check, so an NPC on the other side
-of a wall can be selected if they are within range.
+TASK 032 replaces the fixed sixteen-collider buffer with an unrestricted sphere overlap and adds a shared solid-obstruction check used by interaction and lock-on. Its PlayMode test covers a wall and twenty irrelevant colliders. The PlayMode test passes in Unity.
 
-### Conversation and interaction are still untested over frames
+### [ARCHITECTURAL GAP] Conversation and interaction are still untested over frames
 
 TASK 005 covers the quest and memory halves of this in PlayMode — trigger volumes
 firing on entry, kills advancing an objective, a pickup granting once. What remains
@@ -1031,7 +906,7 @@ dialogue UI, `PlayerDialogueLock` suspending and restoring control, and the
 supernatural event's sequence over time. Those are still verified only by a scripted
 play-mode run, which is a manual check rather than a regression test.
 
-### Gamepad bindings are saturated (remapping now available, TASK 017)
+### [POLISH] Gamepad bindings are saturated (remapping now available, TASK 017)
 
 Interact is still bound to `E` on keyboard and to **d-pad up** on gamepad by
 default, because all four face buttons are already taken by Jump, Light Attack,
@@ -1053,32 +928,26 @@ under TASK 007.
 `ComboTracker` matches recorded steps against the section 14 table; the finisher
 exists. Tuning is tracked under TASK 007.
 
-### Attack timing is serialized numbers, not animation events
+### [PLACEHOLDER] Attack timing is serialized numbers, not animation events
 
 `WeaponController` opens and closes the hitbox on fixed delays because there are no
 attack animations yet (SPEC.md section 78, placeholder-first). When animations land,
 these should become animation events, or the damage window will drift out of sync with
 what the player sees.
 
-### Hitbox activation is a one-shot overlap plus trigger enter
+### CLOSED — Fast-hit sweep (TASK 031)
 
-A swing samples overlaps once on activation and then relies on `OnTriggerEnter`. A fast
-swing passing entirely through a thin target between physics steps can miss. The usual
-fix is sweeping the hitbox between its previous and current position each frame; not
-done because placeholder swings are slow and the volumes are large.
+TASK 031 sweeps the active hitbox between sampled positions and retains attack-id deduplication. A PlayMode test moves the hitbox across a thin target in one frame and checks it damages once. The PlayMode test passes in Unity.
 
-### No hit reaction, stagger or knockback
+### CLOSED — No hit reaction, stagger or knockback (TASK 004)
 
-`DamageData` carries a direction and hit point, and nothing consumes them. Enemies flash
-a colour and keep standing. Hit reactions, stagger and poise are part of SPEC.md section
-16 and need enemy AI (TASK 004) to be meaningful.
+EnemyStagger now handles poise, hit reaction and knockback.
 
-### Enemy has no AI and cannot attack
+### CLOSED — Enemy has no AI and cannot attack (TASK 004)
 
-`Enemy_TrainingDummy` is a stationary capsule. The only thing that can damage the player
-is `Hazard_AshPit`, a `DamageVolume`. Enemy attacks arrive with TASK 004.
+EnemyController, EnemyPerception and EnemyCombatant implement the enemy AI and attacks.
 
-### `DamageVolume` is outside the TASK 002 component list
+### [DEFERRED] `DamageVolume` is outside the TASK 002 component list
 
 It was added because "player can die" and "checkpoint restores player" are acceptance
 criteria and nothing else in this task could damage the player. It is a real system
@@ -1090,20 +959,16 @@ The active checkpoint now survives a save via `CheckpointManager.RestoreActiveCh
 `CaptureFallback`'s player-start-position fallback still applies before any checkpoint
 has ever been activated, in either a fresh game or an old save from before one was.
 
-### Respawn does not reset world state — unchanged, and this is intentional
+### [DESIGN DECISION] Respawn resets encounters while preserving progression
 
-`PlayerDeath` restores the player and moves them to the checkpoint; enemies killed
-before the death stay dead and are not the topic here. This entry is about mid-session
-respawn (dying and getting back up) never being confused with loading a save: death
-must not roll back quest or memory progress made since the last checkpoint, so it
-deliberately touches nothing WorldObjectState-flagged.
+The user selected the resolution plan's recommended reset. TASK 034 restores ordinary enemies to home at full health, clears aggro and resets live boss phase/health on player death. Quest, memory and other earned progress remain. Defeated bosses remain defeated. This needs Unity PlayMode and manual verification.
 
 ### Difficulty scaling is absent — closed in TASK 004 and TASK 007
 
 Enemy-side scaling arrived in TASK 004; the player's dodge and parry windows scale
 since TASK 007.
 
-### Dodge is bound to left Ctrl
+### [POLISH] Dodge is bound to left Ctrl
 
 A placeholder binding. Left Ctrl is conventionally crouch, and dodge is usually the same
 button as sprint. It was not bound to shift or space because both are already taken by
@@ -1119,12 +984,12 @@ was very slow. Fixed by splitting the two paths: mouse still uses `sensitivity`
 directly, and a gamepad stick now multiplies by its own
 `gamepadLookDegreesPerSecond * Time.deltaTime`.
 
-### `Assets/Settings/SampleSceneProfile.asset` is unused
+### [POLISH] `Assets/Settings/SampleSceneProfile.asset` is unused
 
 Carried over from the URP template and not referenced by `Test.unity`. Harmless; delete
 it once a real volume profile per region exists (SPEC.md section 35).
 
-### Placeholder art only
+### [PLACEHOLDER] Placeholder art only
 
 Everything in `Test.unity` is a Unity primitive with the default URP material, per the
 placeholder-first rule (SPEC.md section 78). The Astra Blade is a stretched cube.

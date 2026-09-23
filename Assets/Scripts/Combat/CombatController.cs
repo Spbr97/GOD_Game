@@ -35,6 +35,10 @@ namespace Game.Combat
         [Tooltip("Divine energy spent per use.")]
         [SerializeField] private float abilityCost = 20f;
 
+        [Tooltip("Require the corresponding quest reward flag before Ember Step can be used.")]
+        [SerializeField] private bool requireAbilityUnlock;
+        [SerializeField] private string abilityId = "EMBER_STEP";
+
         [Tooltip("Seconds before Ember Step can be used again.")]
         [SerializeField] private float abilityCooldown = 3f;
 
@@ -301,7 +305,8 @@ namespace Game.Combat
         /// </summary>
         public bool TryAbility()
         {
-            if (!CanAct() || IsUsingAbility || Time.time < abilityReadyAt)
+            if ((requireAbilityUnlock && (WorldState.Instance == null || !WorldState.Instance.GetFlag("ABILITY_UNLOCKED_" + abilityId)))
+                || !CanAct() || IsUsingAbility || Time.time < abilityReadyAt)
             {
                 return false;
             }
@@ -382,6 +387,12 @@ namespace Game.Combat
             abilityCooldown = cooldown;
         }
 
+        /// <summary>Test and content seam for abilities granted by quest rewards.</summary>
+        public void ConfigureAbilityUnlock(string id, bool required)
+        {
+            abilityId = id;
+            requireAbilityUnlock = required;
+        }
         private bool CanAct()
         {
             if (!isActiveAndEnabled || health == null || health.IsDead)

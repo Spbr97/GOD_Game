@@ -121,6 +121,14 @@ namespace Game.AI
             EventBus.Publish(new EnemyStaggeredEvent(gameObject, staggerEndsAt - Time.time));
         }
 
+        /// <summary>Clears poise and a pending stagger when an encounter restarts.</summary>
+        public void ResetForEncounter()
+        {
+            EnsureInitialized();
+            poiseRemaining = MaxPoise;
+            staggerEndsAt = 0f;
+        }
+
         /// <summary>Test and tooling seam.</summary>
         public void Configure(EnemyArchetype enemyArchetype)
         {

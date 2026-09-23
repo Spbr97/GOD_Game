@@ -5,8 +5,7 @@ namespace Game.Dialogue
 {
     /// <summary>
     /// One thing a dialogue node or choice does to the world when it is taken
-    /// (SPEC.md section 22: choices modify relationship values, quest flags, memory
-    /// states and NPC behaviour).
+    /// (SPEC.md section 22: choices modify quest flags, memory states and NPC behaviour).
     ///
     /// Consequences name their targets by string rather than holding object
     /// references, so a dialogue asset can be authored before the quest or memory it
@@ -19,8 +18,7 @@ namespace Game.Dialogue
         ClearFlag,
         StartQuest,
         CompleteObjective,
-        DiscoverMemory,
-        ChangeRelationship
+        DiscoverMemory
     }
 
     [Serializable]
@@ -32,7 +30,7 @@ namespace Game.Dialogue
         [Tooltip("Flag name, quest id, objective id or memory id, depending on Type.")]
         public string Target;
 
-        [Tooltip("Used by ChangeRelationship only.")]
+        [Tooltip("Reserved for consequences that need a numeric amount.")]
         public int Amount;
     }
 
@@ -53,6 +51,9 @@ namespace Game.Dialogue
         public string[] BlockingFlags;
 
         public DialogueConsequence[] Consequences;
+
+        [Tooltip("Quest objective reported when the player selects this choice.")]
+        public string ObjectiveId;
     }
 
     /// <summary>
@@ -97,6 +98,10 @@ namespace Game.Dialogue
         [Tooltip("Subtitle override. Falls back to Text when empty (SPEC.md section 43).")]
         [TextArea(1, 3)]
         public string Subtitle;
+
+        [TextArea(2, 6)]
+        [Tooltip("Optional alternate line shown below 35% memory integrity.")]
+        public string LowIntegrityText;
 
         [Tooltip("Id of the voice line for this node. No audio exists yet; see KNOWN_ISSUES.md.")]
         public string VoiceAssetId;

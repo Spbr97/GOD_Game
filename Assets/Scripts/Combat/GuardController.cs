@@ -45,6 +45,10 @@ namespace Game.Combat
         [Tooltip("Seconds the player cannot guard or act after a guard break.")]
         [SerializeField] private float guardBreakStun = 0.8f;
 
+        [Tooltip("Half-angle in degrees within which an incoming attack can be guarded.")]
+        [Range(0f, 180f)]
+        [SerializeField] private float guardHalfAngle = 75f;
+
         private HealthComponent health;
         private StaminaComponent stamina;
         private DivineEnergyComponent divineEnergy;
@@ -150,6 +154,11 @@ namespace Game.Combat
                 return false;
             }
 
+            if (!FacesAttacker(damage))
+            {
+                return false;
+            }
+
             if (IsParryWindowOpen)
             {
                 Parry(damage, perfect: Now <= perfectWindowEndsAt);
@@ -209,6 +218,30 @@ namespace Game.Combat
 
             Parried?.Invoke(perfect);
             EventBus.Publish(new ParryEvent(gameObject, damage.Source, perfect, parryStaggerDuration));
+        }
+
+        private bool FacesAttacker(DamageData damage)
+        {
+            // Hitboxes set Source to the attacker's root. Prefer its position to
+            // the swing direction, which may describe a glancing strike rather
+            // than where the attacker stands.
+            if (damage.Source == null)
+            {
+                return true;
+            }
+
+            var toAttacker = damage.Source.transform.position - transform.position;
+            toAttacker.y = 0f;
+            if (toAttacker.sqrMagnitude < 0.0001f)
+            {
+                return true;
+            }
+
+            var forward = transform.forward;
+            forward.y = 0f;
+            return forward.sqrMagnitude < 0.0001f
+                   || Vector3.Dot(forward.normalized, toAttacker.normalized)
+                   >= Mathf.Cos(guardHalfAngle * Mathf.Deg2Rad);
         }
 
         private void BreakGuard(string reason)

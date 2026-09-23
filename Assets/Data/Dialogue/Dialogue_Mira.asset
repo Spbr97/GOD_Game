@@ -80,10 +80,7 @@ MonoBehaviour:
     BlockingFlags: []
     RequiredMemoryId: 
     RequiredMemoryState: 
-    Consequences:
-    - Type: 5
-      Target: MIRA
-      Amount: 1
+    Consequences: []
     Choices: []
     NextDialogueId: 
     Subtitle: 

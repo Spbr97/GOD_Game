@@ -1,8 +1,11 @@
 using System.Collections;
 using Game.AI;
+using Game.Animation;
+using Game.Audio;
 using Game.Combat;
 using Game.Core;
 using Game.DevTools;
+using Game.Dialogue;
 using Game.World;
 using NUnit.Framework;
 using UnityEngine;
@@ -23,6 +26,79 @@ namespace Game.Tests.Play
     /// </summary>
     public class SpecAuditPlayModeTests
     {
+        [UnityTest]
+        public IEnumerator EdgeCase13_MissingImportedAudio_ProceduralCueStillPlays()
+        {
+            SfxSpawner.Play(SfxKind.GuardBreak, Vector3.zero);
+            yield return null;
+            var source = Object.FindFirstObjectByType<AudioSource>();
+            Assert.IsNotNull(source);
+            Assert.IsNotNull(source.clip);
+            Assert.Greater(source.clip.samples, 0);
+        }
+
+        [UnityTest]
+        public IEnumerator EdgeCase14_MissingAnimationClip_ProceduralHitReactionStillRuns()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero);
+            var visual = new GameObject("Visual");
+            visual.transform.SetParent(player.Root.transform, false);
+            var animator = player.Root.AddComponent<PlaceholderAnimator>();
+            animator.Configure(visual.transform);
+            Assert.IsNull(player.Root.GetComponent<Animator>());
+            player.Health.TakeDamage(DamageData.Create(10f, null));
+            yield return null;
+            Assert.Greater(Quaternion.Angle(Quaternion.identity, visual.transform.localRotation), 0.01f);
+            Assert.AreEqual(90f, player.Health.CurrentHealth, 0.01f);
+        }
+
+        [Test]
+        public void EdgeCase27_BossDefeatedBeforeDialogue_ChoosesPostBossLine()
+        {
+            arena.EnsureWorldState();
+            var flag = WorldObjectState.DeadFlag("BOSS_EARLY");
+            var graph = arena.TrackAsset(ScriptableObject.CreateInstance<DialogueGraph>());
+            graph.Configure("EARLY_BOSS_DIALOGUE", new[] { "AFTER", "BEFORE" }, new[]
+            {
+                new DialogueNode { DialogueId = "AFTER", Text = "You have already won.", RequiredFlags = new[] { flag } },
+                new DialogueNode { DialogueId = "BEFORE", Text = "Face the guardian.", BlockingFlags = new[] { flag } }
+            });
+            Assert.AreEqual("BEFORE", graph.GetEntryNode().DialogueId);
+            WorldState.Instance.SetFlag(flag);
+            Assert.AreEqual("AFTER", graph.GetEntryNode().DialogueId);
+        }
+
+        [Test]
+        public void EdgeCase29_EnteringAreaBeforeStoryTrigger_DoesNotAdvanceQuest()
+        {
+            arena.EnsureWorldState();
+            var area = arena.Track(new GameObject("Story Area"));
+            area.AddComponent<BoxCollider>();
+            var trigger = area.AddComponent<LocationTrigger>();
+            trigger.Configure("Story Area", null, "AREA_ENTERED", required: new[] { "STORY_READY" });
+            Assert.IsFalse(trigger.Fire());
+            Assert.IsFalse(WorldState.Instance.GetFlag("AREA_ENTERED"));
+            WorldState.Instance.SetFlag("STORY_READY");
+            Assert.IsTrue(trigger.Fire());
+            Assert.IsTrue(WorldState.Instance.GetFlag("AREA_ENTERED"));
+        }
+
+        [Test]
+        public void EdgeCase30_LateAreaTraversal_CannotSetProgressFlagBeforePrerequisites()
+        {
+            arena.EnsureWorldState();
+            var area = arena.Track(new GameObject("Late Area"));
+            area.AddComponent<BoxCollider>();
+            var trigger = area.AddComponent<LocationTrigger>();
+            trigger.Configure("Late Area", null, "LATE_AREA_REACHED",
+                required: new[] { "FIRST_TEMPLE_CLEAR", "SECOND_TEMPLE_CLEAR" });
+            WorldState.Instance.SetFlag("FIRST_TEMPLE_CLEAR");
+            Assert.IsFalse(trigger.Fire());
+            Assert.IsFalse(WorldState.Instance.GetFlag("LATE_AREA_REACHED"));
+            WorldState.Instance.SetFlag("SECOND_TEMPLE_CLEAR");
+            Assert.IsTrue(trigger.Fire());
+        }
+
         private TestArena arena;
 
         [SetUp]

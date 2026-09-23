@@ -393,8 +393,10 @@ namespace Game.Tests.Play
             yield return null;
 
             Assert.IsTrue(dummy.Health.IsDead, "The load did not re-apply the enemy's death.");
-            Assert.IsTrue(dummy.Root == null || !dummy.Root.activeInHierarchy,
-                "A restored-dead enemy should be gone, not standing around fully healed a moment later.");
+            foreach (var renderer in dummy.Root.GetComponentsInChildren<Renderer>(true))
+                Assert.IsFalse(renderer.enabled, "A restored-dead enemy should be visually hidden.");
+            foreach (var hurtbox in dummy.Root.GetComponentsInChildren<Hurtbox>(true))
+                Assert.IsFalse(hurtbox.enabled, "A restored-dead enemy should not absorb attacks.");
         }
 
         [UnityTest]
@@ -747,6 +749,74 @@ namespace Game.Tests.Play
             Assert.AreEqual(before, File.ReadAllText(SaveStorage.PrimaryPath(root, SaveSlot.Manual)),
                 "The existing save was modified by a write that failed.");
             Assert.IsFalse(File.Exists(SaveStorage.TemporaryPath(root, SaveSlot.Manual)));
+        }
+        [UnityTest]
+        public IEnumerator EdgeCase02_SaveInsideBossPhaseTransition_IsAReadableSnapshot()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+            var rig = arena.SpawnEnemy("Transition Boss", new Vector3(0f, 0f, 12f),
+                arena.NewArchetype("TRANSITION_BOSS", health: 100f));
+            rig.Root.SetActive(false);
+            var boss = rig.Root.AddComponent<BossController>();
+            boss.Configure("TRANSITION_BOSS", "Transition Boss", rig.Controller, rig.Combatant,
+                null, 0.6f, 0.3f);
+            rig.Root.SetActive(true);
+            yield return null;
+
+            var saved = false;
+            void OnPhase(BossPhaseChangedEvent e)
+            {
+                if (e.Boss == rig.Root && e.Phase == 2)
+                    saved = saves.Save(SaveSlot.Manual);
+            }
+            EventBus.Subscribe<BossPhaseChangedEvent>(OnPhase);
+            try
+            {
+                rig.Health.TakeDamage(DamageData.Create(50f, null));
+                Assert.AreEqual(2, boss.Phase);
+                Assert.IsTrue(saved, "The phase event left saving in a half-applied state.");
+                Assert.IsTrue(SaveStorage.Read(root, SaveSlot.Manual).Loaded);
+            }
+            finally
+            {
+                EventBus.Unsubscribe<BossPhaseChangedEvent>(OnPhase);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EdgeCase03_SaveBeforeScriptedEvent_LoadRestoresPreEventFlags()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+            var go = arena.Track(new GameObject("Scripted Event"));
+            go.SetActive(false);
+            var cinematic = go.AddComponent<CinematicPlayer>();
+            cinematic.Configure("EVENT", "START_EVENT", "EVENT_DONE",
+                new[] { new CinematicBeat { Subtitle = "A change", Duration = 30f } });
+            go.SetActive(true);
+            yield return null;
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            WorldState.Instance.SetFlag("START_EVENT");
+            cinematic.ApplyEndStateImmediately();
+            Assert.IsTrue(WorldState.Instance.GetFlag("EVENT_DONE"));
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            Assert.IsFalse(WorldState.Instance.GetFlag("START_EVENT"));
+            Assert.IsFalse(WorldState.Instance.GetFlag("EVENT_DONE"));
+        }
+
+        [UnityTest]
+        public IEnumerator EdgeCase04_LoadOlderSave_RemovesLaterAbilityUnlock()
+        {
+            var player = arena.SpawnPlayer(Vector3.zero, withCombatInput: true);
+            player.Combat.ConfigureAbilityUnlock("EMBER_STEP", true);
+            yield return null;
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+            WorldState.Instance.SetFlag("ABILITY_UNLOCKED_EMBER_STEP");
+            Assert.IsTrue(WorldState.Instance.GetFlag("ABILITY_UNLOCKED_EMBER_STEP"));
+
+            Assert.IsTrue(saves.Load(SaveSlot.Manual));
+            Assert.IsFalse(WorldState.Instance.GetFlag("ABILITY_UNLOCKED_EMBER_STEP"));
+            Assert.IsFalse(player.Combat.TryAbility(), "An ability from after the save stayed usable.");
         }
     }
 }

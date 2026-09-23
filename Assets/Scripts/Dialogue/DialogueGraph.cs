@@ -25,6 +25,7 @@ namespace Game.Dialogue
 
         public string GraphId => string.IsNullOrEmpty(graphId) ? name : graphId;
         public IReadOnlyList<DialogueNode> Nodes => nodes;
+        public IReadOnlyList<string> EntryNodeIds => entryNodeIds;
 
         /// <summary>
         /// Returns the node with this id, or null. The index is built once and thrown

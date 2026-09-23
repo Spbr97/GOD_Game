@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Core;
 using Game.Dialogue;
+using Game.Memory;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -157,7 +158,10 @@ namespace Game.UI
                 // A node that exists but has no line is the same failure to the player
                 // as a missing graph, so it gets the same string (SPEC.md section 50)
                 // rather than an empty panel they cannot tell from a rendering bug.
-                var line = node.SubtitleText;
+                var line = MemoryManager.Instance != null
+                    && MemoryManager.Instance.Integrity < 0.35f
+                    && !string.IsNullOrWhiteSpace(node.LowIntegrityText)
+                    ? node.LowIntegrityText : node.SubtitleText;
                 bodyLabel.text = string.IsNullOrWhiteSpace(line) ? DialogueRunner.UnavailableText : line;
             }
 

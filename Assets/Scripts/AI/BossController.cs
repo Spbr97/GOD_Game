@@ -243,7 +243,7 @@ namespace Game.AI
         /// </summary>
         public void ResetEncounter()
         {
-            if (Defeated || !EncounterStarted)
+            if (Defeated || (!EncounterStarted && (health == null || Mathf.Approximately(health.HealthFraction, 1f))))
             {
                 return;
             }
@@ -255,7 +255,7 @@ namespace Game.AI
             ApplyPhaseEffects(1);
             enemyController?.ResetToHome();
 
-            GameLogger.Log(LogCategory.AI, $"Boss {displayName} reset; the player left the arena.", this);
+            GameLogger.Log(LogCategory.AI, $"Boss {displayName} encounter reset.", this);
             EventBus.Publish(new BossEncounterResetEvent(gameObject, bossId));
         }
 

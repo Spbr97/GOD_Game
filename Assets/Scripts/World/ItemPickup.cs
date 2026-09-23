@@ -1,5 +1,6 @@
 using Game.Core;
 using Game.Inventory;
+using Game.Quests;
 using UnityEngine;
 
 namespace Game.World
@@ -14,6 +15,7 @@ namespace Game.World
     {
         [SerializeField] private InventoryItem item;
         [SerializeField] private int amount = 1;
+        [SerializeField] private string objectiveIdOnCollect;
 
         [Tooltip("Renderer tinted with the item's colour and hidden once collected.")]
         [SerializeField] private Renderer visual;
@@ -115,6 +117,10 @@ namespace Game.World
             }
 
             InventoryManager.Instance.Add(item, amount);
+            if (!string.IsNullOrEmpty(objectiveIdOnCollect))
+            {
+                QuestManager.Instance?.ReportObjective(objectiveIdOnCollect);
+            }
             Collected = true;
 
             if (identity != null)
@@ -142,10 +148,11 @@ namespace Game.World
         }
 
         /// <summary>Test and tooling seam for wiring the pickup without the Inspector.</summary>
-        public void Configure(InventoryItem inventoryItem, int itemAmount = 1)
+        public void Configure(InventoryItem inventoryItem, int itemAmount = 1, string objectiveId = null)
         {
             item = inventoryItem;
             amount = itemAmount;
+            objectiveIdOnCollect = objectiveId;
             if (visual == null)
             {
                 visual = GetComponentInChildren<Renderer>();

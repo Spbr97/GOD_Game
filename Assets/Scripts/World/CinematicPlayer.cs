@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Game.Combat;
 using Game.Core;
 using UnityEngine;
 
@@ -60,11 +61,23 @@ namespace Game.World
         private void OnEnable()
         {
             EventBus.Subscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
+            EventBus.Subscribe<PlayerDiedEvent>(OnPlayerDied);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
+            EventBus.Unsubscribe<PlayerDiedEvent>(OnPlayerDied);
+        }
+
+        private void OnPlayerDied(PlayerDiedEvent died)
+        {
+            // An external hazard or scripted kill can occur while the world is
+            // frozen. Complete the beat and release cutscene state before respawn.
+            if (IsPlaying)
+            {
+                ApplyEndStateImmediately();
+            }
         }
 
         private void OnWorldFlagChanged(WorldFlagChangedEvent changed)

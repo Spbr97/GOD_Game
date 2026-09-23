@@ -178,5 +178,28 @@ namespace Game.Tests.Play
             yield return null;
             Assert.AreEqual(2, boss.Phase, "A lighter hit above the phase 2 threshold should not undo an already-entered phase.");
         }
+        [UnityTest]
+        public IEnumerator EdgeCase08_BossDiesCrossingPhaseThreshold_DefeatWins()
+        {
+            var rig = arena.SpawnEnemy("Boss", Vector3.zero, arena.NewArchetype("BOSS_ARCH", health: 100f));
+            var boss = NewBoss(rig);
+            var defeats = 0;
+            void OnDefeated(BossDefeatedEvent e) { if (e.Boss == rig.Root) defeats++; }
+            EventBus.Subscribe<BossDefeatedEvent>(OnDefeated);
+            try
+            {
+                yield return null;
+                rig.Health.TakeDamage(DamageData.Create(110f, null));
+                Assert.IsTrue(boss.Defeated);
+                Assert.AreEqual(1, defeats);
+                Assert.IsFalse(boss.EncounterStarted);
+                rig.Health.TakeDamage(DamageData.Create(10f, null));
+                Assert.AreEqual(1, defeats);
+            }
+            finally
+            {
+                EventBus.Unsubscribe<BossDefeatedEvent>(OnDefeated);
+            }
+        }
     }
 }

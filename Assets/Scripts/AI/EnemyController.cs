@@ -138,6 +138,7 @@ namespace Game.AI
 
         private void OnEnable()
         {
+            EventBus.Subscribe<PlayerRespawnedEvent>(OnPlayerRespawned);
             group?.Register(this);
 
             if (health != null)
@@ -149,6 +150,7 @@ namespace Game.AI
 
         private void OnDisable()
         {
+            EventBus.Unsubscribe<PlayerRespawnedEvent>(OnPlayerRespawned);
             group?.Unregister(this);
 
             if (health != null)
@@ -341,6 +343,12 @@ namespace Game.AI
                 return;
             }
 
+            combatant?.CancelAttack();
+            group?.ReleaseAttackSlot(this);
+            stagger?.ResetForEncounter();
+            alertedGroup = false;
+            canRetreat = true;
+            patrolWaitUntil = 0f;
             navigator?.Stop();
 
             // Warp rather than move: the navigator owns this transform while its agent
@@ -368,6 +376,32 @@ namespace Game.AI
             }
 
             Transition(patrolRoute != null ? EnemyState.Patrol : EnemyState.Idle);
+        }
+
+        private void OnPlayerRespawned(PlayerRespawnedEvent respawned)
+        {
+            var boss = GetComponent<BossController>();
+            if (boss != null)
+            {
+                if (!boss.Defeated)
+                {
+                    boss.ResetEncounter();
+                }
+                return;
+            }
+
+            var enemyHealth = GetComponent<EnemyHealth>();
+            if (enemyHealth != null)
+            {
+                enemyHealth.ResetForEncounter();
+            }
+            else
+            {
+                health?.ResetHealth();
+            }
+
+            State = EnemyState.Idle;
+            ResetToHome();
         }
 
         private EnemySenses Sense()

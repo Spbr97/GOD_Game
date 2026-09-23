@@ -48,10 +48,7 @@ MonoBehaviour:
       NextDialogueId: AMARA_ACCEPT
       RequiredFlags: []
       BlockingFlags: []
-      Consequences:
-      - Type: 5
-        Target: AMARA
-        Amount: 1
+      Consequences: []
     - Text: Eight? The histories are not wrong about the gods.
       NextDialogueId: AMARA_DOUBT
       RequiredFlags: []
@@ -124,10 +121,7 @@ MonoBehaviour:
       NextDialogueId: AMARA_RETURN_2
       RequiredFlags: []
       BlockingFlags: []
-      Consequences:
-      - Type: 5
-        Target: AMARA
-        Amount: 1
+      Consequences: []
     NextDialogueId: 
     Subtitle: 
     VoiceAssetId: 

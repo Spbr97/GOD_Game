@@ -25,7 +25,6 @@ namespace Game.World
         [Range(0f, 1f)]
         [SerializeField] private float facingWeight = 0.6f;
 
-        private readonly Collider[] candidates = new Collider[16];
         private InputAction interactAction;
         private Interactable current;
 
@@ -34,6 +33,13 @@ namespace Game.World
 
         /// <summary>Set while dialogue or a cutscene owns input, so Interact does not fire through the UI.</summary>
         public bool InteractionSuspended { get; set; }
+
+        /// <summary>Test and tooling seam; call before Awake binds the input action.</summary>
+        public void Configure(InputActionAsset actions, float radius = 4f)
+        {
+            inputActions = actions;
+            searchRadius = radius;
+        }
 
         private void Awake()
         {
@@ -105,14 +111,14 @@ namespace Game.World
         private Interactable FindBest()
         {
             var origin = transform.position;
-            var count = Physics.OverlapSphereNonAlloc(
-                origin, searchRadius, candidates, interactableLayers, QueryTriggerInteraction.Collide);
+            var candidates = Physics.OverlapSphere(
+                origin, searchRadius, interactableLayers, QueryTriggerInteraction.Collide);
 
             Interactable best = null;
             var bestScore = float.MaxValue;
             var forward = transform.forward;
 
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < candidates.Length; i++)
             {
                 var candidate = candidates[i] != null ? candidates[i].GetComponentInParent<Interactable>() : null;
                 if (candidate == null || !candidate.CanInteract)
@@ -124,6 +130,12 @@ namespace Game.World
                 offset.y = 0f;
                 var distance = offset.magnitude;
                 if (distance > candidate.InteractionRange)
+                {
+                    continue;
+                }
+
+                if (!Visibility.HasLineOfSight(transform, origin + Vector3.up,
+                    candidate.transform, candidates[i].bounds.center))
                 {
                     continue;
                 }

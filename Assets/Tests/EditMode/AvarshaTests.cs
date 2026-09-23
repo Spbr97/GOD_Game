@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Game.Core;
 using Game.Dialogue;
+using Game.Inventory;
+using Game.Progression;
 using Game.Memory;
 using Game.Quests;
 using Game.World;
@@ -645,6 +647,45 @@ namespace Game.Tests
             cinematic.ApplyEndStateImmediately();
             Assert.DoesNotThrow(() => cinematic.ApplyEndStateImmediately());
             Assert.IsTrue(cinematic.HasPlayed);
+        }
+        [Test]
+        public void Quest_ConcreteRewardsGrantOnceAndRestoreDiscoveredMemory()
+        {
+            var state = NewWorldState();
+            var inventory = NewComponent<InventoryManager>("Inventory");
+            var memories = NewComponent<MemoryManager>("Memories");
+            var item = NewAsset<InventoryItem>();
+            item.Configure("REWARD_ITEM", "Reward", ItemCategory.QuestItem);
+            var memory = NewAsset<MemoryFragment>();
+            memory.Configure("REWARD_MEMORY", "Memory", "Description", "Witness",
+                MemoryCategory.Personal, MemoryImportance.Supporting);
+            memories.Configure(new[] { memory });
+            memories.Discover("REWARD_MEMORY");
+            memories.SetState(memory, MemoryState.Forgotten);
+            memories.ReduceIntegrity(0.5f);
+
+            var definition = NewAsset<QuestDefinition>();
+            definition.Configure("Q_REWARD", "Reward Quest", "",
+                new[] { new QuestObjective { ObjectiveId = "WIN", Description = "Win" } },
+                rewardDefinitions: new[]
+                {
+                    new QuestReward { Type = QuestRewardType.Item, Item = item, Amount = 2 },
+                    new QuestReward { Type = QuestRewardType.AbilityUnlock, TargetId = "EMBER_STEP" },
+                    new QuestReward { Type = QuestRewardType.MemoryRestore, TargetId = "REWARD_MEMORY", IntegrityAmount = 0.25f },
+                    new QuestReward { Type = QuestRewardType.SkillPoints, Amount = 3 },
+                    new QuestReward { Type = QuestRewardType.WorldFlag, TargetId = "REWARD_GRANTED" }
+                });
+            var quests = NewComponent<QuestManager>("Quests");
+            quests.Configure(new[] { definition });
+            quests.StartQuest("Q_REWARD");
+            Assert.IsTrue(quests.ReportObjective("WIN"));
+            Assert.IsFalse(quests.ReportObjective("WIN"));
+            Assert.AreEqual(2, inventory.GetCount(item));
+            Assert.IsTrue(state.GetFlag("ABILITY_UNLOCKED_EMBER_STEP"));
+            Assert.AreEqual(MemoryState.Restored, memories.GetState("REWARD_MEMORY"));
+            Assert.AreEqual(0.75f, memories.Integrity, 0.001f);
+            Assert.AreEqual(3, state.GetCounter(SkillTreeManager.SkillPointsFlag));
+            Assert.IsTrue(state.GetFlag("REWARD_GRANTED"));
         }
     }
 }

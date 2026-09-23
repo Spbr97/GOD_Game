@@ -1,5 +1,9 @@
 using System.Collections;
+using Game.AI;
 using Game.Combat;
+using Game.Core;
+using Game.Memory;
+using Game.Quests;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -158,6 +162,41 @@ namespace Game.Tests.Play
                 $"The player respawned at {player.Position} rather than at the active checkpoint.");
             Assert.AreEqual(player.Health.MaxHealth, player.Health.CurrentHealth, 0.01f);
             Assert.IsTrue(player.Combat.enabled, "Controls were not handed back after respawning.");
+        }
+        [UnityTest]
+        public IEnumerator Death_ResetsOrdinaryEncounterButKeepsQuestAndMemoryProgress()
+        {
+            arena.EnsureWorldState();
+            arena.SpawnCheckpointManager();
+            var quest = arena.TrackAsset(ScriptableObject.CreateInstance<QuestDefinition>());
+            quest.Configure("Q_KEEP", "Keep progress", "",
+                new[] { new QuestObjective { ObjectiveId = "BEAT", Description = "Beat" } });
+            var quests = arena.SpawnQuestManager(quest);
+            quests.StartQuest(quest);
+            quests.ReportObjective("BEAT");
+            var memory = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            memory.Configure("MEM_KEEP", "Keep memory", "", "Witness",
+                MemoryCategory.Personal, MemoryImportance.Supporting);
+            var memories = arena.SpawnMemoryManager(memory);
+            memories.Discover("MEM_KEEP");
+
+            var enemy = arena.SpawnEnemy("Reset enemy", new Vector3(0f, 0f, 8f),
+                arena.NewArchetype("RESET_ENEMY", health: 50f));
+            enemy.Root.SetActive(false);
+            enemy.Root.AddComponent<EnemyHealth>();
+            enemy.Root.SetActive(true);
+            var player = arena.SpawnPlayer(Vector3.zero);
+            yield return null;
+            enemy.Health.Kill(DamageData.Create(100f, player.Root));
+            Assert.AreEqual(EnemyState.Dead, enemy.State);
+            player.Health.Kill(DamageData.Create(100f, null));
+            player.Death.RespawnNow();
+            Assert.AreEqual(50f, enemy.Health.CurrentHealth, 0.01f);
+            Assert.IsFalse(enemy.Health.IsDead);
+            Assert.AreNotEqual(EnemyState.Dead, enemy.State);
+            Assert.Less(Vector3.Distance(enemy.Root.transform.position, enemy.Controller.Home), 0.1f);
+            Assert.AreEqual(QuestStatus.Completed, quests.GetStatus("Q_KEEP"));
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_KEEP"));
         }
     }
 }

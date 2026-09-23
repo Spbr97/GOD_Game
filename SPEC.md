@@ -876,7 +876,7 @@ Subtitle
 
 Dialogue choices can modify:
 
-- relationship values;
+- relationship effects once their behaviour is designed (deferred in the vertical slice);
 - quest flags;
 - memory states;
 - NPC behavior;
@@ -1422,7 +1422,7 @@ Include:
 - text scaling;
 - colorblind-friendly indicators;
 - camera shake toggle;
-- motion blur toggle;
+- motion blur toggle if a motion blur effect is introduced;
 - screen effects toggle;
 - aim/lock-on assistance;
 - difficulty settings;

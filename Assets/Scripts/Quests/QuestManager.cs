@@ -49,12 +49,14 @@ namespace Game.Quests
         private void OnEnable()
         {
             EventBus.Subscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+            EventBus.Subscribe<DialogueChoiceMadeEvent>(OnDialogueChoiceMade);
             EventBus.Subscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
+            EventBus.Unsubscribe<DialogueChoiceMadeEvent>(OnDialogueChoiceMade);
             EventBus.Unsubscribe<WorldFlagChangedEvent>(OnWorldFlagChanged);
         }
 
@@ -302,6 +304,18 @@ namespace Game.Quests
                 }
             }
 
+            if (definition.Rewards != null)
+            {
+                foreach (var reward in definition.Rewards)
+                {
+                    if (reward != null && !reward.Grant())
+                    {
+                        GameLogger.LogWarning(LogCategory.Quest,
+                            $"Reward {reward.Type} for quest {definition.QuestId} could not be granted.", this);
+                    }
+                }
+            }
+
             GameLogger.Log(LogCategory.Quest, $"Quest complete: {definition.Title} ({definition.QuestId}).", this);
             EventBus.Publish(new QuestCompletedEvent(definition));
         }
@@ -317,6 +331,15 @@ namespace Game.Quests
                 case ConsequenceType.CompleteObjective:
                     ReportObjective(consequence.Target);
                     break;
+            }
+        }
+
+        private void OnDialogueChoiceMade(DialogueChoiceMadeEvent choice)
+        {
+            var choices = choice.Node?.Choices;
+            if (choices != null && choice.ChoiceIndex >= 0 && choice.ChoiceIndex < choices.Length)
+            {
+                ReportObjective(choices[choice.ChoiceIndex]?.ObjectiveId);
             }
         }
 

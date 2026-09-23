@@ -102,13 +102,14 @@ namespace Game.World
 
         /// <summary>Test and tooling seam for configuring without the Inspector.</summary>
         public void Configure(string displayName, string objective, string flag, bool fireOnce = true,
-            string questId = null)
+            string questId = null, string[] required = null)
         {
             locationName = displayName;
             objectiveId = objective;
             flagToSet = flag;
             once = fireOnce;
             questToStart = questId;
+            requiredFlags = required;
         }
 
         private void OnDrawGizmos()

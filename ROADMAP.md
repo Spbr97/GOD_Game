@@ -165,6 +165,80 @@ be asked. Reordering is a decision for the owner; say so and this file changes.
   dozen section 54 edge cases are handled but untested, and colour-blind support
   is satisfied by convention rather than by a mode.
 
+## Next — closing the SPEC audit backlog (see RESOLUTION_PLAN.md)
+
+Triage of all 113 open `KNOWN_ISSUES.md` entries found 8 real bugs; the rest is
+content, placeholders and deferred work with reasons. These tasks close the bugs and
+the infrastructure gaps that let them hide. Ordered so the things that protect the
+work come before the work.
+
+### Tier 0 — let the project protect itself
+
+- [x] **TASK 027 — Reconcile `KNOWN_ISSUES.md`.** Twelve entries describe work that
+  shipped in TASK 004–018 and were never marked closed (scene-aware loading, the
+  save/load menus, the corruption message being shown, the journal, difficulty in the
+  settings panel, enemy AI, the section 53 test claim, the enemy archetype count, fire
+  VFX, the dash's visuals, memory visualisation, persistence across a load). Close each
+  naming the task that closed it; merge the three duplicate pairs; tag every remaining
+  entry BUG / ARCHITECTURAL GAP / DESIGN DECISION / MISSING CONTENT / PLACEHOLDER /
+  POLISH / DEFERRED. First, because every other task and every outside reader starts
+  from this file — a stale log already caused one external analysis to propose
+  rewriting a working save system.
+- [x] **TASK 028 — Fix `Avarsha.unity` serialization.** The project is set to Force
+  Text; the hub scene has been binary since its first commit, so its diffs are opaque
+  and its merges impossible. Confirm the mode, re-save, commit alone with no other
+  change so the one-time reformat is not mixed into a real diff.
+- [x] **TASK 029 — Scene integrity tests.** Seven systems were wired into the scenes by
+  editor script in TASK 020–026 and nothing would catch a nulled reference. Per shipped
+  scene assert: managers present, NavMesh baked, player spawn, canvas references, and
+  the `WorldBounds` / bounds guards / `BossArena` / `DeviceWatcher` / `MapUI` /
+  `DevTools` wiring. Closes "nothing tests the shipped scenes" (TASK 005).
+- [x] **TASK 030 — CI.** Both suites are run by hand and nothing records which commit
+  last passed. GitHub Actions: compile → EditMode → PlayMode. Closes "nothing runs the
+  tests automatically" (TASK 005).
+
+### Tier 1 — the eight bugs
+
+- [x] **TASK 031 — Hit detection sweep.** `Hitbox` samples overlaps once on activation
+  then relies on `OnTriggerEnter`; a fast swing can cross a thin collider between
+  physics steps and register nothing. Sweep between previous and current position each
+  active frame, keeping the `AttackId` deduplication so one swing still cannot hit the
+  same target twice.
+- [x] **TASK 032 — Line of sight for lock-on and interaction.** Neither
+  `LockOnController` nor `PlayerInteractor` casts anything, so both treat "in range" as
+  "can be reached" — you can lock onto and talk to things through walls. One shared
+  visibility helper, two callers. Also raises `PlayerInteractor`'s fixed 16-collider
+  buffer off a hard-coded literal.
+- [x] **TASK 033 — Directional guard and guard-break reaction.** A hit from directly
+  behind is currently blocked exactly like one from the front, and a broken guard is a
+  silent 0.8 s stun. Both were deferred pending feedback systems that now exist —
+  `VfxSpawner`, `SfxSpawner` and `PlayerCamera.Shake` all shipped in TASK 017/018.
+- [x] **TASK 034 — Act on the three decisions.** Requires answers first
+  (RESOLUTION_PLAN.md section 4): what resets on death, relationships defined or
+  deleted, motion blur built or the section 43 claim withdrawn. Relationship counters
+  are currently written by `DialogueRunner` and read by nothing — the same
+  dead-control failure as the Master Volume slider the TASK 019 audit found.
+
+### Tier 2 — spec completeness
+
+- [x] **TASK 035 — Quest objective adapters and rewards.** Six of ten `ObjectiveType`
+  values have no driver, so most objective kinds cannot complete; `rewardsSummary` is a
+  display string and the only reward mechanism. Add a `RewardDefinition` covering item,
+  ability unlock, memory restoration, skill points and world-state change.
+- [x] **TASK 036 — Dialogue validation command.** An editor menu item reporting
+  duplicate ids, dangling `NextDialogueId` links, unreachable nodes and unknown flags or
+  consequences, before runtime rather than after.
+- [x] **TASK 037 — Memory integrity consequences.** Three of SPEC.md section 20's four
+  effects still read nothing from `Integrity` — dialogue variation, incomplete
+  flashbacks and NPC recognition. Also closes "memory corruption is a number nothing
+  consumes".
+- [x] **TASK 038 — Edge case test coverage.** SPEC.md section 54's cases 1–4, 8, 12–14,
+  19 and 27–30 are handled in code but have no test naming them.
+
+### Current implementation status (23 September 2026)
+
+TASK 027–038 are implemented locally. Unity 6000.6.2f1 with the user's Personal license ran 180 EditMode and 130 PlayMode tests, all passing. Dialogue validation found 3 graphs and 0 errors or warnings. TASK 028 moved the embedded baked NavMesh to `AvarshaNavMesh.asset`, converted `Avarsha.unity` to YAML and was committed separately as `8a96485`; all 8 scene integrity checks pass after conversion. TASK 030's free GameCI workflow is present, but its first GitHub run still requires the Unity Personal license secrets and a push. Manual gameplay and visual checks remain for release.
+
 ## Later (after the vertical slice)
 
 - Phase 5 — remaining six temples, each with one unique mechanic.

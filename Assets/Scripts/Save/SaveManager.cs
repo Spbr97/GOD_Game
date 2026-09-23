@@ -257,7 +257,10 @@ namespace Game.Save
 
                 foreach (var pair in world.Counters)
                 {
-                    data.WorldCounters.Add(new CounterEntry(pair.Key, pair.Value));
+                    if (!pair.Key.StartsWith("REL_"))
+                    {
+                        data.WorldCounters.Add(new CounterEntry(pair.Key, pair.Value));
+                    }
                 }
             }
 
@@ -330,7 +333,11 @@ namespace Game.Save
 
                 for (var i = 0; i < data.WorldCounters.Count; i++)
                 {
-                    world.SetCounter(data.WorldCounters[i].Key, data.WorldCounters[i].Value);
+                    if (!string.IsNullOrEmpty(data.WorldCounters[i].Key)
+                        && !data.WorldCounters[i].Key.StartsWith("REL_"))
+                    {
+                        world.SetCounter(data.WorldCounters[i].Key, data.WorldCounters[i].Value);
+                    }
                 }
             }
 
