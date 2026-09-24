@@ -241,6 +241,11 @@ TASK 027–038 are implemented locally. Unity 6000.6.2f1 with the user's Persona
 
 ## Later (after the vertical slice)
 
+The actionable Windows 1.0 plan is in
+[STANDALONE_RELEASE_ROADMAP.md](STANDALONE_RELEASE_ROADMAP.md). It starts with
+TASK 039, a reproducible standalone build, and continues through the six
+remaining temples, full story, release QA and distribution.
+
 - Phase 5 — remaining six temples, each with one unique mechanic.
 - Phase 6 — celestial realm, the seven gods, The First Memory, final boss, ending
   system (section 72), ending cinematics.

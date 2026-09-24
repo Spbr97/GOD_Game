@@ -6,10 +6,11 @@ Third-person mythological action-adventure prototype. Unity 6 + C#.
 
 ## Status
 
-The vertical slice (SPEC.md section 61) is complete and playable: Avarsha, the
+The vertical slice (SPEC.md section 61) is playable in Unity: Avarsha, the
 Agniya temple, combat, quests, dialogue, memory, puzzles, saving and two bosses.
-281 automated tests pass. Content for the remaining six temples and Acts III–V
-is the next phase.
+310 automated tests passed locally. A Windows standalone player has not yet
+been verified; the remaining six temples and Acts III–V are still to be made.
+See `STANDALONE_RELEASE_ROADMAP.md` for the path to a finished Windows 1.0 game.
 
 See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 
@@ -23,6 +24,7 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 | `STORY_BIBLE.md` | The fiction. **Read before writing any character line, place name or inscription** (SPEC.md section 82). |
 | `TEST_PLAN.md` | How to run the tests, what they cover, and the manual pass. |
 | `ROADMAP.md` | The ordered task list. |
+| `STANDALONE_RELEASE_ROADMAP.md` | Tasks 039–057 and release gates for a finished Windows game. |
 | `RESOLUTION_PLAN.md` | Triage of every open issue — which are real bugs, which are placeholders, and what order to close them in. |
 | `CHANGELOG.md` | What changed, per task. |
 | `KNOWN_ISSUES.md` | Every open limitation, with why it was left. |
@@ -31,8 +33,8 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 ## Running the tests
 
 ```bash
-unity command run_tests --mode editor     # 170 tests, ~3 s
-unity command run_tests --mode playmode   # 111 tests, ~60 s
+unity command run_tests --mode editor     # 180 tests at the last local run
+unity command run_tests --mode playmode   # 130 tests at the last local run
 ```
 
 `TEST_PLAN.md` covers the two failure modes that are not your change, and the
