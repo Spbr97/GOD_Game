@@ -121,6 +121,62 @@ namespace Game.Tests.Play
                 "Phase 2 should have sped the boss up rather than leaving its base chase speed unchanged.");
         }
 
+        /// <summary>
+        /// **How a temple grants its ability** (SPEC.md section 8.1, TASK 044).
+        ///
+        /// Ember Step was usable from the first second of the game until TASK 044, which
+        /// made the Agniya temple's entire reward something the player already had. Gating
+        /// it needs the boss's defeat to actually set the unlock flag, and the flag is
+        /// authored data rather than code so that a later temple needs none written.
+        ///
+        /// Serialized rather than driven by the <c>onDefeated</c> UnityEvent on purpose: a
+        /// UnityEvent wired in a scene is invisible to content validation and to a text
+        /// diff, and silently lost if the object is rebuilt — which for an ability unlock
+        /// means a player beats a temple and receives nothing.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Boss_SetsItsDefeatFlagsOnDeath()
+        {
+            arena.EnsureWorldState();
+
+            var archetype = arena.NewArchetype("BOSS_ARCH", health: 50f);
+            var rig = arena.SpawnEnemy("Boss", Vector3.zero, archetype);
+            var boss = NewBoss(rig, null);
+
+            boss.ConfigureDefeatFlags("ABILITY_UNLOCKED_TEST_STEP", "TEST_TEMPLE_CLEARED");
+            yield return null;
+
+            Assert.IsFalse(WorldState.Instance.GetFlag("ABILITY_UNLOCKED_TEST_STEP"),
+                "nothing should be granted before the fight is won");
+
+            rig.Health.Kill(DamageData.Create(999f, null));
+            yield return null;
+
+            Assert.IsTrue(WorldState.Instance.GetFlag("ABILITY_UNLOCKED_TEST_STEP"),
+                "Beating the boss did not grant its ability, so a gated ability would never arrive and the "
+                + "temple would be a dead end rather than a reward.");
+            Assert.IsTrue(WorldState.Instance.GetFlag("TEST_TEMPLE_CLEARED"),
+                "every flag listed should be set, not just the first");
+        }
+
+        [UnityTest]
+        public IEnumerator Boss_WithNoDefeatFlagsSetsNothing()
+        {
+            arena.EnsureWorldState();
+
+            var archetype = arena.NewArchetype("BOSS_ARCH", health: 50f);
+            var rig = arena.SpawnEnemy("Boss", Vector3.zero, archetype);
+            var boss = NewBoss(rig, null);
+            yield return null;
+
+            rig.Health.Kill(DamageData.Create(999f, null));
+            yield return null;
+
+            Assert.IsTrue(boss.Defeated, "the boss should still be defeated");
+            Assert.IsEmpty(boss.FlagsOnDefeat,
+                "a boss that grants nothing is the ordinary case and must not invent a flag");
+        }
+
         [UnityTest]
         public IEnumerator Boss_RevealsRewardAndPublishesDefeatedEventOnDeath()
         {

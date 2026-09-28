@@ -434,6 +434,20 @@ namespace Game.Combat
         /// whenever <see cref="ConfigureAbility"/> changes them, so a tuning change or a
         /// test's cost and cooldown reach the contract rather than being quietly ignored.
         /// </summary>
+        /// <summary>
+        /// Whether Ember Step has to be granted before it can be used. Read by content
+        /// validation and by the Act I tests, because SPEC.md section 8.1 makes this the
+        /// temple's reward and it was shipped ungated from TASK 011 until TASK 044.
+        /// </summary>
+        public bool RequiresAbilityUnlock => requireAbilityUnlock;
+
+        /// <summary>
+        /// The world flag that grants Ember Step. Derived from the definition rather than
+        /// spelled out again, so a test asserting the boss grants it cannot drift from the
+        /// name the ability actually checks.
+        /// </summary>
+        public string AbilityUnlockFlag => EmberStepDefinition().UnlockFlag;
+
         private Abilities.DivineAbilityDefinition EmberStepDefinition()
         {
             if (emberStep == null)

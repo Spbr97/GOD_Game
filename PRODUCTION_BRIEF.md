@@ -116,6 +116,7 @@ asks for it and because it will stop being uniform the moment anyone else contri
 |---|---|---|---|
 | `Q001` | The Queen's Charge | Authored, rewards granted | Completable start to finish in a Release player; grants the Divine Mark and a skill point |
 | `Q002` | The Ash at the Gate | Authored, rewards granted | Three ruin guards close it; grants two Ember Draughts and a skill point |
+| `Q003` | The Ember and the Sovereign | Authored and wired (TASK 044) | Starts on entering Agniya; all four objectives reported by the scene; grants 2 skill points and Ember Step via the boss |
 
 ### Memories
 
@@ -145,7 +146,7 @@ asks for it and because it will stop being uniform the moment anyone else contri
 
 | ID | State | Acceptance |
 |---|---|---|
-| `EMBER_STEP` | Authored, in the shared contract | Unlockable; costs energy; costs memory on repeated use |
+| `EMBER_STEP` | Authored, in the shared contract, **gated behind the boss** (TASK 044) | Locked until the Flame Sovereign falls; costs energy; costs memory on repeated use |
 | 12 skills across four branches | Authored | Every one changes play and survives a save |
 
 ### Scenes
@@ -160,8 +161,10 @@ asks for it and because it will stop being uniform the moment anyone else contri
 
 Named so the table above is not mistaken for a finished list:
 
-- **The temple's own quest and dialogue content.** Agniya became its own scene in
-  TASK 041, and the split moved objects rather than content. This is TASK 044.
+- **Agniya's dialogue.** The temple's *quest* is authored and wired (`Q003`, TASK 044),
+  but nothing in Avarsha yet tells the player the temple is worth going to — the quest
+  starts when they arrive rather than when they hear about it. Amara's dialogue is the
+  place for that beat.
 - **Essential item and door marking.** Both puzzle gates are marked; no item is,
   because Act I currently has no item the player can be permanently locked out by.
   TASK 044's real key items change that.

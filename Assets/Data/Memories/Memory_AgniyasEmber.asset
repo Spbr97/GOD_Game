@@ -21,7 +21,7 @@ MonoBehaviour:
   importance: 1
   associatedCharacters: []
   associatedQuestId:
-  objectiveIdOnDiscovery:
+  objectiveIdOnDiscovery: TAKE_AGNIYAS_EMBER
   discoveryFlag: AGNIYA_MARK_OBTAINED
   visualTint: {r: 0.95, g: 0.35, b: 0.05, a: 1}
   audioNarrationId:

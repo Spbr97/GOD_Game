@@ -1434,7 +1434,7 @@ MonoBehaviour:
   - {fileID: 2085827418}
   - {fileID: 875588716}
   solvedFlag: AGNIYA_PUZZLE_SOLVED
-  objectiveIdOnSolve: 
+  objectiveIdOnSolve: LIGHT_THE_BRAZIERS
   puzzleId: AGNIYA_PUZZLE
 --- !u!1 &257246519
 GameObject:
@@ -3981,6 +3981,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 947239626}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &620975799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4614,6 +4615,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 1063292315}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &740211468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5626,8 +5628,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryManager
   catalogue:
   - {fileID: 11400000, guid: 58e3360d85507f54fb571642c0315fae, type: 2}
-  emberStepIntegrityCost: 0.02
-  emberStepUsesPerForget: 3
   temporaryForgetSeconds: 20
 --- !u!114 &831043635
 MonoBehaviour:
@@ -5645,6 +5645,7 @@ MonoBehaviour:
   questCatalogue:
   - {fileID: 11400000, guid: ade59f327b58a49418e87f3744f29e8d, type: 2}
   - {fileID: 11400000, guid: f008a6918b7392446a8358a3e88b6172, type: 2}
+  - {fileID: 11400000, guid: 20418e81a08541a08c331a1319a0d708, type: 2}
 --- !u!114 &831043636
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6417,6 +6418,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.Save.SaveManager
   autoSaveOnCheckpoint: 1
+  autoSaveOnSceneTravel: 1
 --- !u!4 &914775682
 Transform:
   m_ObjectHideFlags: 0
@@ -7290,6 +7292,7 @@ GameObject:
   - component: {fileID: 1102604775}
   - component: {fileID: 1102604784}
   - component: {fileID: 1102604785}
+  - component: {fileID: 1102604786}
   m_Layer: 0
   m_Name: Boss_Agniya
   m_TagString: Untagged
@@ -7356,6 +7359,8 @@ MonoBehaviour:
   phase3SpeedMultiplier: 1.25
   phase3Tint: {r: 0.6, g: 0.1, b: 0.75, a: 1}
   reward: {fileID: 876456762}
+  flagsOnDefeat:
+  - ABILITY_UNLOCKED_EMBER_STEP
   onEncounterStarted:
     m_PersistentCalls:
       m_Calls: []
@@ -7457,6 +7462,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 1038870035}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &1102604780
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7555,6 +7561,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.EnemyBoundsGuard
   checkInterval: 0.5
+--- !u!114 &1102604786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1102604772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dde1560ede02c1949ac954f6cff401b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::Game.Quests.QuestTarget
+  objectiveId: DEFEAT_FLAME_SOVEREIGN
+  flagToSet: FLAME_SOVEREIGN_DEFEATED
 --- !u!1 &1120149707
 GameObject:
   m_ObjectHideFlags: 0
@@ -9026,7 +9046,7 @@ MonoBehaviour:
   dodgeCost: 20
   finisherCost: 10
   abilityCost: 20
-  requireAbilityUnlock: 0
+  requireAbilityUnlock: 1
   abilityId: EMBER_STEP
   abilityCooldown: 3
   abilityDashDuration: 0.25
@@ -9040,6 +9060,8 @@ MonoBehaviour:
   dodgeSpeed: 9
   invulnerabilityStart: 0.05
   invulnerabilityEnd: 0.26
+  emberStepIntegrityCost: 0.02
+  emberStepUsesPerForget: 3
 --- !u!114 &1316108370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9440,6 +9462,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 1889053739}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &1386021947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13348,9 +13371,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: Agniya Temple
-  objectiveId: 
+  objectiveId: REACH_AGNIYA_TEMPLE
   flagToSet: ENTERED_AGNIYA_TEMPLE
-  questToStart: 
+  questToStart: Q003
   requiredFlags: []
   once: 1
   playerLayers:

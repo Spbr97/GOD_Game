@@ -1,5 +1,65 @@
 # CHANGELOG
 
+## Unreleased — TASK 044 (in progress): Finish Avarsha and Agniya
+
+Agniya's *structure* was already complete — fire puzzle, memory toll, encounter,
+three-phase boss, reward, two checkpoints, spawn and exit. What it had was no reason to
+be there: **nothing in the temple reported anything to the quest system**, so a player
+who walked in got no journal entry and no indication the place had a purpose. That is
+the "missing story beat" TASK 044's gate names.
+
+### Added
+
+- **`Q003 The Ember and the Sovereign`**, the temple's quest, with four objectives wired
+  to beats that already existed and reported nothing: the entry trigger, the fire puzzle,
+  the boss, and the ember itself. It starts when the player walks into Agniya, so it
+  cannot be missed, and is registered in both scenes' quest catalogues — without which
+  `StartQuest` would have refused it and logged a fallback nobody reads.
+- `BossController.flagsOnDefeat`: world flags a boss's defeat sets. This is how a temple
+  grants its ability (SPEC.md section 8.1), and it is authored data so a later temple
+  needs no code. Serialized rather than driven by the `onDefeated` UnityEvent on purpose —
+  a UnityEvent wired in a scene is invisible to content validation and to a text diff, and
+  is silently lost if the object is rebuilt, which for an ability unlock means a player
+  beats a temple and receives nothing.
+- `ActOneContentTests`: eight tests over the authored chain. The load-bearing one is
+  `EveryTempleObjectiveIsReportedBySomethingInTheScene` — an objective nothing reports
+  looks identical to a working one in the journal until the player is standing in an empty
+  room wondering what they missed.
+- Two `BossPlayModeTests` for the defeat flags at runtime, and three smoke-test checks: the
+  quest starts on entry, its first objective closes, and Ember Step is still locked.
+
+### Fixed
+
+- **Ember Step is gated for real**, resolving the contradiction TASK 044 names. SPEC.md
+  section 8.1 puts it behind this temple's boss; it had been usable from the first second
+  of the game since TASK 011, which made the temple's entire reward something the player
+  already had. `requireAbilityUnlock` is now on in both scenes and the boss grants
+  `ABILITY_UNLOCKED_EMBER_STEP`.
+
+  `KNOWN_ISSUES.md` recorded the cost of doing this as "updating every existing test that
+  calls `TryAbility()`". That was overstated: the field's *code* default is already false,
+  so gating the scenes changed no test at all. The 11 call sites spawn their own
+  `CombatController` and never saw the scene value.
+
+- `Memory_AgniyasEmber` reports `TAKE_AGNIYAS_EMBER` on discovery. The hook lives on the
+  `MemoryFragment` asset, not on the `MemoryPickup` that holds it — wiring it on the
+  pickup, which was the first attempt, would have done nothing at all, because
+  `MemoryPickup` has no such field.
+
+### Verified
+
+- 289 EditMode + 195 PlayMode = **484 tests, all passing** (was 474).
+- Content validation: 0 errors, 1 expected warning.
+- **Checked rather than assumed:** nothing inside Agniya requires the ability Agniya
+  grants. That would be the worst class of softlock — needing the reward to reach the
+  reward — and it only appears for a player who does not already have the ability, which
+  after this change is every player.
+
+### Not yet done
+
+TASK 044's gate needs a manual run in the Windows player, which no test substitutes for.
+The task stays unticked until that pass happens.
+
 ## Unreleased — TASK 040: Production brief and story canon
 
 The author settled the seven open production and canon questions plus four engineering

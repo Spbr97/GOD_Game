@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: defd5aba7a5595e4aa60a687f094ca59, type: 3}
+  m_Name: Quest_TheEmberAndTheSovereign
+  m_EditorClassIdentifier: Game.Runtime::Game.Quests.QuestDefinition
+  questId: Q003
+  title: The Ember and the Sovereign
+  description: A temple stands where the city stops pretending to be a city. Something
+    inside it is still burning, and still calling itself a god.
+  objectives:
+  - ObjectiveId: REACH_AGNIYA_TEMPLE
+    Description: Enter the temple past the district
+    Type: 0
+    RequiredCount: 1
+    Hidden: 0
+    Optional: 0
+    CompletionFlag: ENTERED_AGNIYA_TEMPLE
+  - ObjectiveId: LIGHT_THE_BRAZIERS
+    Description: Wake the fire the temple was built around
+    Type: 5
+    RequiredCount: 1
+    Hidden: 0
+    Optional: 0
+    CompletionFlag: AGNIYA_PUZZLE_SOLVED
+  - ObjectiveId: DEFEAT_FLAME_SOVEREIGN
+    Description: Put down what the fire is pretending to be
+    Type: 1
+    RequiredCount: 1
+    Hidden: 0
+    Optional: 0
+    CompletionFlag: FLAME_SOVEREIGN_DEFEATED
+  - ObjectiveId: TAKE_AGNIYAS_EMBER
+    Description: Take what is left when the god stops
+    Type: 9
+    RequiredCount: 1
+    Hidden: 0
+    Optional: 0
+    CompletionFlag: TOOK_AGNIYAS_EMBER
+  requiredFlags: []
+  completionFlags:
+  - QUEST_Q003_COMPLETE
+  failureFlags: []
+  localizationKey: 
+  rewardsSummary: Ember Step, and one more thing you are certain you used to know.
+  rewards:
+  - Type: 3
+    Item: {fileID: 0}
+    Amount: 2
+    TargetId: 
+    IntegrityAmount: 0
+    FlagValue: 1

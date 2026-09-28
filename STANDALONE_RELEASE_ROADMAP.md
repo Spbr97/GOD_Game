@@ -117,6 +117,32 @@ not wait for every temple before testing a standalone build.
   Act I and Agniya in the Windows build without debug commands, dead ends or
   missing story beats; save/load works before, during and after the temple.
 
+  **Done (29 September 2026):** `Q003 The Ember and the Sovereign` is authored and
+  wired to the four beats that already existed in the temple and reported nothing -
+  the entry trigger, the fire puzzle, the boss and the ember. It starts on entering
+  Agniya so it cannot be missed, and is registered in both scenes' quest catalogues.
+  The Ember Step contradiction is resolved: `requireAbilityUnlock` is on in both
+  scenes and `BossController.flagsOnDefeat` has the Flame Sovereign granting
+  `ABILITY_UNLOCKED_EMBER_STEP`. Verified by `ActOneContentTests`, two new
+  `BossPlayModeTests`, and three new smoke-test checks.
+
+  **Still to do, in order:**
+
+  1. **Amara's dialogue node pointing at the temple.** `Q003` currently starts when
+     the player walks into Agniya, which means they hear about the temple by
+     arriving at it. Nothing in Avarsha says the place is worth going to. The beat
+     belongs on Amara after `Q001`, as one node with a `StartQuest` consequence -
+     which would also let `Q003`'s first objective read "go to the temple" rather
+     than completing the instant it begins. This is the last authoring gap in the
+     Act I critical path.
+  2. **The manual pass**, which is the rest of the gate and which no test replaces.
+     `TEST_PLAN.md` M0, on a Release player. It is also the only thing that can
+     answer whether a *locked* Ember Step makes the approach to the temple feel
+     worse: nothing in Agniya requires the dash and that is asserted by a test, but
+     "possible without it" and "pleasant without it" are different questions.
+  3. **Optional, and not part of the gate:** the temple is still one encounter and
+     one puzzle before its boss. Authoring a quest over it does not add pacing.
+
 ### Gate C - the remaining six temples
 
 Each temple task delivers a separate region/scene, entrance and exit, one
@@ -224,9 +250,11 @@ temple when the existing puzzle, quest and boss frameworks can express it.
    Remote Unity CI remains blocked until the owner securely configures the
    repository's Personal license secrets; never put credentials in the repo.
 
-**Next action:** **TASK 044 - Finish Avarsha and Agniya.** TASK 040 is closed, so
-the canon TASK 044 depends on is fixed: see `STORY_BIBLE.md`'s DECIDED CANON and
-`PRODUCTION_BRIEF.md`. Nothing now blocks authoring Act I content.
+**Next action:** **finish TASK 044.** Its automated half is done (see the task's own
+entry for what landed). Two things remain: **Amara's dialogue node pointing at the
+temple**, which is the last authoring gap in the Act I critical path, and the
+`TEST_PLAN.md` M0 **manual pass**, which is the rest of the gate and which the owner
+runs.
 
 Open gates that are not blocking it: TASK 039 needs a build from a clean checkout
 (the harness is `Tools/build-from-clean-checkout.ps1`, and it needs the work

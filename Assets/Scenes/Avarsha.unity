@@ -8711,6 +8711,7 @@ MonoBehaviour:
   questCatalogue:
   - {fileID: 11400000, guid: ade59f327b58a49418e87f3744f29e8d, type: 2}
   - {fileID: 11400000, guid: f008a6918b7392446a8358a3e88b6172, type: 2}
+  - {fileID: 11400000, guid: 20418e81a08541a08c331a1319a0d708, type: 2}
 --- !u!114 &831043636
 MonoBehaviour:
   m_ObjectHideFlags: 0

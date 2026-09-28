@@ -254,6 +254,22 @@ namespace Game.DevTools
             // Checked here rather than in a PlayMode test because this is the only place a
             // real crossing happens: an EditMode or PlayMode arena that names a loadable
             // destination has that scene genuinely loaded underneath it.
+            // TASK 044: the temple has a quest now, started by walking in. A player who
+            // crosses and gets no journal entry has no idea what the place is for, and
+            // that is the "missing story beat" TASK 044's gate is about.
+            Check("entering the temple started its quest",
+                Game.Quests.QuestManager.Instance != null
+                && Game.Quests.QuestManager.Instance.GetStatus("Q003") == Game.Quests.QuestStatus.Active);
+            Check("and closed the quest's first objective",
+                WorldState.Instance != null && WorldState.Instance.GetFlag("ENTERED_AGNIYA_TEMPLE"));
+
+            // SPEC.md section 8.1 makes Ember Step this temple's reward, so it must not
+            // work on the way in. TASK 044 gated it; before that it worked from the
+            // first second of the game.
+            Check("Ember Step is still locked before the boss is beaten",
+                WorldState.Instance != null
+                && !WorldState.Instance.GetFlag("ABILITY_UNLOCKED_EMBER_STEP"));
+
             Check("entering the temple autosaved on the way in",
                 SaveManager.Instance != null
                 && Game.Save.SaveStorage.Exists(SaveManager.Instance.Root, SaveSlot.Checkpoint));

@@ -297,6 +297,10 @@ omniscient guide. The third line's "it" is the First Memory.
 
 - **Q001 — The Queen's Charge.** Search the ruins beyond the temple district,
   recover what the ruins remember, return to Amara. Rewards: Amara's trust.
+- **Q003 — The Ember and the Sovereign.** A temple stands where the city stops
+  pretending to be a city. Enter it, wake the fire it was built around, put down
+  what the fire is pretending to be, and take what is left. Starts when the
+  player walks into Agniya, so it cannot be missed; its reward is Ember Step.
 - **Q002 — The Ash at the Gate.** Something crawled out of the ruins behind you.
   Put it down. (Three enemies.)
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Combat;
 using Game.Core;
 using UnityEngine;
@@ -58,6 +59,9 @@ namespace Game.AI
         [Tooltip("Made active once the boss is defeated. Inactive in the authored scene until then.")]
         [SerializeField] private GameObject reward;
 
+        [Tooltip("World flags set when this boss is defeated. A temple's divine ability unlock belongs here (SPEC.md section 8.1).")]
+        [SerializeField] private string[] flagsOnDefeat;
+
         [Header("Hooks for later systems")]
         [SerializeField] private UnityEvent onEncounterStarted;
         [SerializeField] private UnityEvent onPhase2Entered;
@@ -84,6 +88,21 @@ namespace Game.AI
 
         /// <summary>The object revealed on defeat, or null. Read by <c>ContentValidation</c> (TASK 042).</summary>
         public GameObject Reward => reward;
+
+        /// <summary>
+        /// The flags this boss's defeat sets. This is how a temple grants its ability
+        /// (SPEC.md section 8.1): the flag named here is the one
+        /// <c>DivineAbilityDefinition.UnlockFlag</c> checks, so no code knows which boss
+        /// grants which ability and a later temple needs none written.
+        ///
+        /// Serialized rather than driven by the <c>onDefeated</c> UnityEvent on purpose.
+        /// A UnityEvent wired in a scene is invisible to content validation, does not
+        /// appear in a text diff in any readable form, and is silently lost when the
+        /// object is recreated — which for an ability unlock means a player who beats a
+        /// temple and receives nothing.
+        /// </summary>
+        public IReadOnlyList<string> FlagsOnDefeat =>
+            flagsOnDefeat ?? System.Array.Empty<string>();
         public int Phase { get; private set; } = 1;
         public bool EncounterStarted { get; private set; }
         public bool Defeated { get; private set; }
@@ -293,8 +312,38 @@ namespace Game.AI
 
             Defeated = true;
             RevealReward();
+            GrantDefeatFlags();
             EventBus.Publish(new BossDefeatedEvent(gameObject, bossId));
         }
+
+        /// <summary>
+        /// Sets the flags this boss's defeat is worth. Runs on the restore path too,
+        /// because <see cref="MarkDefeated"/> is shared — which is what makes an ability
+        /// unlock survive a reload even if the world flag itself were somehow missing from
+        /// the save.
+        /// </summary>
+        private void GrantDefeatFlags()
+        {
+            if (flagsOnDefeat == null || WorldState.Instance == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < flagsOnDefeat.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(flagsOnDefeat[i]))
+                {
+                    continue;
+                }
+
+                WorldState.Instance.SetFlag(flagsOnDefeat[i]);
+                GameLogger.Log(LogCategory.Quest,
+                    $"{displayName}'s defeat set '{flagsOnDefeat[i]}'.", this);
+            }
+        }
+
+        /// <summary>Test and tooling seam for the defeat flags.</summary>
+        public void ConfigureDefeatFlags(params string[] flags) => flagsOnDefeat = flags;
 
         private void RevealReward()
         {

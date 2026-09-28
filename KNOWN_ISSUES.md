@@ -3,6 +3,40 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 044 — Finish Avarsha and Agniya (in progress, 29 September 2026)
+
+The temple now has a quest and Ember Step is its reward. What that leaves:
+
+### Agniya has a quest but no dialogue leading to it
+
+`Q003` starts when the player walks into the temple, which means it cannot be missed —
+but it also means the player hears about the temple by arriving at it. Nothing in Avarsha
+says the place is worth going to. **Why left:** the beat belongs in Amara's dialogue,
+after `Q001`, and adding it is authoring rather than wiring. **Consequence:** a player
+wanders into the temple rather than setting out for it, which is weaker but not broken.
+**Closing it:** one dialogue node on Amara with a `StartQuest` consequence, which would
+also let `Q003`'s first objective read "go to the temple" instead of completing instantly.
+
+### The temple is still one encounter and one puzzle
+
+Carried forward from TASK 015 unchanged: one enemy group before the boss, one puzzle.
+Authoring a quest over it does not add pacing. **Closing it:** more encounters, which is
+content rather than mechanism.
+
+### TASK 044's gate needs a manual run
+
+"A new player can finish Act I and Agniya in the Windows build without debug commands,
+dead ends or missing story beats; save/load works before, during and after the temple."
+The automated half is done — the quest chain is verified unbroken by
+`ActOneContentTests`, and the smoke test now checks the quest starts, its first objective
+closes, and Ember Step is still locked on the way in. **The rest is a person playing it,**
+and the task stays unticked until that happens.
+
+**One thing the tests deliberately cannot answer:** whether Ember Step being locked makes
+the temple's traversal *feel* worse on the way in. Nothing in Agniya requires the dash —
+that is asserted — but "possible without it" and "pleasant without it" are different
+questions, and only the manual pass settles the second.
+
 ## TASK 040 — Production brief and story canon (28 September 2026)
 
 Closed. The decisions are in `STORY_BIBLE.md`'s DECIDED CANON section and the new
@@ -795,15 +829,21 @@ works.
 
 FireBrazierVfx now emits a fire particle burst whenever a brazier lights.
 
-### [DESIGN DECISION] Ember Step is still not truly Agniya's reward
+### CLOSED — Ember Step is now truly Agniya's reward (TASK 044)
 
-SPEC.md section 8.1 places Ember Step behind this temple's boss; it has been usable
-from the start since TASK 011 (already documented there) and this task does not close
-that gap. Retroactively gating it behind `BOSS_AGNIYA`'s defeat would need updating
-every existing test that calls `CombatController.TryAbility()` assuming it always
-works — a real cost, and not one this task's own scope (building the temple's
-content) required paying. The boss's reward is a memory fragment and a divine-mark
-flag instead; gating Ember Step for real is still open.
+SPEC.md section 8.1 places Ember Step behind this temple's boss, and it had been usable
+from the first second of the game since TASK 011 — which made the temple's entire reward
+something the player already had.
+
+`requireAbilityUnlock` is now on in both scenes, and `BossController.flagsOnDefeat` has
+the Flame Sovereign granting `ABILITY_UNLOCKED_EMBER_STEP`.
+
+**This entry's stated cost was wrong, and worth correcting rather than quietly dropping.**
+It said gating the ability would need "updating every existing test that calls
+`CombatController.TryAbility()`". It needed none: the field's *code* default is already
+false, and all 11 call sites spawn their own `CombatController`, so they never read the
+scene value. The change was two scene fields and one authored flag. An estimate that
+stopped work for two tasks was never checked against the default it depended on.
 
 ### [DESIGN DECISION] One enemy group before Agniya — no difficulty curve within the temple
 
