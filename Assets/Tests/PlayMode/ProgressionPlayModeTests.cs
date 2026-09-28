@@ -285,17 +285,99 @@ namespace Game.Tests.Play
             Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_ORDINARY"));
         }
 
+        /// <summary>
+        /// An ability definition that costs memory, for the tests below.
+        ///
+        /// These used to publish <c>EmberStepUsedEvent</c> and configure the cost on
+        /// <c>MemoryManager</c>, because that is where the cost lived. TASK 040 moved it
+        /// onto the ability: only designated abilities cost memory and each states its own
+        /// price, so the cost now arrives on the event rather than being held by the
+        /// system that applies it.
+        /// </summary>
+        private Game.Combat.Abilities.DivineAbilityDefinition CostlyAbility(
+            float integrityPerUse, int usesPerForget)
+        {
+            var definition = arena.TrackAsset(
+                ScriptableObject.CreateInstance<Game.Combat.Abilities.DivineAbilityDefinition>());
+            definition.Configure("ABILITY_COSTLY", 0f, 0f, label: "Costly");
+            definition.ConfigureMemoryCost(true, integrityPerUse, usesPerForget);
+            return definition;
+        }
+
+        private static void UseAbility(Game.Combat.Abilities.DivineAbilityDefinition definition, int totalUses)
+        {
+            Game.Core.EventBus.Publish(new Game.Combat.Abilities.DivineAbilityUsedEvent(
+                null, definition.AbilityId, totalUses, definition));
+        }
+
+        /// <summary>
+        /// **Only designated abilities cost memory** (TASK 040 decision).
+        ///
+        /// The rejected design was charging every <c>DivineAbilityUsedEvent</c> the same
+        /// way: one rule, no per-ability wiring, and every temple's ability quietly
+        /// eroding the player's memory. A cost everything pays is a tax, and Ember Step
+        /// burning memory is supposed to characterise Ember Step.
+        ///
+        /// So an ability that does not declare a cost must be exactly free — not cheap,
+        /// not rounded to zero.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Memory_AnAbilityThatDeclaresNoMemoryCostIsFree()
+        {
+            var minor = arena.TrackAsset(ScriptableObject.CreateInstance<MemoryFragment>());
+            minor.Configure("MEM_MINOR", "A Small Thing", "body", "nobody",
+                MemoryCategory.Lost, MemoryImportance.Optional);
+
+            var memories = arena.SpawnMemoryManager(minor);
+            memories.Discover("MEM_MINOR");
+
+            // Everything a costly ability has, except the one flag that opts in.
+            var free = arena.TrackAsset(
+                ScriptableObject.CreateInstance<Game.Combat.Abilities.DivineAbilityDefinition>());
+            free.Configure("ABILITY_FREE", 0f, 0f, label: "Free");
+            free.ConfigureMemoryCost(false, integrityPerUse: 0.5f, usesPerForget: 1);
+            yield return null;
+
+            var before = memories.Integrity;
+
+            for (var use = 1; use <= 5; use++)
+            {
+                UseAbility(free, use);
+            }
+
+            Assert.AreEqual(before, memories.Integrity, 0.0001f,
+                "An ability that does not declare a memory cost must not spend integrity, even though "
+                + "the numbers are sitting there on the asset.");
+            Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_MINOR"),
+                "and it must not forget anything either");
+        }
+
+        [UnityTest]
+        public IEnumerator Memory_AnAbilityUsedEventWithNoDefinitionCostsNothing()
+        {
+            var memories = arena.SpawnMemoryManager();
+            yield return null;
+
+            var before = memories.Integrity;
+
+            // Definition omitted, which the event explicitly permits.
+            Game.Core.EventBus.Publish(new Game.Combat.Abilities.DivineAbilityUsedEvent(
+                null, "ABILITY_UNKNOWN", 1));
+
+            Assert.AreEqual(before, memories.Integrity, 0.0001f);
+        }
+
         [UnityTest]
         public IEnumerator Memory_EmberStepUsed_ReducesIntegrityEveryUse()
         {
             var memories = arena.SpawnMemoryManager();
-            memories.ConfigureEmberStepCost(0.1f, usesPerForget: 0, forgetSeconds: 20f);
+            var ability = CostlyAbility(0.1f, usesPerForget: 0);
             yield return null;
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            UseAbility(ability, 1);
             Assert.AreEqual(0.9f, memories.Integrity, 0.001f);
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 2));
+            UseAbility(ability, 2);
             Assert.AreEqual(0.8f, memories.Integrity, 0.001f);
         }
 
@@ -306,15 +388,15 @@ namespace Game.Tests.Play
             minor.Configure("MEM_MINOR", "A Small Thing", "body", "nobody", MemoryCategory.Lost, MemoryImportance.Optional);
 
             var memories = arena.SpawnMemoryManager(minor);
-            memories.ConfigureEmberStepCost(0f, usesPerForget: 3, forgetSeconds: 20f);
+            var ability = CostlyAbility(0f, usesPerForget: 3);
             memories.Discover("MEM_MINOR");
             yield return null;
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 2));
+            UseAbility(ability, 1);
+            UseAbility(ability, 2);
             Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_MINOR"), "Should not forget before the third use.");
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 3));
+            UseAbility(ability, 3);
             Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
         }
 
@@ -327,14 +409,14 @@ namespace Game.Tests.Play
             critical.Configure("MEM_CRIT", "Critical", "body", "nobody", MemoryCategory.Divine, MemoryImportance.Critical);
 
             var memories = arena.SpawnMemoryManager(supporting, critical);
-            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 20f);
+            var ability = CostlyAbility(0f, usesPerForget: 1);
             memories.Discover("MEM_SUPPORT");
             memories.Discover("MEM_CRIT");
             yield return null;
 
             for (var i = 1; i <= 5; i++)
             {
-                Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, i));
+                UseAbility(ability, i);
             }
 
             Assert.AreEqual(MemoryState.Known, memories.GetState("MEM_SUPPORT"),
@@ -350,11 +432,12 @@ namespace Game.Tests.Play
                 MemoryCategory.Lost, MemoryImportance.Optional);
 
             var memories = arena.SpawnMemoryManager(minor);
-            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 0.1f);
+            var ability = CostlyAbility(0f, usesPerForget: 1);
+            memories.ConfigureForgetDelay(0.1f);
             memories.Discover("MEM_MINOR");
             yield return null;
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            UseAbility(ability, 1);
             Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
 
             yield return TestArena.Until(() => memories.GetState("MEM_MINOR") == MemoryState.Known,
@@ -369,11 +452,12 @@ namespace Game.Tests.Play
                 MemoryCategory.Lost, MemoryImportance.Optional);
 
             var memories = arena.SpawnMemoryManager(minor);
-            memories.ConfigureEmberStepCost(0f, usesPerForget: 1, forgetSeconds: 0.1f);
+            var ability = CostlyAbility(0f, usesPerForget: 1);
+            memories.ConfigureForgetDelay(0.1f);
             memories.Discover("MEM_MINOR");
             yield return null;
 
-            Game.Core.EventBus.Publish(new Game.Combat.EmberStepUsedEvent(null, 1));
+            UseAbility(ability, 1);
             Assert.AreEqual(MemoryState.Forgotten, memories.GetState("MEM_MINOR"));
 
             // The player (or some other system) deliberately corrupts it before the

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Enemy_Boss_Agniya
   m_EditorClassIdentifier: Game.Runtime::Game.AI.EnemyArchetype
   archetypeId: BOSS_AGNIYA
-  displayName: Agniya, the First Flame
+  displayName: The Flame Sovereign
   enemyClass: 9
   bodyTint: {r: 0.9, g: 0.25, b: 0.05, a: 1}
   maxHealth: 500

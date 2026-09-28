@@ -251,6 +251,7 @@ Three exist. Their texts are canon because a memory fragment *is* its text.
 > legible. You do not know the name. You are certain you have said it before.
 
 **MEM_002 — The Guardian's Vow**
+> (The vow is a construct's, not a person's — see DECIDED CANON 4.)
 > The stone that carried it is broken open now, and what was sealed inside is a
 > memory that is not quite yours and not quite anyone's — a vow spoken by
 > something built to keep one thing safe for longer than the word "forever" was
@@ -260,15 +261,20 @@ Three exist. Their texts are canon because a memory fragment *is* its text.
 **MEM_003 — Agniya's Ember**
 > The flame does not go out when the god falls. It just stops pretending to be a
 > god and remembers being fire — patient, indifferent, older than the seven,
-> older than the war that made them seven. Somewhere in the heat you were sure
+> older than the day they chose to be seven. Somewhere in the heat you were sure
 > you heard it say your true name before it forgot how.
 
 MEM_003 contains the slice's only forward reference to the First Memory
-("older than the seven, older than the war that made them seven"). "The war that
-made them seven" is **new canon and the largest single invention in this file**:
-it implies the seven's number was an outcome, not an origin. It is consistent
-with SPEC.md section 4 (there were eight) but the spec never calls the erasure a
-war. Flagged for review.
+("older than the seven, older than the day they chose to be seven"). It carries
+the canon settled in TASK 040: there were **exactly eight** gods, Nirvaan among
+them, and the erasure was a **deliberate act by the seven**, not a war. The
+earlier wording, "the war that made them seven", is withdrawn — it implied a
+conflict with survivors and losers, which is a different and much larger story
+than seven gods agreeing to remove one.
+
+"Chose" is doing the work in the replacement. The seven's number is still an
+outcome rather than an origin, which is the forward reference the First Memory
+needs, but the cause is a decision they took and can be held to.
 
 ## Nirvaan's three lines
 
@@ -298,13 +304,16 @@ omniscient guide. The third line's "it" is the First Memory.
 
 - **Temple Guardian** (`MINIBOSS_TEMPLE_GUARDIAN`) — the mini-boss in the ruins
   arena. Its defeat yields MEM_002. Not a spec-named boss; invented for the
-  slice.
-- **Agniya, the First Flame** (`BOSS_AGNIYA`) — the Agniya temple boss. **Note a
-  conflict:** SPEC.md section 8.1 names Agniya's boss *The Flame Sovereign*. The
-  slice fights the god under her own name with the epithet "the First Flame".
-  Either the temple boss should be renamed to The Flame Sovereign, or the bible
-  should record that the Flame Sovereign is a later, separate encounter. **This
-  needs a decision.**
+  slice. **It is an ancient construct, not a Forgotten** (TASK 040): built to
+  protect a sealed memory, and still keeping a vow whose purpose ended long ago.
+  That is what makes MEM_002's "not quite yours and not quite anyone's" true
+  without making the Guardian a person — the memory it guards belonged to
+  someone, and the thing guarding it never did.
+- **The Flame Sovereign** (`BOSS_AGNIYA`) — the Agniya temple boss, named as
+  SPEC.md section 8.1 has it. The earlier provisional name "Agniya, the First
+  Flame" is withdrawn (TASK 040) and removed from the scene, the archetype asset
+  and `GAME_DESIGN.md`. The boss id stays `BOSS_AGNIYA`, because it is the
+  temple's boss and ids are not player-facing.
 
 ## Dialogue rules
 
@@ -336,15 +345,54 @@ their words); Ishan's family; the name beneath the stone itself.
 
 ---
 
-# OPEN QUESTIONS FOR THE AUTHOR
+# DECIDED CANON
 
-Listed here rather than decided:
+Settled by the author on 28 September 2026, closing STANDALONE_RELEASE_ROADMAP.md
+TASK 040. These are no longer open. Content written from here on treats them as
+fixed, and anything already written that contradicted them has been changed —
+each entry says what.
 
-1. **Agniya's boss name** — "Agniya, the First Flame" versus SPEC.md's "The
-   Flame Sovereign". See above.
-2. **"The war that made them seven"** (MEM_003) — is the erasure a war, and were
-   there more than eight gods before it?
-3. **Does Nirvaan know his own name?** The first cinematic line says he does not.
-4. **Is the Temple Guardian a Forgotten?** "A vow spoken by something built to
-   keep one thing safe" reads as a construct, but "not quite yours and not quite
-   anyone's" reads as an erased person. The slice does not say.
+### 1. Agniya's boss is **The Flame Sovereign**
+
+SPEC.md section 8.1 wins. "Agniya, the First Flame" was a provisional name that
+conflicted with the spec, and it is removed from `Assets/Scenes/Agniya.unity`,
+`Assets/Data/Enemies/Enemy_Boss_Agniya.asset` and `GAME_DESIGN.md`. The id
+`BOSS_AGNIYA` is unchanged — it names the temple's boss slot, and ids are not
+player-facing.
+
+**Consequence for writing:** the god and her boss are not the same figure under
+two names. The Sovereign is what is fought in her temple.
+
+### 2. The erasure was a deliberate act, and there were exactly eight gods
+
+Eight, Nirvaan among them. Seven of them removed the eighth, on purpose. It was
+**not a war** — there were no sides, no campaign and no survivors in the sense a
+war produces them, and MEM_003's "the war that made them seven" is withdrawn for
+implying all three.
+
+**Consequence for writing:** the seven are complicit, not victorious. Nothing
+they did was forced on them, which is what makes the erasure a crime rather than
+a tragedy, and what the endings eventually have to answer for.
+
+### 3. Nirvaan does not know his own name
+
+He has forgotten it, exactly as his first cinematic line says: *"You carry a name
+older than this city's stones. Older than mine, and I am the one who forgot it."*
+
+**Consequence for writing:** Nirvaan can never supply the name, in any scene, at
+any point. He is a fellow amnesiac with more history, not an oracle withholding
+an answer — and the recurring theme is that incomplete memory afflicts gods too.
+A later writer looking for someone to reveal the name must look somewhere else.
+
+### 4. The Temple Guardian is a construct, not a Forgotten
+
+An ancient thing built to protect a sealed memory. Its vow persists after its
+purpose has ended, which is the whole of its pathos: it is not grieving, it is
+still working.
+
+**Consequence for writing:** MEM_002's "not quite yours and not quite anyone's"
+refers to the **memory** the Guardian kept, not to the Guardian. The memory
+belonged to someone; the thing guarding it never did. The Guardian is therefore
+not a candidate for restoration, recognition or dialogue, and killing it costs
+the player nothing morally — which is deliberate, because the Forgotten later
+will.

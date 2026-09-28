@@ -7344,7 +7344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.AI.BossController
   bossId: BOSS_AGNIYA
-  displayName: Agniya, the First Flame
+  displayName: The Flame Sovereign
   enemyController: {fileID: 1102604777}
   combatant: {fileID: 1102604779}
   identity: {fileID: 0}

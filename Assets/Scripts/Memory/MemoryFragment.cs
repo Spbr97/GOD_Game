@@ -81,8 +81,23 @@ namespace Game.Memory
         [SerializeField] private MemoryState stateOnDiscovery = MemoryState.Known;
 
         public string MemoryId => string.IsNullOrEmpty(memoryId) ? name : memoryId;
-        public string Title => title;
-        public string Description => description;
+
+        [Tooltip("Optional key into the shared string table, e.g. \"memory.mem_001\". Blank means this asset is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
+        /// <summary>The key this asset's text is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>Test and tooling seam: points this asset's text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
+
+        public string Title => Game.Core.Localization.LocalizedContent.Text(localizationKey, "title", title);
+        public string Description => Game.Core.Localization.LocalizedContent.Text(localizationKey, "description", description);
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredTitle => title;
+
+        public string AuthoredDescription => description;
         public string Owner => owner;
         public string Location => location;
         public MemoryCategory Category => category;

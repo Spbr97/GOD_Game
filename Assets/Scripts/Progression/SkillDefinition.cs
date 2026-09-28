@@ -85,8 +85,23 @@ namespace Game.Progression
         [SerializeField] private float effectValue;
 
         public string SkillId => string.IsNullOrEmpty(skillId) ? name : skillId;
-        public string DisplayName => displayName;
-        public string Description => description;
+
+        [Tooltip("Optional key into the shared string table, e.g. \"skill.warrior_damage\". Blank means this asset is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
+        /// <summary>The key this asset's text is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>Test and tooling seam: points this asset's text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
+
+        public string DisplayName => Game.Core.Localization.LocalizedContent.Text(localizationKey, "name", displayName);
+        public string Description => Game.Core.Localization.LocalizedContent.Text(localizationKey, "description", description);
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredDisplayName => displayName;
+
+        public string AuthoredDescription => description;
         public SkillBranch Branch => branch;
         public int Cost => cost;
         public string PrerequisiteId => prerequisiteId;

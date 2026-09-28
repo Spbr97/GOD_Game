@@ -107,6 +107,34 @@ namespace Game.Core.Localization
         }
 
         /// <summary>
+        /// The text for <paramref name="key"/>, or **null** when neither the active
+        /// language nor English has one.
+        ///
+        /// The difference from <see cref="Get"/> is what happens on a miss, and both
+        /// behaviours are wanted by different callers. A missing key in *code* is a bug,
+        /// so Get shows the key and logs it. A missing key for *content* is an
+        /// untranslated asset, which is the normal state of a game mid-translation — so
+        /// <see cref="LocalizedContent"/> asks with this and falls back to the text the
+        /// author typed, silently.
+        /// </summary>
+        public static string Find(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                return null;
+            }
+
+            var text = Active != null ? Active.Find(key) : null;
+
+            if (text != null)
+            {
+                return text;
+            }
+
+            return fallback != null && fallback != Active ? fallback.Find(key) : null;
+        }
+
+        /// <summary>
         /// The text for <paramref name="key"/> with its <c>{0}</c>, <c>{1}</c> …
         /// placeholders filled.
         ///

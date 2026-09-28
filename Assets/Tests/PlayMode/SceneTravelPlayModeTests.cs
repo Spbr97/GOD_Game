@@ -69,6 +69,76 @@ namespace Game.Tests.Play
             }
         }
 
+        // --------------------------------------------------- TASK 040's save decisions
+
+        // Autosave-on-travel is asserted in StandaloneSmokeTest, not here. A PlayMode
+        // test cannot drive a real crossing: a destination Build Settings knows about is
+        // genuinely loaded, which destroys the arena mid-test, and a destination it does
+        // not know about is refused before the autosave is reached. The smoke test crosses
+        // into Agniya in a shipped player, which is the only place the whole path runs.
+
+        /// <summary>
+        /// **A mid-run difficulty change marks the run dirty** (TASK 040 decision).
+        ///
+        /// SPEC.md section 44 permits the change and is silent on whether it should
+        /// survive a reload without a save. It silently did not: the global settings and
+        /// the live difficulty took it at once, the loaded slot learned about it only at
+        /// the next save, and quitting discarded it with no indication anything was lost.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator AMidRunDifficultyChangeMarksTheRunDirty()
+        {
+            yield return null;
+
+            Assert.IsFalse(saves.HasUnsavedRunChanges, "a fresh run has nothing outstanding");
+
+            EventBus.Publish(new DifficultyChangedByPlayerEvent(
+                DifficultyMode.Normal, DifficultyMode.Warrior));
+            yield return null;
+
+            Assert.IsTrue(saves.HasUnsavedRunChanges);
+            Assert.That(saves.UnsavedRunChangeReason, Does.Contain("difficulty"),
+                "the reason is quoted to the player in a confirmation prompt, so it has to say what changed");
+        }
+
+        [UnityTest]
+        public IEnumerator SavingClearsTheOutstandingRunChange()
+        {
+            arena.SpawnPlayer(Vector3.zero);
+            yield return null;
+
+            EventBus.Publish(new DifficultyChangedByPlayerEvent(
+                DifficultyMode.Normal, DifficultyMode.Mythic));
+            Assert.IsTrue(saves.HasUnsavedRunChanges);
+
+            Assert.IsTrue(saves.Save(SaveSlot.Manual));
+
+            Assert.IsFalse(saves.HasUnsavedRunChanges,
+                "the file records it now, so there is nothing left to warn about");
+            Assert.IsEmpty(saves.UnsavedRunChangeReason);
+        }
+
+        /// <summary>
+        /// The distinction the whole design rests on. A save being loaded tells the global
+        /// settings what difficulty that run is being played on — that is the game
+        /// discovering a fact, not the player changing one, and it must not mark anything
+        /// dirty or every load would immediately look like unsaved work.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator AdoptingASavesDifficultyDoesNotMarkTheRunDirty()
+        {
+            var settingsObject = arena.Track(new GameObject("SettingsManager"));
+            var settings = settingsObject.AddComponent<SettingsManager>();
+            yield return null;
+
+            settings.AdoptDifficultyFromSave(DifficultyMode.Warrior);
+            yield return null;
+
+            Assert.IsFalse(saves.HasUnsavedRunChanges,
+                "AdoptDifficultyFromSave is the game reporting what the difficulty already is. "
+                + "Only SetDifficulty is the player changing it.");
+        }
+
         // ------------------------------------------------------------- what is captured
 
         [UnityTest]

@@ -97,6 +97,9 @@ namespace Game.Save
         [Tooltip("Save automatically whenever a checkpoint is activated (SPEC.md section 31).")]
         [SerializeField] private bool autoSaveOnCheckpoint = true;
 
+        [Tooltip("Save automatically just before crossing into another scene (TASK 040 decision). Crossing a scene boundary is a commitment the player cannot undo, and saving is blocked for the whole crossing.")]
+        [SerializeField] private bool autoSaveOnSceneTravel = true;
+
         private readonly HashSet<string> saveBlockers = new();
         private string rootOverride;
 
@@ -108,6 +111,49 @@ namespace Game.Save
         /// SPEC.md section 31: never save during a critical state transition.
         /// </summary>
         public bool IsSafeToSave => saveBlockers.Count == 0;
+
+        /// <summary>
+        /// True when the run has changed in a way no save file records yet, and the
+        /// change is one a player would be annoyed to lose silently.
+        ///
+        /// This is deliberately **not** a general "anything happened" flag. Ordinary play
+        /// diverges from the last save constantly and that is the normal condition of a
+        /// game; flagging it would make the warning meaningless. What sets this is a
+        /// change to how the run itself is configured — today only a mid-run difficulty
+        /// change (TASK 040) — where the player's mental model is "I have changed a
+        /// setting", not "I have played for a while", and losing it to a quit looks like
+        /// the game ignoring them.
+        ///
+        /// Cleared by any successful save, including an autosave, because at that point
+        /// the file does record it.
+        /// </summary>
+        public bool HasUnsavedRunChanges { get; private set; }
+
+        /// <summary>
+        /// The reason <see cref="HasUnsavedRunChanges"/> is set, for a confirmation
+        /// prompt to quote. Empty when there is nothing outstanding.
+        /// </summary>
+        public string UnsavedRunChangeReason { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Records that the run has diverged from its file in a way worth warning about.
+        /// Call it with what changed, in words a player would recognise.
+        /// </summary>
+        public void MarkRunDirty(string reason)
+        {
+            HasUnsavedRunChanges = true;
+            UnsavedRunChangeReason = string.IsNullOrEmpty(reason) ? "a setting was changed" : reason;
+
+            GameLogger.Log(LogCategory.Save,
+                $"The run has unsaved changes: {UnsavedRunChangeReason}.", this);
+        }
+
+        /// <summary>Forgets any outstanding run change. Called on a successful save and when a run ends.</summary>
+        public void ClearRunDirty()
+        {
+            HasUnsavedRunChanges = false;
+            UnsavedRunChangeReason = string.Empty;
+        }
 
         /// <summary>Why saving is currently refused, for a UI to explain the greyed-out button.</summary>
         public IReadOnlyCollection<string> SaveBlockers => saveBlockers;
@@ -135,6 +181,7 @@ namespace Game.Save
             EventBus.Subscribe<CinematicCompletedEvent>(OnCinematicCompleted);
             EventBus.Subscribe<CinematicSkippedEvent>(OnCinematicSkipped);
             EventBus.Subscribe<SceneTravelRequestedEvent>(OnSceneTravelRequested);
+            EventBus.Subscribe<DifficultyChangedByPlayerEvent>(OnDifficultyChangedByPlayer);
         }
 
         private void OnDisable()
@@ -148,6 +195,7 @@ namespace Game.Save
             EventBus.Unsubscribe<CinematicCompletedEvent>(OnCinematicCompleted);
             EventBus.Unsubscribe<CinematicSkippedEvent>(OnCinematicSkipped);
             EventBus.Unsubscribe<SceneTravelRequestedEvent>(OnSceneTravelRequested);
+            EventBus.Unsubscribe<DifficultyChangedByPlayerEvent>(OnDifficultyChangedByPlayer);
         }
 
         private void OnDestroy()
@@ -294,6 +342,10 @@ namespace Game.Save
                 return false;
             }
 
+            // The file now records whatever was outstanding, including an autosave's
+            // worth. Cleared here rather than per-caller so no save path can forget.
+            ClearRunDirty();
+
             GameLogger.Log(LogCategory.Save, $"Saved '{slot}'.", this);
             EventBus.Publish(new GameSavedEvent(slot));
             return true;
@@ -377,6 +429,39 @@ namespace Game.Save
             }
 
             var from = SceneManager.GetActiveScene().name;
+
+            // An autosave, written before anything is blocked (TASK 040 decision).
+            //
+            // Crossing into a temple is a commitment: the scene the player was in stops
+            // existing, and saving is refused for the whole crossing, so a crash or a
+            // quit between the two scenes lands them at whatever their last real save
+            // was. That could be an hour ago. The travel journal keeps the crossing
+            // itself recoverable, but recovering a journey is a stranger thing to offer a
+            // player than simply having saved — so the decision is to save.
+            //
+            // It goes in the Checkpoint slot rather than a new one. That slot already
+            // means "written automatically", the Main Menu's Continue takes whichever
+            // slot is newest, and adding a fourth slot would make every screen that
+            // lists slots learn about it for no gain.
+            //
+            // Ordered first deliberately. Save() refuses while a blocker is set, so this
+            // has to happen before BlockSaves below, and capturing for travel afterwards
+            // costs nothing because nothing has changed in between.
+            if (autoSaveOnSceneTravel)
+            {
+                var outcome = Save(SaveSlot.Checkpoint);
+
+                if (!outcome)
+                {
+                    // Not fatal, and deliberately not a refusal to travel: a door that
+                    // stops working because the disk is full is worse than a door that
+                    // works and says so.
+                    GameLogger.LogWarning(LogCategory.Save,
+                        $"Could not autosave before travelling to '{request.TargetScene}'. The journey "
+                        + "continues; the travel journal is still written, so the crossing itself is "
+                        + "recoverable.", this);
+                }
+            }
 
             // Capture before the teardown starts, so the record of the scene being left is
             // the scene as the player leaves it.
@@ -655,6 +740,11 @@ namespace Game.Save
 
             // Last: the sweep reads the state everything above has just put back.
             ProgressionRecovery.Run();
+
+            // The run now matches a file by definition. Cleared here so a dirty flag from
+            // a previous run cannot follow a freshly loaded one around — SaveManager
+            // survives the scene load that a run does not.
+            ClearRunDirty();
         }
 
         /// <summary>
@@ -846,6 +936,29 @@ namespace Game.Save
 
         private void OnCinematicSkipped(CinematicSkippedEvent skipped) => AllowSaves(CinematicBlockReason);
 
+        /// <summary>
+        /// A mid-run difficulty change marks the run dirty (TASK 040 decision).
+        ///
+        /// SPEC.md section 44 allows the change and does not say whether it should
+        /// survive a reload without a save. Before this it silently did not: the global
+        /// settings took it immediately, the live <c>Difficulty</c> took it immediately,
+        /// and the loaded slot only learned about it at the next save — so quitting
+        /// without saving discarded it with no indication that anything had been lost.
+        ///
+        /// Refusing the change while a game is loaded was the alternative and is worse:
+        /// the single most common reason to change difficulty is that the fight in front
+        /// of you is too hard, which is exactly when a game is loaded.
+        /// </summary>
+        private void OnDifficultyChangedByPlayer(DifficultyChangedByPlayerEvent changed)
+        {
+            if (instance != this)
+            {
+                return;
+            }
+
+            MarkRunDirty($"difficulty was changed from {changed.Previous} to {changed.Current}");
+        }
+
         private void OnCheckpointActivated(CheckpointActivatedEvent activated)
         {
             if (autoSaveOnCheckpoint)
@@ -862,7 +975,13 @@ namespace Game.Save
         public void Configure(string saveRoot, bool autoSave = true)
         {
             rootOverride = saveRoot;
+
+            // Both automatic paths, from one flag. A test that says "I drive saving
+            // myself" means all of it, and a travel autosave appearing in a test that
+            // asked for none would be a surprise in whichever assertion happened to
+            // notice it rather than an obvious failure here.
             autoSaveOnCheckpoint = autoSave;
+            autoSaveOnSceneTravel = autoSave;
         }
     }
 }

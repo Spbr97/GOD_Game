@@ -42,8 +42,23 @@ namespace Game.Inventory
         [SerializeField] private float healAmount;
 
         public string ItemId => string.IsNullOrEmpty(itemId) ? name : itemId;
-        public string DisplayName => displayName;
-        public string Description => description;
+
+        [Tooltip("Optional key into the shared string table, e.g. \"item.ember_draught\". Blank means this asset is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
+        /// <summary>The key this asset's text is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>Test and tooling seam: points this asset's text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
+
+        public string DisplayName => Game.Core.Localization.LocalizedContent.Text(localizationKey, "name", displayName);
+        public string Description => Game.Core.Localization.LocalizedContent.Text(localizationKey, "description", description);
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredDisplayName => displayName;
+
+        public string AuthoredDescription => description;
         public ItemCategory Category => category;
         public bool Stackable => stackable;
         public Color Tint => tint;

@@ -3,6 +3,66 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 040 — Production brief and story canon (28 September 2026)
+
+Closed. The decisions are in `STORY_BIBLE.md`'s DECIDED CANON section and the new
+`PRODUCTION_BRIEF.md`. What that leaves:
+
+### 1.0's scope narrowed, which changes what "unfinished" means
+
+1.0 is the Act I vertical slice. The six other temples, Acts II–V, the endings and six
+of seven divine abilities are now **out of 1.0** rather than pending in it. **Why this
+is recorded as a limitation and not only a decision:** most of this file's
+"MISSING CONTENT" entries were written against the whole game, and a reader could now
+mistake a deliberate deferral for an oversight. `PRODUCTION_BRIEF.md` section 1 has the
+authoritative in/out table. Nothing was thrown away — the ability contract, the scene
+travel machinery and the validator were all built for seven temples and still are.
+
+### The 1080p/60 target is a target, not a measurement
+
+The reference machine is an i7 14th-gen with an RTX 4060. **Nothing has been profiled.**
+No frame time has ever been recorded on any machine. Until TASK 055 runs the profiling
+pass, `README.md` and any store page must say "target" and not "runs at". **Closing it:**
+`PRODUCTION_BRIEF.md` section 2 lists the four steps, and the frame-time *distribution*
+matters more than the average — a 60 FPS average with a 120 ms hitch on every scene load
+is not 60 FPS to a player.
+
+### Publishing to itch.io is entirely manual
+
+itch.io carries player builds; GitHub carries source. `Tools/build-windows.ps1` already
+produces the ZIP an upload wants, and **nothing uploads it**. `butler` is the tool for it
+and is not set up. **Why left:** it is one manual step per release and there has not been
+a release. **Also:** builds are unsigned, so SmartScreen warns on first run; the store
+page has to say so plainly rather than let a player conclude malware.
+
+### The localization key is a mechanism with no keys assigned
+
+Content assets now carry a `localizationKey` into the shared string table, and **not one
+shipped asset has one filled in.** Every quest, memory, item, skill and ability reads the
+text typed into it, which is the intended fallback and is why this shipped safely — but
+it means the path from key to translated content asset has only ever been walked by a
+test. **Closing it:** assign keys as TASK 044 authors content; the validator warns for a
+key with nothing behind it, which is the to-do list.
+
+### A run is only ever dirty for one reason
+
+`HasUnsavedRunChanges` exists and exactly one thing sets it: a mid-run difficulty change.
+That is deliberate — flagging ordinary play would make the warning meaningless — but it
+means **nothing yet reads the flag.** No quit path or pause menu asks about it, so today
+it is a correctly-maintained value with no consumer. **Closing it:** the confirmation
+prompt belongs with TASK 051's UI pass; `UnsavedRunChangeReason` is already written in
+words a player can read.
+
+### Autosave-on-travel is proved only in the standalone player
+
+`StandaloneSmokeTest` asserts it, because a real crossing cannot happen in an EditMode or
+PlayMode arena: a destination Build Settings knows about is genuinely loaded and destroys
+the arena, and one it does not know about is refused before the autosave. **Consequence:**
+this one behaviour is covered by a test that takes a full build to run rather than by the
+474 that take 80 seconds. The three PlayMode tests originally written for it were deleted
+rather than left passing vacuously — they named a nonexistent scene, so travel was refused
+and they asserted nothing.
+
 ## Closure pass (28 September 2026)
 
 A pass over the open entries from TASK 039–043, taking the ones that needed no decision
@@ -72,15 +132,28 @@ That is real evidence — it is the same interface and the same controller — b
 double never surprises you. **Closing it:** TASK 045's Varuna ability is the first
 honest test, and anything the contract is missing will show up there.
 
-### Ember Step's memory cost did not generalise
+### CLOSED — Ember Step's memory cost did not generalise (TASK 040)
 
 SPEC.md section 20's "repeated use temporarily removes minor memories" is written
-against Ember Step specifically, and `MemoryManager` still listens for
-`EmberStepUsedEvent` rather than the shared `DivineAbilityUsedEvent`. **Why left:**
-whether every temple's ability costs memory is a design decision, not a refactor —
-making them all cost memory would change the feel of six abilities nobody has designed
-yet. **Closing it:** decide it in TASK 045 when there is a second ability to compare
-against.
+against Ember Step specifically, and `MemoryManager` listened for `EmberStepUsedEvent`
+rather than the shared `DivineAbilityUsedEvent`.
+
+**Decided (TASK 040): only designated abilities cost memory, and each states its own
+price.** `DivineAbilityDefinition` gained `costsMemory`, `memoryIntegrityCostPerUse` and
+`usesPerForgottenMemory`; the definition rides on `DivineAbilityUsedEvent` so
+`MemoryManager` reads the cost without knowing which abilities exist. Ember Step declares
+the numbers `MemoryManager` used to hold as its own serialized fields, so its behaviour is
+unchanged.
+
+**Why not charge every ability the same way**, which was the tempting one-rule version: a
+cost everything pays is a tax, and a tax is not a characterisation. Ember Step burning
+memory is a statement about fire and about what the player is trading away, and it stops
+meaning anything if the water temple's ability does it too.
+
+The six `MemoryManager` tests that drove the old coupling were rewritten rather than
+deleted — they were testing exactly the coupling this removed — and two new ones assert
+that an ability declaring no cost is *exactly* free, even with cost numbers sitting on the
+asset.
 
 ### The anti-grind claim is arithmetic, not play
 
@@ -113,7 +186,7 @@ a defect to fix blind.
 The content is checked before a build, and the strings players read are out of the
 code. These are what that leaves.
 
-### Only text in *code* is localizable
+### PARTLY CLOSED — Only text in *code* is localizable (TASK 040)
 
 SPEC.md section 73 says all user-facing text must be externalized. What TASK 042 did is
 the code half: every literal a script showed a player is now a key in
@@ -122,19 +195,26 @@ the content**, and that is most of the words in the game — every quest title a
 objective description, every memory's title and description, every dialogue line, every
 item name. They live in ScriptableObjects, which is the right place for them, but a
 translator has no way to produce a Hindi set short of duplicating the assets. **Why
-left:** the mechanism for that is a different design — per-language asset variants, or a
-key on each asset pointing into a table — and choosing it before there is a second
-language to test against would be guessing. **Closing it:** decide when a second
-language is actually commissioned; the code side will not need to change.
+**Decided (TASK 040):** a **key on each asset pointing into the shared string table**,
+not per-language asset variants. Variants keep the Inspector readable and scale badly —
+every asset multiplies by the number of languages, and a fix to a quest has to be applied
+N times or it drifts. `QuestDefinition`, `MemoryFragment`, `InventoryItem`,
+`SkillDefinition` and `DivineAbilityDefinition` all carry `localizationKey` now, and
+`LocalizedContent` derives per-field keys from it by convention.
 
-### Text typed into a scene is not localizable at all
+**Still open:** no asset has a key filled in yet, so the mechanism is unexercised outside
+tests. See the TASK 040 section at the top of this file.
+
+### Text typed into a scene is not localizable at all (still open after TASK 040)
 
 `promptVerb` and `displayName` on an `Interactable`, `locationName` on a
 `LocationTrigger`, the Main Menu's button labels, the pause menu's. These are authored
 per-object in the Inspector, so they are not in the code and not in a catalogue either.
 **Consequence:** a player switching to Hindi would get translated HUD readouts and
-English button labels. **Closing it:** the same decision as above; a scene field would
-have to hold a key rather than a sentence, which is a change to every scene.
+English button labels. **Closing it:** the same mechanism as the assets above now exists
+— a scene field would hold a key rather than a sentence — but applying it means touching
+every prefab and scene object that carries a label, which is a separate mechanical pass
+and was not part of TASK 040.
 
 ### PARTLY CLOSED — No second language exists (closure pass, 28 September 2026)
 
@@ -287,15 +367,24 @@ looked like, and the two kinds of test answer different questions. **Closing it
 properly:** still keep a fixture from each format version as it is retired, taken from a
 real playthrough.
 
-### Difficulty's ownership is settled in code and not yet in the UI
+### CLOSED — Difficulty's ownership was settled in code and not in the UI (TASK 040)
 
 The slot wins and `SettingsManager` is told (see ARCHITECTURE.md). **What is untested:**
 changing difficulty from the in-game Settings panel mid-run writes to the global copy and
 to the live `Difficulty`, but the loaded slot only learns about it at the next save. Quit
-without saving and the change is lost, silently. **Why left:** SPEC.md section 44 allows
-mid-run difficulty changes but does not say whether one is meant to survive a reload
-without a save. **Closing it:** a decision, then one line — either the panel refuses while
-a game is loaded, or changing it marks the run dirty.
+without saving and the change is lost, silently.
+
+**Decided (TASK 040): changing it marks the run dirty.** `SettingsManager.SetDifficulty`
+publishes `DifficultyChangedByPlayerEvent`, and `SaveManager` sets
+`HasUnsavedRunChanges` with a reason a prompt can quote. Refusing the change while a game
+is loaded was the alternative and is worse: the commonest reason to change difficulty is
+that the fight in front of you is too hard, which is exactly when a game is loaded.
+
+`AdoptDifficultyFromSave` deliberately does **not** mark anything — that is the game
+discovering what a run is being played on, not the player changing it, and conflating the
+two would make every load look like unsaved work.
+
+**Still open:** nothing reads the flag yet. See the TASK 040 section at the top.
 
 ### Avarsha's NavMesh was briefly an in-memory object
 

@@ -135,10 +135,107 @@ namespace Game.EditorTools
             CheckMemories(issues, catalogue.Memories, catalogue);
             CheckSkills(issues, catalogue.Skills);
             CheckEndings(issues, catalogue);
+            CheckLocalizationKeys(issues, catalogue);
 
             issues.AddRange(DialogueValidation.Validate(catalogue));
 
             return issues;
+        }
+
+        /// <summary>
+        /// Localization keys on content assets (TASK 040's localization decision).
+        ///
+        /// Two things can go wrong once assets carry keys, and only one of them is
+        /// serious.
+        ///
+        /// **Two assets sharing a key is an error.** They would both read the same
+        /// translated title, and the symptom — two quests with the same name in the
+        /// journal — looks like a content mistake rather than a localization one, so it
+        /// would be looked for in the wrong place.
+        ///
+        /// **A key with nothing translated under it is a warning**, and deliberately not
+        /// an error. That is the normal state of a project mid-translation, and the
+        /// fallback means the player still reads the authored text. Making it an error
+        /// would mean an author could not add a key until a translator had caught up,
+        /// which is backwards — the key is what tells the translator the asset exists.
+        ///
+        /// Checked against the English table, because that is the one that must be
+        /// complete. Whether another language is complete is a question for whoever
+        /// commissioned it.
+        /// </summary>
+        private static void CheckLocalizationKeys(List<ContentIssue> issues, ContentCatalogue catalogue)
+        {
+            var english = Resources.Load<Game.Core.Localization.StringTable>("Localization/Strings_en");
+            var seen = new Dictionary<string, string>();
+
+            void Check(string key, string subject, UnityEngine.Object asset, params string[] fields)
+            {
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    // Not localized. Reads as authored, which is valid and is the state
+                    // every asset in the project is in today.
+                    return;
+                }
+
+                if (seen.TryGetValue(key, out var owner))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Error, "localization-key", subject,
+                        $"uses localization key '{key}', which '{owner}' already uses. Both would show the "
+                        + "same translated text.", asset));
+                    return;
+                }
+
+                seen[key] = subject;
+
+                if (english == null)
+                {
+                    return;
+                }
+
+                foreach (var field in fields)
+                {
+                    var full = Game.Core.Localization.LocalizedContent.KeyFor(key, field);
+
+                    if (!english.Has(full))
+                    {
+                        issues.Add(new ContentIssue(ContentSeverity.Warning, "localization-key", subject,
+                            $"declares localization key '{key}' but Strings_en has no '{full}'. The asset's "
+                            + "own text is shown instead, so this is a to-do rather than a break.", asset));
+                    }
+                }
+            }
+
+            foreach (var quest in catalogue.Quests)
+            {
+                if (quest != null)
+                {
+                    Check(quest.LocalizationKey, quest.QuestId, quest, "title", "description");
+                }
+            }
+
+            foreach (var memory in catalogue.Memories)
+            {
+                if (memory != null)
+                {
+                    Check(memory.LocalizationKey, memory.MemoryId, memory, "title", "description");
+                }
+            }
+
+            foreach (var item in catalogue.Items)
+            {
+                if (item != null)
+                {
+                    Check(item.LocalizationKey, item.ItemId, item, "name", "description");
+                }
+            }
+
+            foreach (var skill in catalogue.Skills)
+            {
+                if (skill != null)
+                {
+                    Check(skill.LocalizationKey, skill.SkillId, skill, "name", "description");
+                }
+            }
         }
 
         /// <summary>

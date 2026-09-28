@@ -15,7 +15,7 @@ namespace Game.Memory
     /// callers: a memory marked Critical cannot be corrupted or forgotten, so no
     /// amount of ordinary gameplay can make story progression unreachable.
     ///
-    /// Also reacts to <see cref="Game.Combat.EmberStepUsedEvent"/> (SPEC.md section 8.1,
+    /// Also reacts to <see cref="Game.Combat.Abilities.DivineAbilityUsedEvent"/> (SPEC.md section 8.1,
     /// TASK 011) — a deliberate exception to Memory otherwise never referencing Combat,
     /// justified the same way <see cref="Game.AI.EnemyStagger"/> reacting to
     /// <see cref="Game.Combat.ParryEvent"/> already is: reading another layer's
@@ -33,14 +33,8 @@ namespace Game.Memory
         [Tooltip("Every memory that exists, so states can be resolved by id from dialogue and save data.")]
         [SerializeField] private MemoryFragment[] catalogue;
 
-        [Header("Ember Step's cost (SPEC.md section 20)")]
-        [Tooltip("Overall integrity spent every time Ember Step is used.")]
-        [SerializeField] private float emberStepIntegrityCost = 0.02f;
-
-        [Tooltip("Every this many uses, one Optional memory the player knows is temporarily forgotten. Zero disables it.")]
-        [SerializeField] private int emberStepUsesPerForget = 3;
-
-        [Tooltip("Seconds before a memory Ember Step forgot comes back on its own.")]
+        [Header("Ability memory costs (SPEC.md section 20)")]
+        [Tooltip("Seconds before a memory an ability forgot comes back on its own. How long forgetting lasts is this system's business; how much an ability costs is the ability's.")]
         [SerializeField] private float temporaryForgetSeconds = 20f;
 
         private readonly Dictionary<string, MemoryState> states = new();
@@ -69,7 +63,7 @@ namespace Game.Memory
         private void OnEnable()
         {
             EventBus.Subscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
-            EventBus.Subscribe<Game.Combat.EmberStepUsedEvent>(OnEmberStepUsed);
+            EventBus.Subscribe<Game.Combat.Abilities.DivineAbilityUsedEvent>(OnDivineAbilityUsed);
 
             // Dialogue asks "what state is memory X in?" through this hook so it does
             // not have to reference the Memory system (SPEC.md section 47).
@@ -79,7 +73,7 @@ namespace Game.Memory
         private void OnDisable()
         {
             EventBus.Unsubscribe<DialogueConsequenceEvent>(OnDialogueConsequence);
-            EventBus.Unsubscribe<Game.Combat.EmberStepUsedEvent>(OnEmberStepUsed);
+            EventBus.Unsubscribe<Game.Combat.Abilities.DivineAbilityUsedEvent>(OnDivineAbilityUsed);
 
             if (DialogueGraph.MemoryStateResolver == ResolveStateName)
             {
@@ -333,21 +327,41 @@ namespace Game.Memory
         }
 
         /// <summary>
-        /// Ember Step's cost: a small constant drain on overall integrity every use,
-        /// and every <see cref="emberStepUsesPerForget"/>th use, one Optional memory
-        /// the player currently knows is temporarily forgotten (SPEC.md section 20:
-        /// "cosmetic memories can disappear"). Never touches a Supporting or Critical
-        /// memory — those are not "minor".
+        /// Charges an ability's memory cost, if it has one (SPEC.md section 20).
+        ///
+        /// **Only designated abilities cost memory, and each states its own price**
+        /// (TASK 040 decision). This listens to every ability so no temple has to wire
+        /// anything up, and then does nothing at all unless that ability's definition says
+        /// it costs memory — which most will not. Charging every ability the same way was
+        /// the obvious generalisation and the wrong one: a cost everything pays is a tax,
+        /// and Ember Step burning memory is supposed to say something about Ember Step.
+        ///
+        /// The cost is read off the definition carried on the event, so this method knows
+        /// nothing about which abilities exist.
         /// </summary>
-        private void OnEmberStepUsed(Game.Combat.EmberStepUsedEvent used)
+        private void OnDivineAbilityUsed(Game.Combat.Abilities.DivineAbilityUsedEvent used)
         {
-            ReduceIntegrity(emberStepIntegrityCost);
+            var definition = used.Definition;
 
-            if (emberStepUsesPerForget <= 0 || used.TotalUses % emberStepUsesPerForget != 0)
+            // No definition, or an ability that costs nothing: the overwhelmingly common
+            // case, and it must be free rather than merely cheap.
+            if (definition == null || !definition.CostsMemory)
             {
                 return;
             }
 
+            ReduceIntegrity(definition.MemoryIntegrityCostPerUse);
+
+            var usesPerForget = definition.UsesPerForgottenMemory;
+            if (usesPerForget <= 0 || used.TotalUses % usesPerForget != 0)
+            {
+                return;
+            }
+
+            // One Optional memory the player currently knows, temporarily forgotten
+            // (SPEC.md section 20: "cosmetic memories can disappear"). Never a Supporting
+            // or Critical one — those are not "minor", and losing one to an ability the
+            // player is encouraged to use would be a softlock dressed as flavour.
             var memory = FindRandomKnownOptionalMemory();
             if (memory == null)
             {
@@ -361,7 +375,7 @@ namespace Game.Memory
             }
 
             GameLogger.Log(LogCategory.Memory,
-                $"Ember Step's repeated use temporarily forgot '{memory.Title}'.", this);
+                $"Repeated use of '{definition.AbilityId}' temporarily forgot '{memory.Title}'.", this);
             StartCoroutine(RestoreAfterDelay(memory, previousState, ScaledForgetSeconds));
         }
 
@@ -438,10 +452,8 @@ namespace Game.Memory
         }
 
         /// <summary>Test and tuning seam for Ember Step's memory cost.</summary>
-        public void ConfigureEmberStepCost(float integrityCostPerUse, int usesPerForget, float forgetSeconds)
+        public void ConfigureForgetDelay(float forgetSeconds)
         {
-            emberStepIntegrityCost = integrityCostPerUse;
-            emberStepUsesPerForget = usesPerForget;
             temporaryForgetSeconds = forgetSeconds;
         }
     }

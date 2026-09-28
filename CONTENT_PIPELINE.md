@@ -134,10 +134,24 @@ key in `StringKeys`, read through `Strings.Get` or `Strings.Format`.
 Placeholders are positional — `{0}`, `{1}` — never `{name}` and never C# interpolation.
 A translator must be able to reorder them; Hindi puts the verb last.
 
-Text authored **as data** — a quest's title, a memory's description, a dialogue line, an
-item's name — stays in its ScriptableObject. Those are content, not code, and are
-localized by translating the asset. That mechanism does not exist yet; see
-`KNOWN_ISSUES.md`.
+Text authored **as data** — a quest's title, a memory's description, an item's name —
+stays in its ScriptableObject, and is localized by **a key on the asset pointing into
+the same string table** (TASK 040's decision; see `LocalizedContent`). Fill in
+`localizationKey` with the asset's id in lower case, prefixed by its kind:
+
+| Asset | Key | Fields derived |
+|---|---|---|
+| `Quest_TheQueensCharge` | `quest.q001` | `quest.q001.title`, `quest.q001.description` |
+| `Memory_AgniyasEmber` | `memory.mem_003` | `.title`, `.description` |
+| `Item_EMBER_DRAUGHT` | `item.ember_draught` | `.name`, `.description` |
+| `Skill_WARRIOR_DAMAGE` | `skill.warrior_damage` | `.name`, `.description` |
+
+**Leaving the key blank is valid** and is what every shipped asset does today: the asset
+shows the text typed into it. Adding a key before a translation exists is also valid —
+the author's text still shows, and the validator raises a warning naming the key a
+translator needs to fill. What is *not* valid is two assets sharing a key; that is an
+error, because both would render the same title and the symptom looks like a content
+mistake rather than a localization one.
 
 **After adding or changing a key, regenerate the pseudo-locale:**
 

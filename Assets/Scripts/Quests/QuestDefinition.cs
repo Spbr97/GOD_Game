@@ -35,9 +35,24 @@ namespace Game.Quests
 
         [SerializeField] private QuestReward[] rewards;
 
+
+        [Tooltip("Optional key into the shared string table, e.g. \"quest.q001\". Blank means this asset is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
+        /// <summary>The key this asset's text is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>Test and tooling seam: points this asset's text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
+
         public string QuestId => string.IsNullOrEmpty(questId) ? name : questId;
-        public string Title => title;
-        public string Description => description;
+        public string Title => Game.Core.Localization.LocalizedContent.Text(localizationKey, "title", title);
+        public string Description => Game.Core.Localization.LocalizedContent.Text(localizationKey, "description", description);
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredTitle => title;
+
+        public string AuthoredDescription => description;
         public IReadOnlyList<QuestObjective> Objectives => objectives;
         public IReadOnlyList<string> RequiredFlags => requiredFlags;
         public IReadOnlyList<string> CompletionFlags => completionFlags;

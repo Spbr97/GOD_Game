@@ -4,6 +4,33 @@ using UnityEngine.InputSystem;
 
 namespace Game.Core
 {
+    /// <summary>
+    /// Raised when the **player** changes difficulty, and never when the game merely
+    /// discovers what the difficulty already is.
+    ///
+    /// The distinction is the whole point, and it is the same one that separates
+    /// <c>SettingsManager.SetDifficulty</c> from <c>AdoptDifficultyFromSave</c>. A save
+    /// being loaded tells the global settings what that run is being played on; that is
+    /// not a change and must not mark anything dirty. A player moving the control in the
+    /// Settings panel mid-run is a change, and the run they are playing no longer matches
+    /// the file on disk.
+    ///
+    /// SPEC.md section 44 permits changing difficulty mid-run but does not say whether
+    /// the change should survive a reload without a save. TASK 040 settled it: the run is
+    /// marked dirty, so quitting without saving cannot silently discard it.
+    /// </summary>
+    public readonly struct DifficultyChangedByPlayerEvent
+    {
+        public readonly DifficultyMode Previous;
+        public readonly DifficultyMode Current;
+
+        public DifficultyChangedByPlayerEvent(DifficultyMode previous, DifficultyMode current)
+        {
+            Previous = previous;
+            Current = current;
+        }
+    }
+
     [Serializable]
     public class GameSettings
     {
@@ -306,9 +333,20 @@ namespace Game.Core
         /// <summary>Changes difficulty and persists it. SPEC.md section 44 allows this mid-run.</summary>
         public void SetDifficulty(DifficultyMode mode)
         {
+            var previous = Current.Difficulty;
+
             Current.Difficulty = mode;
             Apply();
             Save();
+
+            if (previous != mode)
+            {
+                // Announced rather than acted on, because what a loaded run should do
+                // about it is the save system's business and nothing may depend on Save
+                // (SPEC.md section 58). SaveManager marks the run dirty; see
+                // DifficultyChangedByPlayerEvent.
+                EventBus.Publish(new DifficultyChangedByPlayerEvent(previous, mode));
+            }
         }
 
         /// <summary>

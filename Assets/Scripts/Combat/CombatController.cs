@@ -420,6 +420,15 @@ namespace Game.Combat
             return abilityController;
         }
 
+        [Header("Ember Step's memory cost (SPEC.md section 20)")]
+        [Tooltip("Overall memory integrity spent every use of Ember Step.")]
+        [Min(0f)]
+        [SerializeField] private float emberStepIntegrityCost = 0.02f;
+
+        [Tooltip("Every this many uses of Ember Step, one Optional memory the player knows is temporarily forgotten. Zero disables it.")]
+        [Min(0)]
+        [SerializeField] private int emberStepUsesPerForget = 3;
+
         /// <summary>
         /// Ember Step's definition, built from this component's serialized fields. Rebuilt
         /// whenever <see cref="ConfigureAbility"/> changes them, so a tuning change or a
@@ -435,6 +444,11 @@ namespace Game.Combat
 
             emberStep.Configure(abilityId, abilityCost, abilityCooldown, abilityDashDuration,
                 requireAbilityUnlock, label: "Ember Step");
+
+            // Ember Step is one of the designated abilities that costs memory (SPEC.md
+            // section 20). The numbers are the ones MemoryManager used to hold as its own
+            // serialized fields; they belong to the ability, not to the memory system.
+            emberStep.ConfigureMemoryCost(true, emberStepIntegrityCost, emberStepUsesPerForget);
             return emberStep;
         }
 

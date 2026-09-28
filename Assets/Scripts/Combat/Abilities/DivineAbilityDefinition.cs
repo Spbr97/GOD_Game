@@ -50,11 +50,38 @@ namespace Game.Combat.Abilities
         [Min(0f)]
         [SerializeField] private float durationSeconds = 0.25f;
 
+        [Header("Memory cost (SPEC.md section 20)")]
+        [Tooltip("Whether using this ability costs memory at all. Off by default: only designated abilities pay one (TASK 040).")]
+        [SerializeField] private bool costsMemory;
+
+        [Tooltip("Overall memory integrity spent every use. Only read when Costs Memory is on.")]
+        [Min(0f)]
+        [SerializeField] private float memoryIntegrityCostPerUse = 0.02f;
+
+        [Tooltip("Every this many uses, one Optional memory the player knows is temporarily forgotten. Zero disables it.")]
+        [Min(0)]
+        [SerializeField] private int usesPerForgottenMemory = 3;
+
         public string AbilityId => string.IsNullOrEmpty(abilityId) ? name : abilityId;
 
-        public string DisplayName => displayName;
 
-        public string Description => description;
+        [Tooltip("Optional key into the shared string table, e.g. \"ability.ember_step\". Blank means this asset is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
+        /// <summary>The key this asset's text is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>Test and tooling seam: points this asset's text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
+
+        public string DisplayName => Game.Core.Localization.LocalizedContent.Text(localizationKey, "name", displayName);
+
+        public string Description => Game.Core.Localization.LocalizedContent.Text(localizationKey, "description", description);
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredDisplayName => displayName;
+
+        public string AuthoredDescription => description;
 
         public string GrantedBy => grantedBy;
 
@@ -88,6 +115,35 @@ namespace Game.Combat.Abilities
         /// <summary>True when the world says the player has been granted this.</summary>
         public bool IsUnlocked =>
             !requiresUnlock || (WorldState.Instance != null && WorldState.Instance.GetFlag(UnlockFlag));
+
+        /// <summary>
+        /// Whether this ability costs the player memory to use.
+        ///
+        /// **Off by default, and deliberately per-ability** (TASK 040 decision). SPEC.md
+        /// section 20 gives Ember Step a memory cost, and the tempting generalisation was
+        /// to charge every <see cref="DivineAbilityUsedEvent"/> the same way — one rule,
+        /// no per-ability wiring. That was rejected: a cost every ability pays is a tax,
+        /// and a tax is not a characterisation. Ember Step burning memory is a statement
+        /// about fire and about what the player is trading away, and it stops meaning
+        /// anything if the water temple's ability does it too.
+        ///
+        /// So each ability states its own cost, and most will state none.
+        /// </summary>
+        public bool CostsMemory => costsMemory;
+
+        /// <summary>Integrity spent per use, or zero when this ability costs no memory.</summary>
+        public float MemoryIntegrityCostPerUse => costsMemory ? memoryIntegrityCostPerUse : 0f;
+
+        /// <summary>Uses per temporarily forgotten memory, or zero when this ability costs no memory.</summary>
+        public int UsesPerForgottenMemory => costsMemory ? usesPerForgottenMemory : 0;
+
+        /// <summary>Test and tooling seam for the memory cost.</summary>
+        public void ConfigureMemoryCost(bool costs, float integrityPerUse = 0.02f, int usesPerForget = 3)
+        {
+            costsMemory = costs;
+            memoryIntegrityCostPerUse = integrityPerUse;
+            usesPerForgottenMemory = usesPerForget;
+        }
 
         /// <summary>Test and tooling seam.</summary>
         public void Configure(string id, float cost, float cooldown, float duration = 0.25f,

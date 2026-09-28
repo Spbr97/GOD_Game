@@ -195,7 +195,7 @@ namespace Game.Combat.Abilities
 
             GameLogger.Log(LogCategory.Combat,
                 $"{name} used '{abilityId}' (use #{useCounts[abilityId]}).", this);
-            EventBus.Publish(new DivineAbilityUsedEvent(gameObject, abilityId, useCounts[abilityId]));
+            EventBus.Publish(new DivineAbilityUsedEvent(gameObject, abilityId, useCounts[abilityId], definition));
             return true;
         }
 

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryFragment
   memoryId: MEM_003
   title: Agniya's Ember
-  description: The flame does not go out when the god falls. It just stops pretending to be a god and remembers being fire - patient, indifferent, older than the seven, older than the war that made them seven. Somewhere in the heat you were sure you heard it say your true name before it forgot how.
+  description: The flame does not go out when the god falls. It just stops pretending to be a god and remembers being fire - patient, indifferent, older than the seven, older than the day they chose to be seven. Somewhere in the heat you were sure you heard it say your true name before it forgot how.
   owner: Agniya
   location: Agniya Temple
   category: 2

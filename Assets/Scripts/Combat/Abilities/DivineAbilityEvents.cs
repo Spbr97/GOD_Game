@@ -18,11 +18,24 @@ namespace Game.Combat.Abilities
         /// <summary>How many times this ability has been used this run. SPEC.md section 20's "repeated use" costs read this.</summary>
         public readonly int TotalUses;
 
-        public DivineAbilityUsedEvent(GameObject user, string abilityId, int totalUses)
+        /// <summary>
+        /// What was used, so a listener can read the ability's own costs without looking
+        /// them up. Carried on the event rather than resolved from <see cref="User"/>
+        /// because a listener should not have to know which component holds the registry
+        /// — and because it lets a test raise a complete event without a live user.
+        ///
+        /// May be null for an event raised by something that has no definition to hand.
+        /// Every listener must tolerate that.
+        /// </summary>
+        public readonly DivineAbilityDefinition Definition;
+
+        public DivineAbilityUsedEvent(GameObject user, string abilityId, int totalUses,
+            DivineAbilityDefinition definition = null)
         {
             User = user;
             AbilityId = abilityId;
             TotalUses = totalUses;
+            Definition = definition;
         }
     }
 

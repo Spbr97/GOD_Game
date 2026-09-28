@@ -96,7 +96,7 @@ Ten classes exist as data (SPEC.md section 16); six are authored:
 | Divine Guardian | 100 | 18 | Punishes greed |
 | Stone Guardian | 140 | 22 | Slow, heavy, out-waits you |
 | Temple Guardian (mini-boss) | 320 | 26 | Three phases |
-| Agniya, the First Flame (boss) | 500 | 32 | Three phases |
+| The Flame Sovereign (boss) | 500 | 32 | Three phases |
 
 AI is a state machine over Idle / Patrol / Investigate / Search / Chase /
 Attack / Retreat / ReturnHome / Stagger / Dead, driven by a pure `Decide`

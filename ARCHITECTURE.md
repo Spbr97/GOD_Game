@@ -512,6 +512,41 @@ Text authored **as data** — quest titles, memory descriptions, dialogue lines,
 
 `CONTENT_PIPELINE.md` is the authoring procedure this all serves.
 
+## Translating content, and what an ability costs (TASK 040)
+
+**Text in code versus text in data.** TASK 042 moved every string a *script* shows a
+player into `Strings_en`, behind a `StringKeys` constant. That left the larger half —
+quest titles, memory bodies, item and skill names — in ScriptableObjects, where content
+belongs and where a translator could not reach it.
+
+TASK 040 settled the mechanism: **each asset carries a `localizationKey` into the same
+shared table**, and `LocalizedContent` derives one key per field from it by convention
+(`quest.q001` → `quest.q001.title`). The alternative was a per-language copy of every
+asset, which reads better in the Inspector and scales badly: every asset multiplies by the
+number of languages, and a fix to one quest has to be applied N times or the copies drift.
+
+The fallback is what makes it adoptable one asset at a time. A blank key, or a key the
+table has no entry for, returns the text the author typed — so the game is fully playable
+in English with no keys assigned anywhere, which is exactly its state today. This is why
+`Strings.Find` exists beside `Strings.Get`: `Get` shows the key on a miss, because a
+missing key in code is a bug; `Find` returns null, because a missing key for content is a
+to-do and a player must still be able to read their journal.
+
+**What an ability costs.** SPEC.md section 20 gives Ember Step a memory cost, and the
+obvious generalisation was to charge every `DivineAbilityUsedEvent` alike — one rule, no
+per-ability wiring. That was rejected: a cost everything pays is a tax, and Ember Step
+burning memory is supposed to say something about Ember Step. So `DivineAbilityDefinition`
+declares whether it costs memory and how much, the definition rides on the event, and
+`MemoryManager` applies whatever the ability says without knowing which abilities exist.
+Most will say nothing, and must therefore be exactly free rather than cheap.
+
+**When a run is dirty.** `SaveManager.HasUnsavedRunChanges` is deliberately narrow.
+Ordinary play diverges from the last save constantly — flagging that would make the
+warning meaningless. It is set only when the *configuration* of the run changes, which
+today means a mid-run difficulty change, where the player's model is "I changed a setting"
+rather than "I played for a while". Any successful save clears it, including the
+autosave that now fires on entering a scene.
+
 ## Content data (`Assets/Data/`)
 
 Authored ScriptableObjects, per SPEC.md section 48:

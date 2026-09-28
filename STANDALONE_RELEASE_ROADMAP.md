@@ -65,7 +65,7 @@ not wait for every temple before testing a standalone build.
   generated players out of Git. **Gate:** a zipped, locally reproducible
   Windows build and a written smoke-test record. Unity supports scripted
   [Windows player builds](https://docs.unity3d.com/6000.0/Documentation/Manual/build-command-line.html).
-- [ ] **TASK 040 - Lock the production brief and story decisions.** Confirm the
+- [x] **TASK 040 - Lock the production brief and story decisions.** Confirm the
   full-game scope, campaign order, ending paths, reference PC, English-first
   release language and target download channel. Resolve the four author
   questions at the end of `STORY_BIBLE.md`, including Agniya's boss name,
@@ -73,6 +73,16 @@ not wait for every temple before testing a standalone build.
   map and a content budget per region. **Gate:** approved canon and an
   achievable content list with IDs, owners and acceptance tests. Technical
   work in TASK 039 can proceed while these decisions are made.
+  **Settled 28 September 2026.** Canon is in `STORY_BIBLE.md`'s DECIDED CANON
+  section; scope, reference PC, distribution and the Act I content list are in
+  the new `PRODUCTION_BRIEF.md`. **1.0 is the Act I vertical slice**, which moves
+  TASK 045-050 behind the release. The boss is **The Flame Sovereign**, there were
+  **exactly eight gods** and the erasure was a deliberate act rather than a war,
+  Nirvaan does not know his own name, and the Temple Guardian is a construct.
+  Four engineering decisions came with it and are implemented: a mid-run
+  difficulty change marks the run dirty, entering a scene autosaves, each ability
+  declares its own memory cost, and content assets carry a localization key into
+  the shared string table.
 - [x] **TASK 041 - Cross-scene progression and save durability.** Move the
   Agniya temple into its own scene, then prove a return trip to Avarsha keeps
   quests, memories, inventory, abilities, world flags and checkpoints without
@@ -214,12 +224,18 @@ temple when the existing puzzle, quest and boss frameworks can express it.
    Remote Unity CI remains blocked until the owner securely configures the
    repository's Personal license secrets; never put credentials in the repo.
 
-**Next action:** Finish the open acceptance gates for TASK 039, 042 and 043, then
-author TASK 044. TASK 039 still needs a build from a clean checkout and the manual
-player pass. TASK 042 still needs a complete authored Agniya chapter through the
-validated pipeline. TASK 043 still needs the manual combat feel pass. TASK 040
-requires production and canon decisions, including the four author questions at
-the end of `STORY_BIBLE.md`; those decisions govern TASK 044 and later content.
+**Next action:** **TASK 044 - Finish Avarsha and Agniya.** TASK 040 is closed, so
+the canon TASK 044 depends on is fixed: see `STORY_BIBLE.md`'s DECIDED CANON and
+`PRODUCTION_BRIEF.md`. Nothing now blocks authoring Act I content.
+
+Open gates that are not blocking it: TASK 039 needs a build from a clean checkout
+(the harness is `Tools/build-from-clean-checkout.ps1`, and it needs the work
+committed first) and the `TEST_PLAN.md` M0 manual pass. TASK 042 needs the authored
+Agniya chapter, which is TASK 044. TASK 043 needs the manual combat feel pass.
+
+**Scope note:** 1.0 is the Act I vertical slice, so TASK 045-050 (the remaining six
+temples) now sit **after** the 1.0 release rather than before it. TASKS 051-057 stay
+in front of it.
 
 TASK 043's implementation is in place: all twelve of SPEC.md section 30's
 skills now change play and survive a save (eight of them did nothing at all before),

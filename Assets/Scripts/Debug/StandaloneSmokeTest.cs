@@ -246,6 +246,18 @@ namespace Game.DevTools
             Check("saving is allowed again once the journey is over",
                 SaveManager.Instance != null && SaveManager.Instance.IsSafeToSave);
 
+            // TASK 040's autosave-on-temple-entry decision. Crossing into the temple has
+            // to have written a Checkpoint save on the way, because saving is refused for
+            // the whole crossing and a crash mid-way would otherwise cost the player
+            // everything since their last save.
+            //
+            // Checked here rather than in a PlayMode test because this is the only place a
+            // real crossing happens: an EditMode or PlayMode arena that names a loadable
+            // destination has that scene genuinely loaded underneath it.
+            Check("entering the temple autosaved on the way in",
+                SaveManager.Instance != null
+                && Game.Save.SaveStorage.Exists(SaveManager.Instance.Root, SaveSlot.Checkpoint));
+
             yield return Step($"7. the way out leads back to '{GameplayScene}'", () =>
             {
                 var door = FindExitTo(GameplayScene);

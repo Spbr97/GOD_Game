@@ -25,7 +25,8 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 | `SPEC.md` | The requirements. Authoritative; read it before implementing anything. |
 | `ARCHITECTURE.md` | How the code is arranged, and why each system is shaped as it is. |
 | `GAME_DESIGN.md` | What the game currently *is* — the loop, the tuning, and the reasoning behind the numbers. |
-| `STORY_BIBLE.md` | The fiction. **Read before writing any character line, place name or inscription** (SPEC.md section 82). |
+| `STORY_BIBLE.md` | The fiction. **Read before writing any character line, place name or inscription** (SPEC.md section 82). Its DECIDED CANON section is binding. |
+| `PRODUCTION_BRIEF.md` | What 1.0 is: scope, reference PC, distribution and the Act I content list. |
 | `TEST_PLAN.md` | How to run the tests, what they cover, and the manual pass. |
 | `WINDOWS_BUILD.md` | How to build, verify and package a Windows player, and what that does not prove. |
 | `CONTENT_PIPELINE.md` | How to author a temple: id conventions, the order to author in, and the checklist. |

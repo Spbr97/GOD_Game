@@ -1,5 +1,70 @@
 # CHANGELOG
 
+## Unreleased — TASK 040: Production brief and story canon
+
+The author settled the seven open production and canon questions plus four engineering
+decisions. `STANDALONE_RELEASE_ROADMAP.md` Gate A is closed, which unblocks TASK 044.
+
+### Decided
+
+- **1.0 is the Act I vertical slice** — a polished, complete introduction, with the other
+  six temples and Acts II–V following later. This moves TASK 045–050 behind the release.
+  New `PRODUCTION_BRIEF.md` holds the in/out table, the reference PC (i7 14th-gen,
+  RTX 4060, 1080p/60 as a **target**, nothing profiled yet), the distribution split
+  (itch.io for players, GitHub for source), and the Act I content list with acceptance
+  criteria.
+- **Canon**, in `STORY_BIBLE.md`'s new DECIDED CANON section, replacing its open
+  questions: the Agniya boss is **The Flame Sovereign** per SPEC.md; there were
+  **exactly eight** gods and the erasure was a **deliberate act by the seven, not a war**;
+  **Nirvaan does not know his own name**; the **Temple Guardian is a construct**, not a
+  Forgotten.
+
+### Changed — content
+
+- `Agniya.unity`, `Enemy_Boss_Agniya.asset` and `GAME_DESIGN.md` no longer name the boss
+  "Agniya, the First Flame". The id `BOSS_AGNIYA` is unchanged; ids are not player-facing.
+- `MEM_003 Agniya's Ember` no longer says "the war that made them seven" — it implied
+  sides, a campaign and survivors, which is a different and much larger story than seven
+  gods agreeing to remove one. It now reads "older than the day they chose to be seven",
+  which keeps the forward reference to the First Memory and makes the cause a decision
+  they can be held to.
+
+### Changed — engineering
+
+- **A mid-run difficulty change marks the run dirty.** `SetDifficulty` publishes
+  `DifficultyChangedByPlayerEvent`; `SaveManager` exposes `HasUnsavedRunChanges` and a
+  reason a prompt can quote, cleared by any successful save. `AdoptDifficultyFromSave`
+  deliberately marks nothing — that is the game discovering what a run is played on, not
+  the player changing it. Refusing the change while a game is loaded was rejected: the
+  commonest reason to change difficulty is the fight in front of you.
+- **Entering a scene autosaves**, to the Checkpoint slot, before anything is blocked.
+  Ordering matters and is a real trap: `Save` refuses while a blocker is set, so an
+  autosave one line later would be silently refused. Continue already takes the newest
+  slot, so no new slot and no menu change was needed. Asserted in `StandaloneSmokeTest`,
+  because a real crossing cannot happen in a test arena — a destination Build Settings
+  knows about is genuinely loaded and destroys the arena.
+- **Each ability declares its own memory cost.** `DivineAbilityDefinition` gained
+  `costsMemory` and its two numbers, carried on `DivineAbilityUsedEvent` so
+  `MemoryManager` reads a cost without knowing which abilities exist. Charging every
+  ability alike was the tempting generalisation and was rejected — a cost everything pays
+  is a tax, not a characterisation.
+- **Content assets carry a localization key** into the shared string table
+  (`LocalizedContent`), rather than per-language asset variants: variants multiply every
+  asset by the number of languages and drift when one is fixed. Keys derive per-field by
+  convention, and a missing translation silently falls back to the author's text — which
+  is why this shipped without touching a single asset's behaviour. New `Strings.Find`
+  returns null on a miss, where `Strings.Get` shows the key: a missing key in code is a
+  bug, a missing key for content is a to-do.
+- A `localization-key` validation rule: a shared key is an error, a key with nothing
+  translated behind it is a warning.
+
+### Verified
+
+- 281 EditMode + 193 PlayMode = **474 tests, all passing** (was 464).
+- Three PlayMode autosave tests written for this were **deleted rather than kept**: they
+  named a scene deliberately absent from Build Settings, so travel was refused before the
+  autosave and they asserted nothing while logging an unhandled error.
+
 ## Unreleased — Known-issue closure pass
 
 A pass over the open entries from TASK 039–043, taking the thirteen that needed no
