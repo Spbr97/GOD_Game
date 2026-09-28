@@ -34,6 +34,13 @@ namespace Game.World
 
         [SerializeField] private LayerMask playerLayers = ~0;
 
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042) to check these point at real content.</summary>
+        public string ObjectiveId => objectiveId;
+
+        public string FlagToSet => flagToSet;
+
+        public string QuestToStart => questToStart;
+
         public bool HasFired { get; private set; }
         public string LocationName => locationName;
 

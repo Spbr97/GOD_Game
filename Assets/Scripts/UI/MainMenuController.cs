@@ -3,6 +3,7 @@ using Game.Core;
 using Game.Save;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -88,6 +89,23 @@ namespace Game.UI
 
         private void Awake()
         {
+            // Being at the Main Menu ends any journey (TASK 041). A pending arrival is a
+            // static, so one left behind by a failed load, or by a player who quit to the
+            // menu mid-transition, would otherwise be honoured by whichever gameplay scene
+            // is entered next — placing them at a door they never walked through, in a
+            // scene they did not travel to. The same goes for this session's per-scene
+            // memory: Continue adopts the file's records, and New Game must start with none.
+            SceneTravel.Clear();
+            SceneMemory.Clear();
+
+            // And the disk half of it. The journal exists so a crossing survives losing
+            // its statics, which means a stale one would deposit a previous run's
+            // progression into a New Game that happens to start in the same scene.
+            // Reaching this menu is the one unambiguous signal that the journey is over.
+            Game.Save.TravelJournal.Clear(Game.Save.SaveManager.Instance != null
+                ? Game.Save.SaveManager.Instance.Root
+                : Game.Save.SaveStorage.DefaultRoot);
+
             newGameButton?.onClick.AddListener(OpenNewGame);
             continueButton?.onClick.AddListener(Continue);
             loadButton?.onClick.AddListener(OpenLoad);
@@ -208,6 +226,24 @@ namespace Game.UI
 
         // -------------------------------------------------------- new game / continue / load
 
+#if UNITY_EDITOR || GAME_DEVELOPER_TOOLS
+        /// <summary>
+        /// Lets <c>StandaloneSmokeTest</c> take the same two paths the New Game and
+        /// Continue buttons take, inside a built player where nothing can click them
+        /// (STANDALONE_RELEASE_ROADMAP.md TASK 039).
+        ///
+        /// Deliberately a seam onto the real methods rather than a second copy of them:
+        /// the point of the smoke test is to exercise difficulty application, world
+        /// state reset and save precedence as shipped, so a bug in any of them must
+        /// fail the test instead of living in a parallel implementation. Compiled out
+        /// of a release player along with the harness that calls it (SPEC.md section 52).
+        /// </summary>
+        public void BeginNewGameForSmokeTest(DifficultyMode mode) => StartNewGame(mode);
+
+        /// <inheritdoc cref="BeginNewGameForSmokeTest"/>
+        public void ContinueForSmokeTest() => Continue();
+#endif
+
         private void StartNewGame(DifficultyMode mode)
         {
             if (SettingsManager.Instance != null)
@@ -299,11 +335,12 @@ namespace Game.UI
                 var outcome = SaveBrowser.Peek(root, row.Slot);
                 if (outcome.Loaded)
                 {
-                    SetText(row.Label, $"{row.Slot}\n{outcome.Data.SceneName}  -  {outcome.Data.Timestamp.ToLocalTime():g}");
+                    SetText(row.Label, Strings.Format(StringKeys.MenuSaveRow, row.Slot, outcome.Data.SceneName,
+                        outcome.Data.Timestamp.ToLocalTime().ToString("g")));
                 }
                 else
                 {
-                    SetText(row.Label, $"{row.Slot}\n(empty)");
+                    SetText(row.Label, Strings.Format(StringKeys.MenuSaveRowEmpty, row.Slot));
                 }
 
                 if (row.LoadRowButton != null)
@@ -379,7 +416,7 @@ namespace Game.UI
 
             foreach (var resolution in Screen.resolutions)
             {
-                var label = $"{resolution.width} x {resolution.height}";
+                var label = Strings.Format(StringKeys.MenuResolution, resolution.width, resolution.height);
                 if (labels.Contains(label))
                 {
                     // Screen.resolutions lists the same size once per refresh rate.

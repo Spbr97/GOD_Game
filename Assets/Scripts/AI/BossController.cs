@@ -81,6 +81,9 @@ namespace Game.AI
 
         public string BossId => bossId;
         public string DisplayName => displayName;
+
+        /// <summary>The object revealed on defeat, or null. Read by <c>ContentValidation</c> (TASK 042).</summary>
+        public GameObject Reward => reward;
         public int Phase { get; private set; } = 1;
         public bool EncounterStarted { get; private set; }
         public bool Defeated { get; private set; }

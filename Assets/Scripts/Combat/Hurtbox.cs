@@ -60,6 +60,18 @@ namespace Game.Combat
             }
 
             damage.Amount *= damageMultiplier;
+
+            // The Guardian branch's damage-reduction skill (SPEC.md section 30, TASK 043).
+            // Applied here rather than in HealthComponent because this is the one place
+            // that knows the damage is arriving at the *player*: GUARDIAN_REDUCTION must
+            // not also make the player's own attacks weaker, and HealthComponent is shared
+            // with every enemy in the game.
+            if (faction == Faction.Player)
+            {
+                damage.Amount *= Game.Progression.SkillTreeManager.Scale(
+                    Game.Progression.SkillEffectType.IncomingDamageMultiplier);
+            }
+
             return health.TakeDamage(damage);
         }
 

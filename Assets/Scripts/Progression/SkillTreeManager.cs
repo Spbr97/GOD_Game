@@ -127,6 +127,28 @@ namespace Game.Progression
         /// skill of this type. Zero when none are unlocked, so a caller can always add
         /// this to a base value without a null check.
         /// </summary>
+        /// <summary>
+        /// The scale factor for a multiplier-type effect: <c>1 + </c>the summed bonus,
+        /// never below zero.
+        ///
+        /// Static, and null-safe, because every call site would otherwise repeat
+        /// <c>1f + (SkillTreeManager.Instance?.GetBonus(...) ?? 0f)</c> — and the first
+        /// one to write <c>1f -</c> by mistake produces a skill that makes the player
+        /// worse, which plays like a balance problem rather than like a bug.
+        ///
+        /// **Direction lives in the data, not here.** A skill that should reduce
+        /// something carries a negative <c>effectValue</c>: <c>DIVINE_COOLDOWN</c> is
+        /// -0.2, so a cooldown multiplied by this comes out 20% shorter. One rule at
+        /// every call site, and the sign is visible in the Inspector next to the
+        /// skill's own description.
+        /// </summary>
+        public static float Scale(SkillEffectType effectType) =>
+            Mathf.Max(0f, 1f + (Instance != null ? Instance.GetBonus(effectType) : 0f));
+
+        /// <summary>The summed flat bonus for an additive effect, in that effect's own units.</summary>
+        public static float Flat(SkillEffectType effectType) =>
+            Instance != null ? Instance.GetBonus(effectType) : 0f;
+
         public float GetBonus(SkillEffectType effectType)
         {
             var total = 0f;

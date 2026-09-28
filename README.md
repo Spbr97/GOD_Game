@@ -8,9 +8,13 @@ Third-person mythological action-adventure prototype. Unity 6 + C#.
 
 The vertical slice (SPEC.md section 61) is playable in Unity: Avarsha, the
 Agniya temple, combat, quests, dialogue, memory, puzzles, saving and two bosses.
-310 automated tests passed locally. A Windows standalone player has not yet
-been verified; the remaining six temples and Acts III–V are still to be made.
-See `STANDALONE_RELEASE_ROADMAP.md` for the path to a finished Windows 1.0 game.
+450 automated tests passed locally. A **Windows x64 player builds, launches and
+passes an automated smoke test outside the Editor** (TASK 039), and the temple is
+now **its own scene** — the smoke test walks Avarsha → Agniya → back in the shipped
+binary and proves quests, memories, inventory, abilities, flags and checkpoints all
+survive the trip (TASK 041). The manual pass has still not been done, and the
+remaining six temples and Acts III–V are still to be made. See `STANDALONE_RELEASE_ROADMAP.md` for the path to a finished
+Windows 1.0 game and `WINDOWS_BUILD.md` for how to build one today.
 
 See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 
@@ -23,6 +27,8 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 | `GAME_DESIGN.md` | What the game currently *is* — the loop, the tuning, and the reasoning behind the numbers. |
 | `STORY_BIBLE.md` | The fiction. **Read before writing any character line, place name or inscription** (SPEC.md section 82). |
 | `TEST_PLAN.md` | How to run the tests, what they cover, and the manual pass. |
+| `WINDOWS_BUILD.md` | How to build, verify and package a Windows player, and what that does not prove. |
+| `CONTENT_PIPELINE.md` | How to author a temple: id conventions, the order to author in, and the checklist. |
 | `ROADMAP.md` | The ordered task list. |
 | `STANDALONE_RELEASE_ROADMAP.md` | Tasks 039–057 and release gates for a finished Windows game. |
 | `RESOLUTION_PLAN.md` | Triage of every open issue — which are real bugs, which are placeholders, and what order to close them in. |
@@ -33,12 +39,21 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 ## Running the tests
 
 ```bash
-unity command run_tests --mode editor     # 180 tests at the last local run
-unity command run_tests --mode playmode   # 130 tests at the last local run
+unity command run_tests --mode editor     # 263 tests at the last local run
+unity command run_tests --mode playmode   # 187 tests at the last local run
 ```
 
 `TEST_PLAN.md` covers the two failure modes that are not your change, and the
 manual pass that the automated suite cannot replace.
+
+## Building a Windows player
+
+```powershell
+.\Tools\build-windows.ps1 -Variant Both   # build, smoke test, package, checksum
+```
+
+Nothing may be open in Unity. `WINDOWS_BUILD.md` explains the two variants, what is
+verified automatically, and what still needs a person.
 
 ## Opening the project
 

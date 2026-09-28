@@ -36,6 +36,37 @@ namespace Game.World
         public bool IsSolved { get; private set; }
         public string PuzzleId => string.IsNullOrEmpty(puzzleId) ? name : puzzleId;
 
+        /// <summary>
+        /// The world flag this puzzle's solve is remembered as, or empty when it is
+        /// remembered by nothing. Exposed so <c>ProgressionRecovery</c> can ask whether a
+        /// save says a puzzle was passed without having to guess the flag's name from the
+        /// puzzle's id — content authors pick the two independently.
+        /// </summary>
+        public string SolvedFlag => solvedFlag;
+
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042).</summary>
+        public string ObjectiveIdOnSolve => objectiveIdOnSolve;
+
+        /// <summary>The controller for <paramref name="id"/> in the loaded scenes, or null.</summary>
+        public static PuzzleController Find(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return null;
+            }
+
+            var controllers = Object.FindObjectsByType<PuzzleController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (var i = 0; i < controllers.Length; i++)
+            {
+                if (controllers[i].PuzzleId == id)
+                {
+                    return controllers[i];
+                }
+            }
+
+            return null;
+        }
+
         private void Awake()
         {
             Resolve();

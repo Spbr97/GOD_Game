@@ -27,12 +27,40 @@ namespace Game.AI
         [Tooltip("Telegraph scale multiplier — a shape-based tell independent of the tint, so the wind-up still reads for a colorblind player (SPEC.md section 43: never colour alone).")]
         [SerializeField] private float telegraphScalePulse = 1.12f;
 
+        [Tooltip("Telegraph scale multiplier for an unblockable swing. Bigger than the ordinary one, so which kind of attack is coming is legible without telling violet from orange.")]
+        [SerializeField] private float unblockableScalePulse = 1.38f;
+
         private Coroutine attackRoutine;
         private float nextAttackAllowedAt;
         private float cooldownMultiplier = 1f;
         private MaterialPropertyBlock propertyBlock;
         private Vector3[] telegraphOriginalScales;
+        private int attackNumber;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        /// <summary>
+        /// Whether the swing being wound up now cannot be blocked. Read by tests and
+        /// available to a HUD that wants to say so in words as well as in colour.
+        /// </summary>
+        public bool NextAttackIsUnblockable { get; private set; }
+
+        /// <summary>The colour currently being flashed. The ordinary telegraph colour, or the unblockable one.</summary>
+        public Color CurrentTelegraphColour { get; private set; }
+
+        /// <summary>
+        /// The scale multiplier currently applied to the telegraph, and the second half of
+        /// SPEC.md section 43's "never colour alone".
+        ///
+        /// The pulse always existed, but it was the same size for both kinds of swing, so
+        /// it separated "an attack is coming" from "no attack" and said nothing about
+        /// which attack. For a player who cannot tell the ordinary telegraph from the
+        /// unblockable one by hue, that made the most consequential read in the fight a
+        /// coin toss. An unblockable now swells noticeably further.
+        /// </summary>
+        public float CurrentTelegraphPulse { get; private set; } = 1f;
+
+        /// <summary>How many attacks this enemy has begun. Drives the unblockable cadence.</summary>
+        public int AttacksBegun => attackNumber;
 
         /// <summary>True from the start of a telegraph to the end of a recovery.</summary>
         public bool IsAttacking => attackRoutine != null;
@@ -107,6 +135,7 @@ namespace Game.AI
             }
 
             IsTelegraphing = false;
+            NextAttackIsUnblockable = false;
             hitbox?.Deactivate();
             ClearTint();
             ClearTelegraphPulse();
@@ -125,9 +154,24 @@ namespace Game.AI
             var damage = archetype != null ? archetype.DamageFor() : 10f;
             var cooldown = (archetype != null ? archetype.CooldownFor() : 1.5f) * cooldownMultiplier;
 
+            // Decided before the wind-up starts, because the wind-up is how the player is
+            // told (SPEC.md section 16). An attack that decides what it is after the
+            // telegraph has played is an attack the player could not have read.
+            attackNumber++;
+            var unblockable = archetype != null && archetype.IsUnblockableAttack(attackNumber);
+            NextAttackIsUnblockable = unblockable;
+
+            if (unblockable)
+            {
+                damage *= archetype.UnblockableDamageMultiplier;
+            }
+
             IsTelegraphing = true;
-            ApplyTint(archetype != null ? archetype.TelegraphColour : Color.yellow);
-            ApplyTelegraphPulse();
+            CurrentTelegraphColour = archetype == null
+                ? Color.yellow
+                : unblockable ? archetype.UnblockableTelegraphColour : archetype.TelegraphColour;
+            ApplyTint(CurrentTelegraphColour);
+            ApplyTelegraphPulse(unblockable ? unblockableScalePulse : telegraphScalePulse);
             yield return new WaitForSeconds(telegraph);
             IsTelegraphing = false;
             ClearTint();
@@ -136,7 +180,8 @@ namespace Game.AI
             hitbox?.Activate(new DamageData
             {
                 Amount = damage,
-                Type = DamageType.Physical
+                Type = DamageType.Physical,
+                Unblockable = unblockable
             });
 
             yield return new WaitForSeconds(active);
@@ -172,12 +217,14 @@ namespace Game.AI
             cooldownMultiplier = Mathf.Max(0.1f, multiplier);
         }
 
-        private void ApplyTelegraphPulse()
+        private void ApplyTelegraphPulse(float pulse)
         {
-            if (telegraphRenderers == null || telegraphScalePulse <= 0f)
+            if (telegraphRenderers == null || pulse <= 0f)
             {
                 return;
             }
+
+            CurrentTelegraphPulse = pulse;
 
             if (telegraphOriginalScales == null || telegraphOriginalScales.Length != telegraphRenderers.Length)
             {
@@ -193,12 +240,14 @@ namespace Game.AI
 
                 var rendererTransform = telegraphRenderers[i].transform;
                 telegraphOriginalScales[i] = rendererTransform.localScale;
-                rendererTransform.localScale = telegraphOriginalScales[i] * telegraphScalePulse;
+                rendererTransform.localScale = telegraphOriginalScales[i] * pulse;
             }
         }
 
         private void ClearTelegraphPulse()
         {
+            CurrentTelegraphPulse = 1f;
+
             if (telegraphRenderers == null || telegraphOriginalScales == null)
             {
                 return;

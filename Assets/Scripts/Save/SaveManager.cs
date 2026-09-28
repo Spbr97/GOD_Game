@@ -6,11 +6,35 @@ using Game.Inventory;
 using Game.Memory;
 using Game.Progression;
 using Game.Quests;
+using Game.World;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Game.Core.Localization;
 
 namespace Game.Save
 {
+    /// <summary>
+    /// Where the player ends up when a <see cref="SaveData"/> is applied (TASK 041).
+    ///
+    /// The distinction exists because a position is only meaningful in the scene it was
+    /// measured in. Loading a save resumes a moment, so the position comes from the save.
+    /// Walking through a door does not resume a moment — the player has just arrived
+    /// somewhere — so the position comes from the door's arrival point, and using the
+    /// save's would teleport them to wherever they last stood in that scene, possibly on
+    /// the far side of it.
+    /// </summary>
+    public enum PlayerPlacement
+    {
+        /// <summary>Where the save says the player stood, in this scene. Nothing recorded for this scene means leave them be.</summary>
+        FromSave,
+
+        /// <summary>At a named <c>SceneSpawnPoint</c>, falling back to <see cref="FromSave"/> if there is no such point.</summary>
+        AtSpawnPoint,
+
+        /// <summary>Leave the player wherever they are. For applying state without moving anyone.</summary>
+        Unchanged
+    }
+
     /// <summary>
     /// Captures the live game into a <see cref="SaveData"/> and puts it back again
     /// (SPEC.md sections 31 and 32).
@@ -29,9 +53,12 @@ namespace Game.Save
     /// </summary>
     public class SaveManager : MonoBehaviour
     {
-        /// <summary>The wording SPEC.md section 32 requires, verbatim.</summary>
-        public const string BackupRestoredMessage =
-            "Your previous save could not be loaded. A safe backup has been restored.";
+        /// <summary>
+        /// The wording SPEC.md section 32 requires. Externalized in TASK 042, so this is
+        /// now the English table's text rather than a constant — the spec fixes what the
+        /// sentence must say, not which language it says it in.
+        /// </summary>
+        public static string BackupRestoredMessage => Strings.Get(StringKeys.SaveBackupRestored);
 
         private static SaveManager instance;
 
@@ -45,6 +72,27 @@ namespace Game.Save
         /// never coexist as loaded objects that could pass this to each other directly.
         /// </summary>
         public static SaveSlot? PendingLoad { get; set; }
+
+        /// <summary>
+        /// The whole game, captured at the moment the player left the previous scene and
+        /// applied again once the next one is live (TASK 041). Static for the same reason
+        /// <see cref="PendingLoad"/> is.
+        ///
+        /// Scene travel goes through capture-and-apply rather than by making the
+        /// progression managers survive the load, because only five of them are scene
+        /// singletons today and <c>QuestManager</c>, <c>MemoryManager</c>,
+        /// <c>InventoryManager</c>, <c>SkillTreeManager</c> and <c>CheckpointManager</c>
+        /// are all among them — a scene load drops every one. Making each persistent would
+        /// be five lifetime changes, five new duplicate-instance cases, and a second way
+        /// for progression to cross a boundary that would then need its own tests. Capture
+        /// and apply is the way progression already crosses a boundary, it is the
+        /// best-tested path in the project, and any system that is carried wrongly here is
+        /// carried wrongly by save and load too, where it would be found anyway.
+        ///
+        /// It is never written to disk. A save file records where the player is, not that
+        /// they were in a doorway.
+        /// </summary>
+        private static SaveData travelSnapshot;
 
         [Tooltip("Save automatically whenever a checkpoint is activated (SPEC.md section 31).")]
         [SerializeField] private bool autoSaveOnCheckpoint = true;
@@ -83,6 +131,10 @@ namespace Game.Save
             EventBus.Subscribe<PlayerDiedEvent>(OnPlayerDied);
             EventBus.Subscribe<PlayerRespawnedEvent>(OnPlayerRespawned);
             EventBus.Subscribe<CheckpointActivatedEvent>(OnCheckpointActivated);
+            EventBus.Subscribe<CinematicStartedEvent>(OnCinematicStarted);
+            EventBus.Subscribe<CinematicCompletedEvent>(OnCinematicCompleted);
+            EventBus.Subscribe<CinematicSkippedEvent>(OnCinematicSkipped);
+            EventBus.Subscribe<SceneTravelRequestedEvent>(OnSceneTravelRequested);
         }
 
         private void OnDisable()
@@ -92,6 +144,10 @@ namespace Game.Save
             EventBus.Unsubscribe<PlayerDiedEvent>(OnPlayerDied);
             EventBus.Unsubscribe<PlayerRespawnedEvent>(OnPlayerRespawned);
             EventBus.Unsubscribe<CheckpointActivatedEvent>(OnCheckpointActivated);
+            EventBus.Unsubscribe<CinematicStartedEvent>(OnCinematicStarted);
+            EventBus.Unsubscribe<CinematicCompletedEvent>(OnCinematicCompleted);
+            EventBus.Unsubscribe<CinematicSkippedEvent>(OnCinematicSkipped);
+            EventBus.Unsubscribe<SceneTravelRequestedEvent>(OnSceneTravelRequested);
         }
 
         private void OnDestroy()
@@ -104,7 +160,20 @@ namespace Game.Save
 
         private void Start()
         {
-            if (instance != this || !PendingLoad.HasValue)
+            if (instance != this)
+            {
+                return;
+            }
+
+            // An arrival is checked before a pending load, and the two cannot both be
+            // outstanding: travel is started from inside gameplay and a pending load is
+            // set by the menu, which ends any journey.
+            if (TryCompleteArrival())
+            {
+                return;
+            }
+
+            if (!PendingLoad.HasValue)
             {
                 return;
             }
@@ -112,6 +181,65 @@ namespace Game.Save
             var slot = PendingLoad.Value;
             PendingLoad = null;
             Load(slot);
+        }
+
+        /// <summary>
+        /// Finishes a journey that began in another scene: puts the carried progression
+        /// back and places the player at the arrival point. Returns false when this scene
+        /// was not the destination, which is the ordinary case.
+        /// </summary>
+        private bool TryCompleteArrival()
+        {
+            var active = SceneManager.GetActiveScene().name;
+            var carried = travelSnapshot;
+
+            if (!SceneTravel.TryConsume(active, out var spawnId))
+            {
+                // The statics did not survive — a domain reload, or a SaveManager that is
+                // not the one that started the journey. The journal on disk says the same
+                // thing and is keyed on the same destination, so the crossing can still be
+                // finished rather than silently dropping the run's progression.
+                if (!TravelJournal.TryRead(Root, active, out spawnId, out var journalled))
+                {
+                    return false;
+                }
+
+                carried ??= journalled;
+                GameLogger.LogWarning(LogCategory.Save,
+                    $"Completed the crossing into '{active}' from the travel journal; the in-memory hand-off "
+                    + "was lost. Progression was carried over from disk.");
+            }
+
+            travelSnapshot = null;
+            TravelJournal.Clear(Root);
+
+            // The blocker was added by the SaveManager in the scene we left, which no
+            // longer exists; this instance's own set is clean. Clearing it anyway costs
+            // nothing and means the invariant holds however travel was started.
+            AllowSaves(SceneTravel.SaveBlockReason);
+
+            var placed = false;
+
+            if (carried != null)
+            {
+                Apply(carried, PlayerPlacement.AtSpawnPoint, spawnId);
+                placed = SceneSpawnPoint.Find(spawnId) != null;
+            }
+            else
+            {
+                // Travel without a snapshot should not happen. Placing the player is still
+                // the right thing to do: arriving at the origin of a scene is worse than
+                // arriving at the door with nothing carried, and the log says which it was.
+                GameLogger.LogFallback(LogCategory.Save, $"arrival in '{active}'", "SaveManager.TryCompleteArrival",
+                    "no progression snapshot was carried across the load",
+                    "placing the player at the arrival point with whatever state the scene starts with", this);
+                placed = PlaceAtSpawnPoint(spawnId);
+            }
+
+            GameLogger.Log(LogCategory.Save,
+                $"Arrived in '{active}' at spawn '{spawnId}' (placed: {placed}).", this);
+            EventBus.Publish(new SceneArrivedEvent(active, spawnId, placed));
+            return true;
         }
 
         /// <summary>Reads a slot without applying it. For Save/Load and Continue screens.</summary>
@@ -153,7 +281,7 @@ namespace Game.Save
             {
                 var blocked = string.Join(", ", saveBlockers);
                 GameLogger.LogWarning(LogCategory.Save, $"Refused to save '{slot}': {blocked}.", this);
-                EventBus.Publish(new SaveFailedEvent(slot, "The game cannot be saved right now.", blocked));
+                EventBus.Publish(new SaveFailedEvent(slot, Strings.Get(StringKeys.SaveRefused), blocked));
                 return false;
             }
 
@@ -162,7 +290,7 @@ namespace Game.Save
             if (!SaveStorage.Write(Root, slot, data, out var detail))
             {
                 GameLogger.LogError(LogCategory.Save, $"Could not write save '{slot}': {detail}", this);
-                EventBus.Publish(new SaveFailedEvent(slot, "The game could not be saved.", detail));
+                EventBus.Publish(new SaveFailedEvent(slot, Strings.Get(StringKeys.SaveFailed), detail));
                 return false;
             }
 
@@ -183,7 +311,7 @@ namespace Game.Save
             if (!outcome.Loaded)
             {
                 GameLogger.LogWarning(LogCategory.Save, $"Could not load '{slot}': {outcome.Detail}", this);
-                EventBus.Publish(new SaveFailedEvent(slot, "That save could not be loaded.", outcome.Detail));
+                EventBus.Publish(new SaveFailedEvent(slot, Strings.Get(StringKeys.SaveLoadFailed), outcome.Detail));
                 return false;
             }
 
@@ -202,6 +330,116 @@ namespace Game.Save
         }
 
         public bool HasSave(SaveSlot slot) => SaveStorage.Exists(Root, slot);
+
+        // -------------------------------------------------------------- scene travel
+
+        /// <summary>
+        /// Carries the game into another scene. Answers <see cref="SceneTravelRequestedEvent"/>
+        /// so the door that asked never learns the save system exists (SPEC.md section 58).
+        /// </summary>
+        private void OnSceneTravelRequested(SceneTravelRequestedEvent request)
+        {
+            if (instance != this)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(request.TargetScene))
+            {
+                GameLogger.LogError(LogCategory.Save, "Scene travel was requested with no destination.", this);
+                return;
+            }
+
+            if (SceneTravel.IsTravelling || GameSceneManager.IsLoading)
+            {
+                GameLogger.LogWarning(LogCategory.Save,
+                    $"Ignored travel to '{request.TargetScene}': a journey is already in flight.", this);
+                return;
+            }
+
+            // Checked before anything is torn down or blocked. A scene missing from Build
+            // Settings is a content error, and the player should be left standing in a
+            // working scene rather than in a blocked, half-departed one.
+            if (!Application.CanStreamedLevelBeLoaded(request.TargetScene))
+            {
+                GameLogger.LogError(LogCategory.Save,
+                    $"Refused travel to '{request.TargetScene}': that scene is not in Build Settings.", this);
+                return;
+            }
+
+            var scenes = GameSceneManager.Instance;
+            if (scenes == null)
+            {
+                GameLogger.LogFallback(LogCategory.Save, $"travel to '{request.TargetScene}'",
+                    "SaveManager.OnSceneTravelRequested", "no GameSceneManager exists",
+                    "the player stays where they are", this);
+                return;
+            }
+
+            var from = SceneManager.GetActiveScene().name;
+
+            // Capture before the teardown starts, so the record of the scene being left is
+            // the scene as the player leaves it.
+            travelSnapshot = Capture();
+
+            // On disk as well as in memory. Saving is blocked for the whole crossing, so
+            // if the game stops between the two scenes there is nothing else holding
+            // everything the player has done since their last real save.
+            TravelJournal.Write(Root, request.TargetScene, request.SpawnId, travelSnapshot);
+
+            BlockSaves(SceneTravel.SaveBlockReason);
+            SceneTravel.Begin(request.TargetScene, request.SpawnId);
+            EventBus.Publish(new SceneTravelStartedEvent(from, request.TargetScene, request.SpawnId));
+
+            GameLogger.Log(LogCategory.Save,
+                $"Travelling from '{from}' to '{request.TargetScene}' ({request.Reason}).", this);
+
+            scenes.LoadSceneAsync(request.TargetScene);
+        }
+
+        /// <summary>
+        /// Moves the player to the named arrival point. Returns false when there is no
+        /// such point or no player, leaving both alone.
+        /// </summary>
+        private static bool PlaceAtSpawnPoint(string spawnId)
+        {
+            var spawn = SceneSpawnPoint.Find(spawnId);
+            if (spawn == null)
+            {
+                return false;
+            }
+
+            var player = Object.FindAnyObjectByType<PlayerDeath>(FindObjectsInactive.Include);
+            if (player == null)
+            {
+                return false;
+            }
+
+            MovePlayer(player.transform, spawn.Position, spawn.Rotation);
+            return true;
+        }
+
+        /// <summary>
+        /// Puts the player somewhere, working around the <see cref="CharacterController"/>
+        /// caching its own position and dragging them back. Same reason
+        /// <c>PlayerDeath</c> disables it to respawn.
+        /// </summary>
+        private static void MovePlayer(Transform player, Vector3 position, Quaternion rotation)
+        {
+            var controller = player.GetComponent<CharacterController>();
+
+            if (controller != null)
+            {
+                controller.enabled = false;
+            }
+
+            player.SetPositionAndRotation(position, rotation);
+
+            if (controller != null)
+            {
+                controller.enabled = true;
+            }
+        }
 
         // -------------------------------------------------------- capture and restore
 
@@ -302,6 +540,12 @@ namespace Game.Save
                 }
             }
 
+            // TASK 041. Last, so it mirrors whatever the player and checkpoint sections
+            // above actually found. SceneMemory supplies the scenes that are not loaded:
+            // without it every save would forget every scene but the one being stood in.
+            SceneMemory.Record(data.SceneName, data.PlayerPosition, data.PlayerRotation, data.CheckpointId);
+            data.SceneStates = SceneMemory.Snapshot();
+
             return data;
         }
 
@@ -312,14 +556,30 @@ namespace Game.Save
         /// publishes an event that quest logic reacts to — restoring the quests last
         /// means their saved status wins over anything that reaction decided.
         /// </summary>
-        public void Apply(SaveData data)
+        public void Apply(SaveData data) => Apply(data, PlayerPlacement.FromSave, null);
+
+        /// <summary>
+        /// Applies a save, choosing where the player ends up (TASK 041). See
+        /// <see cref="PlayerPlacement"/> for why that is a caller's decision rather than
+        /// always "wherever the file says".
+        /// </summary>
+        public void Apply(SaveData data, PlayerPlacement placement, string spawnId)
         {
             if (data == null)
             {
                 return;
             }
 
-            Difficulty.Set((DifficultyMode)data.Difficulty);
+            // Ownership (TASK 041). The slot owns the difficulty in force during a
+            // playthrough: it is chosen at New Game and belongs to that run, so loading a
+            // save must not inherit whatever the last run was played on. SettingsManager
+            // owns the global copy — display, audio, accessibility, rebinds — and is told
+            // the new value so the Settings panel is not left describing a difficulty the
+            // game is no longer running at. The write goes one way only; SettingsManager
+            // never pushes difficulty back into a loaded slot.
+            var mode = (DifficultyMode)data.Difficulty;
+            Difficulty.Set(mode);
+            SettingsManager.Instance?.AdoptDifficultyFromSave(mode);
 
             var world = WorldState.Instance;
             if (world != null)
@@ -368,19 +628,76 @@ namespace Game.Save
             // runs. Doing this after would clamp a skilled-up player back down.
             SkillTreeManager.Instance?.RestoreUnlocked(data.Abilities);
 
+            var active = SceneManager.GetActiveScene().name;
+            var here = data.ResolveStateFor(active);
+
+            SceneMemory.Adopt(data.SceneStates);
+
             var player = Object.FindAnyObjectByType<PlayerDeath>(FindObjectsInactive.Include);
             if (player != null)
             {
-                RestorePlayer(player, data);
+                RestorePlayerStats(player, data);
+                PlacePlayer(player, placement, spawnId, here);
             }
 
-            CheckpointManager.Instance?.RestoreActiveCheckpoint(data.CheckpointId);
+            // This scene's checkpoint and no other. An id recorded in a different scene
+            // resolves to nothing here, and CheckpointManager would be left with none —
+            // so the next death would send the player to the scene's default spawn
+            // instead of to the checkpoint they actually lit. That is TASK 041's "without
+            // restoring the wrong player position", in its most damaging form.
+            CheckpointManager.Instance?.RestoreActiveCheckpoint(here?.CheckpointId);
 
             var participants = FindParticipants();
             foreach (var participant in participants)
             {
                 participant.RestoreJson(FindParticipantJson(data, participant.SaveKey));
             }
+
+            // Last: the sweep reads the state everything above has just put back.
+            ProgressionRecovery.Run();
+        }
+
+        /// <summary>
+        /// Puts the player where <paramref name="placement"/> says (TASK 041).
+        ///
+        /// <see cref="PlayerPlacement.AtSpawnPoint"/> falls back to the save's own record
+        /// when the named point is missing, and that in turn falls back to leaving the
+        /// player alone. Both fallbacks are deliberate: a content error in an arrival
+        /// point should leave the player standing somewhere legitimate in the destination,
+        /// not at the world origin, which in a scene with a floor means under it.
+        /// </summary>
+        private static void PlacePlayer(PlayerDeath player, PlayerPlacement placement, string spawnId,
+            SceneStateEntry here)
+        {
+            if (placement == PlayerPlacement.Unchanged)
+            {
+                return;
+            }
+
+            if (placement == PlayerPlacement.AtSpawnPoint)
+            {
+                var spawn = SceneSpawnPoint.Find(spawnId);
+                if (spawn != null)
+                {
+                    MovePlayer(player.transform, spawn.Position, spawn.Rotation);
+                    return;
+                }
+
+                GameLogger.LogFallback(LogCategory.Save, $"arrival at spawn point '{spawnId}'",
+                    "SaveManager.PlacePlayer", "no SceneSpawnPoint with that id is in the scene",
+                    here != null
+                        ? "using the position this save recorded for this scene"
+                        : "leaving the player where the scene starts them", player);
+            }
+
+            if (here == null)
+            {
+                // Nothing recorded for this scene: the player has never stood here, so the
+                // scene's own starting position is the only honest answer.
+                return;
+            }
+
+            MovePlayer(player.transform, here.PlayerPosition, here.PlayerRotation);
         }
 
         private static void CaptureQuests(SaveData data, IReadOnlyDictionary<string, QuestProgress> quests)
@@ -447,25 +764,14 @@ namespace Game.Save
             }
         }
 
-        private static void RestorePlayer(PlayerDeath player, SaveData data)
+        /// <summary>
+        /// Health, stamina and divine energy. Position is <see cref="PlacePlayer"/>'s job:
+        /// the two were one method until TASK 041, when where the player stands stopped
+        /// being a property of the file and became a property of how the file is being
+        /// used.
+        /// </summary>
+        private static void RestorePlayerStats(PlayerDeath player, SaveData data)
         {
-            var controller = player.GetComponent<CharacterController>();
-
-            // The CharacterController caches its own position and would drag the player
-            // back to where they were standing. Same reason PlayerDeath disables it to
-            // respawn.
-            if (controller != null)
-            {
-                controller.enabled = false;
-            }
-
-            player.transform.SetPositionAndRotation(data.PlayerPosition, data.PlayerRotation);
-
-            if (controller != null)
-            {
-                controller.enabled = true;
-            }
-
             var health = player.GetComponent<HealthComponent>();
             if (health != null)
             {
@@ -523,6 +829,22 @@ namespace Game.Save
         private void OnPlayerDied(PlayerDiedEvent died) => BlockSaves("the player is dead");
 
         private void OnPlayerRespawned(PlayerRespawnedEvent respawned) => AllowSaves("the player is dead");
+
+        /// <summary>
+        /// A cinematic is an irreversible transition in the sense SPEC.md section 31
+        /// means (TASK 041): it sets story flags and moves the player as it runs, so a
+        /// save taken halfway through records a world part-way through a beat that will
+        /// never play again. Both ways out — finishing and skipping — release the block,
+        /// which is why the two are subscribed separately rather than trusting a
+        /// completion event to fire for a skip.
+        /// </summary>
+        private const string CinematicBlockReason = "a scene is playing";
+
+        private void OnCinematicStarted(CinematicStartedEvent started) => BlockSaves(CinematicBlockReason);
+
+        private void OnCinematicCompleted(CinematicCompletedEvent completed) => AllowSaves(CinematicBlockReason);
+
+        private void OnCinematicSkipped(CinematicSkippedEvent skipped) => AllowSaves(CinematicBlockReason);
 
         private void OnCheckpointActivated(CheckpointActivatedEvent activated)
         {

@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -208,7 +209,9 @@ namespace Game.UI
                 _ => Color.white
             };
 
-            row = AddRow(questsContent, row, $"{progress.Definition.Title}  [{progress.Status}]", statusColour, bold: true);
+            row = AddRow(questsContent, row,
+                Strings.Format(StringKeys.JournalQuestRow, progress.Definition.Title, progress.Status),
+                statusColour, bold: true);
 
             var objectives = progress.Definition.Objectives;
             if (objectives != null)
@@ -223,7 +226,10 @@ namespace Game.UI
 
                     var complete = progress.IsObjectiveComplete(objective.ObjectiveId);
                     var required = Mathf.Max(1, objective.RequiredCount);
-                    var countText = required > 1 ? $"  ({progress.GetCount(objective.ObjectiveId)}/{required})" : string.Empty;
+                    var countText = required > 1
+                        ? Strings.Format(StringKeys.JournalObjectiveCount,
+                            progress.GetCount(objective.ObjectiveId), required)
+                        : string.Empty;
                     var mark = complete ? "[x] " : "[ ] ";
 
                     row = AddRow(questsContent, row, $"    {mark}{objective.Description}{countText}",
@@ -252,7 +258,9 @@ namespace Game.UI
                 return;
             }
 
-            var row = AddRow(memoriesContent, 0, $"Memory Integrity: {memories.Integrity * 100f:0}%", Color.white, bold: true);
+            var row = AddRow(memoriesContent, 0,
+                Strings.Format(StringKeys.JournalMemoryIntegrity, (memories.Integrity * 100f).ToString("0")),
+                Color.white, bold: true);
 
             if (memories.DiscoveredCount == 0)
             {
@@ -263,7 +271,9 @@ namespace Game.UI
             foreach (var memory in memories.Discovered)
             {
                 var state = memories.GetState(memory.MemoryId);
-                row = AddRow(memoriesContent, row, $"{memory.Title}  —  {memory.Category}, {state}", TintFor(state), bold: true);
+                row = AddRow(memoriesContent, row,
+                    Strings.Format(StringKeys.JournalMemoryRow, memory.Title, memory.Category, state),
+                    TintFor(state), bold: true);
                 row = AddRow(memoriesContent, row, $"    {memory.Description}", Color.grey);
 
                 if (!memory.IsProtected)
@@ -296,7 +306,7 @@ namespace Game.UI
             label.fontSize = 16;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
-            label.text = "Corrupt";
+            label.text = Strings.Get(StringKeys.JournalCorrupt);
             label.raycastTarget = false;
 
             spawnedRows.Add(rect.gameObject);

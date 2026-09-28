@@ -41,4 +41,17 @@ MonoBehaviour:
   completionFlags:
   - QUEST_Q001_COMPLETE
   failureFlags: []
-  rewardsSummary: Queen Amara's trust. (No reward system exists yet; see KNOWN_ISSUES.md.)
+  rewardsSummary: Queen Amara's mark of trust, and the clarity that comes of recovering something true.
+  rewards:
+  - Type: 0
+    Item: {fileID: 11400000, guid: 7f2793b2dfd851844ba10d27a09a49cc, type: 2}
+    Amount: 1
+    TargetId: 
+    IntegrityAmount: 0
+    FlagValue: 1
+  - Type: 3
+    Item: {fileID: 0}
+    Amount: 1
+    TargetId: 
+    IntegrityAmount: 0
+    FlagValue: 1

@@ -15,7 +15,7 @@ namespace Game.Combat
     /// Of SPEC.md section 13's actions, Jump is locomotion; everything else lives here.
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
-    public class CombatController : MonoBehaviour
+    public class CombatController : MonoBehaviour, Abilities.IDivineAbilityEffect
     {
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private WeaponController weapon;
@@ -80,6 +80,8 @@ namespace Game.Combat
         private Coroutine dodgeRoutine;
         private Coroutine abilityRoutine;
         private float abilityReadyAt;
+        private Abilities.DivineAbilityController abilityController;
+        private Abilities.DivineAbilityDefinition emberStep;
         private int abilityUseCount;
 
         public bool IsDodging => dodgeRoutine != null;
@@ -103,6 +105,7 @@ namespace Game.Combat
         {
             health = GetComponent<HealthComponent>();
             combo ??= new ComboTracker(ComboChain.DefaultChains(), comboWindow);
+            ApplySkillBonuses();
 
             if (weapon == null) { weapon = GetComponentInChildren<WeaponController>(true); }
             if (stamina == null) { stamina = GetComponent<StaminaComponent>(); }
@@ -146,10 +149,54 @@ namespace Game.Combat
             {
                 guard.Parried += HandleParried;
             }
+
+            EventBus.Subscribe<Game.Progression.SkillBonusesChangedEvent>(OnSkillBonusesChanged);
+            ApplySkillBonuses();
         }
+
+        private void OnSkillBonusesChanged(Game.Progression.SkillBonusesChangedEvent changed) => ApplySkillBonuses();
+
+        /// <summary>
+        /// Pushes the skill tree's combat bonuses into the values that are read once
+        /// rather than per use (SPEC.md section 30, TASK 043).
+        ///
+        /// The cooldown and the dash speed are read at the moment they are needed, so
+        /// they need nothing here. The combo window does not: <see cref="ComboTracker"/>
+        /// is built once, so spending the Warrior branch's combo point has to reach it.
+        /// </summary>
+        private void ApplySkillBonuses()
+        {
+            if (combo != null)
+            {
+                combo.Window = comboWindow
+                               + Game.Progression.SkillTreeManager.Flat(
+                                   Game.Progression.SkillEffectType.ComboWindowBonusSeconds);
+            }
+        }
+
+        /// <summary>
+        /// The combo window currently in force, including the Warrior branch's bonus.
+        /// Exposed so a test can measure the effect of spending that point rather than
+        /// re-deriving the arithmetic it is meant to be checking.
+        /// </summary>
+        public float ComboWindowInUse => combo != null ? combo.Window : comboWindow;
+
+        /// <summary>
+        /// Ember Step's cooldown after the Divine branch's cooldown skill.
+        /// <c>DIVINE_COOLDOWN</c> carries -0.2, so one point makes it 20% shorter.
+        /// </summary>
+        public float ScaledAbilityCooldown => abilityCooldown
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.AbilityCooldownMultiplier);
+
+        /// <summary>Ember Step's dash speed after the Divine branch's power skill.</summary>
+        public float ScaledAbilityDashSpeed => abilityDashSpeed
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.AbilityDashSpeedMultiplier);
 
         private void OnDisable()
         {
+            EventBus.Unsubscribe<Game.Progression.SkillBonusesChangedEvent>(OnSkillBonusesChanged);
             lightAttackAction?.Disable();
             heavyAttackAction?.Disable();
             dodgeAction?.Disable();
@@ -298,34 +345,97 @@ namespace Game.Combat
         /// <summary>
         /// Attempts Ember Step (SPEC.md section 8.1): a short fire dash paid for with
         /// divine energy rather than stamina, on its own cooldown so it cannot replace
-        /// the dodge. Publishes <see cref="EmberStepUsedEvent"/> so
-        /// <see cref="Game.Memory.MemoryManager"/> can apply the ability's cost —
-        /// "repeated use temporarily removes minor memories" — without this class
-        /// knowing Memory exists.
+        /// the dodge.
+        ///
+        /// Since TASK 043 the decision — unlocked, ready, affordable — belongs to
+        /// <see cref="Abilities.DivineAbilityController"/>, which every temple's ability
+        /// will share. This method is the input binding and nothing more; the dash itself
+        /// is <see cref="Perform"/> below, which that controller calls once the cost is
+        /// paid.
         /// </summary>
-        public bool TryAbility()
+        public bool TryAbility() => Abilities().TryUse(abilityId);
+
+        // ------------------------------------------------- Ember Step as an ability
+
+        /// <summary>
+        /// Ember Step's id. <see cref="Abilities.IDivineAbilityEffect"/>: this component
+        /// is the effect, and the controller is the contract.
+        /// </summary>
+        string Abilities.IDivineAbilityEffect.AbilityId => abilityId;
+
+        /// <summary>
+        /// Ember Step's own reasons to refuse, which the shared contract cannot know:
+        /// the player must be able to act and must not already be mid-dash.
+        /// </summary>
+        bool Abilities.IDivineAbilityEffect.CanPerform => CanAct() && !IsUsingAbility;
+
+        /// <summary>
+        /// The dash. Called only after the energy has been spent and the cooldown
+        /// started, so there is nothing to check here.
+        /// </summary>
+        void Abilities.IDivineAbilityEffect.Perform(Abilities.DivineAbilityDefinition definition)
         {
-            if ((requireAbilityUnlock && (WorldState.Instance == null || !WorldState.Instance.GetFlag("ABILITY_UNLOCKED_" + abilityId)))
-                || !CanAct() || IsUsingAbility || Time.time < abilityReadyAt)
-            {
-                return false;
-            }
-
-            if (divineEnergy == null || !divineEnergy.TrySpend(abilityCost))
-            {
-                return false;
-            }
-
             weapon?.CancelSwing();
             ReleaseGuard();
             combo.Record(ComboStep.Ability, Time.time, abilityDashDuration);
-            abilityReadyAt = Time.time + abilityCooldown;
             abilityUseCount++;
             abilityRoutine = StartCoroutine(AbilityRoutine());
 
-            GameLogger.Log(LogCategory.Combat, $"{name} used Ember Step (use #{abilityUseCount}).", this);
+            // Kept alongside the shared DivineAbilityUsedEvent the controller publishes.
+            // MemoryManager's "repeated use forgets a memory" (SPEC.md section 20) is
+            // written against Ember Step specifically, and generalising that cost to
+            // every temple's ability is a design decision, not a refactor.
             EventBus.Publish(new EmberStepUsedEvent(gameObject, abilityUseCount));
-            return true;
+        }
+
+        /// <summary>
+        /// The ability contract for this character, created on demand from this
+        /// component's own Ember Step fields if the scene has not authored one.
+        ///
+        /// On demand rather than required, so that every scene and test that already had
+        /// a working player keeps working — but still a single code path: the controller
+        /// is always the authority, and these fields become the definition it is given.
+        /// A scene that authors a real <see cref="Abilities.DivineAbilityDefinition"/>
+        /// simply wins, because <see cref="Abilities.DivineAbilityController.Find"/>
+        /// finds its asset first.
+        /// </summary>
+        private Abilities.DivineAbilityController Abilities()
+        {
+            if (abilityController == null)
+            {
+                abilityController = GetComponent<Abilities.DivineAbilityController>();
+            }
+
+            if (abilityController == null)
+            {
+                abilityController = gameObject.AddComponent<Abilities.DivineAbilityController>();
+                abilityController.Configure(divineEnergy);
+            }
+
+            if (abilityController.Find(abilityId) == null)
+            {
+                abilityController.Register(EmberStepDefinition());
+            }
+
+            return abilityController;
+        }
+
+        /// <summary>
+        /// Ember Step's definition, built from this component's serialized fields. Rebuilt
+        /// whenever <see cref="ConfigureAbility"/> changes them, so a tuning change or a
+        /// test's cost and cooldown reach the contract rather than being quietly ignored.
+        /// </summary>
+        private Abilities.DivineAbilityDefinition EmberStepDefinition()
+        {
+            if (emberStep == null)
+            {
+                emberStep = ScriptableObject.CreateInstance<Abilities.DivineAbilityDefinition>();
+                emberStep.name = "Ability_EmberStep (from CombatController)";
+            }
+
+            emberStep.Configure(abilityId, abilityCost, abilityCooldown, abilityDashDuration,
+                requireAbilityUnlock, label: "Ember Step");
+            return emberStep;
         }
 
         /// <summary>
@@ -385,6 +495,7 @@ namespace Game.Combat
         {
             abilityCost = cost;
             abilityCooldown = cooldown;
+            RefreshAbilityDefinition();
         }
 
         /// <summary>Test and content seam for abilities granted by quest rewards.</summary>
@@ -392,6 +503,22 @@ namespace Game.Combat
         {
             abilityId = id;
             requireAbilityUnlock = required;
+            RefreshAbilityDefinition();
+        }
+
+        /// <summary>
+        /// Pushes this component's Ember Step fields back into the definition the
+        /// contract holds. Without it, a <c>Configure</c> call after the first
+        /// <see cref="TryAbility"/> would change fields nothing reads any more.
+        /// </summary>
+        private void RefreshAbilityDefinition()
+        {
+            if (abilityController == null)
+            {
+                return;
+            }
+
+            abilityController.Register(EmberStepDefinition());
         }
         private bool CanAct()
         {
@@ -517,7 +644,7 @@ namespace Game.Combat
         /// <summary>Ember Step's dash. Shorter and faster than a dodge, always forward — it is a fire dash, not an evade.</summary>
         private IEnumerator AbilityRoutine()
         {
-            locomotion?.BeginDodge(transform.forward, abilityDashSpeed, abilityDashDuration);
+            locomotion?.BeginDodge(transform.forward, ScaledAbilityDashSpeed, abilityDashDuration);
 
             var windowEnd = abilityInvulnerabilityStart
                 + Mathf.Max(0f, abilityInvulnerabilityEnd - abilityInvulnerabilityStart) * Difficulty.Modifiers.PlayerTimingWindow;

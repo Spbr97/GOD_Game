@@ -1,5 +1,6 @@
 using Game.Core;
 using UnityEngine;
+using Game.Core.Localization;
 
 namespace Game.Dialogue
 {
@@ -18,7 +19,7 @@ namespace Game.Dialogue
         /// Public and const so a test asserts on the requirement itself rather than
         /// on a copy of it.
         /// </summary>
-        public const string UnavailableText = "[Dialogue unavailable]";
+        public static string UnavailableText => Strings.Get(StringKeys.DialogueUnavailable);
 
         private const string FallbackGraphId = "DIALOGUE_UNAVAILABLE";
         private const string FallbackNodeId = "UNAVAILABLE";

@@ -1,199 +1,269 @@
 using System;
 using System.Collections.Generic;
 using Game.Dialogue;
-using Game.Memory;
-using Game.Quests;
 using UnityEditor;
-using UnityEngine;
 
-public static class DialogueValidation
+namespace Game.EditorTools
 {
-    [MenuItem("God Game/Validate Dialogue")]
-    public static void ValidateAll()
+    /// <summary>
+    /// The dialogue half of <see cref="ContentValidation"/> (TASK 036, folded into the
+    /// wider validator by TASK 042).
+    ///
+    /// Kept as its own file because graph reachability is a different kind of check from
+    /// the rest — it walks a structure rather than comparing ids against a set — and
+    /// because "validate the dialogue" is a thing an author asks for on its own while
+    /// writing a conversation.
+    ///
+    /// It reports <see cref="ContentIssue"/>s rather than logging, so the build, the tests
+    /// and the menu item all see the same result.
+    /// </summary>
+    public static class DialogueValidation
     {
-        var graphs = LoadAll<DialogueGraph>();
-        var quests = LoadAll<QuestDefinition>();
-        var memories = LoadAll<MemoryFragment>();
-        var questIds = new HashSet<string>();
-        var objectiveIds = new HashSet<string>();
-        var memoryIds = new HashSet<string>();
-        var knownFlags = new HashSet<string>();
-        foreach (var quest in quests)
+        [MenuItem("God Game/Validate Dialogue")]
+        public static void ValidateFromMenu()
         {
-            questIds.Add(quest.QuestId);
-            Add(knownFlags, quest.CompletionFlags);
-            if (quest.Objectives == null) continue;
-            foreach (var objective in quest.Objectives)
-            {
-                if (objective == null) continue;
-                objectiveIds.Add(objective.ObjectiveId);
-                if (!string.IsNullOrEmpty(objective.CompletionFlag)) knownFlags.Add(objective.CompletionFlag);
-            }
-        }
-        foreach (var memory in memories)
-        {
-            memoryIds.Add(memory.MemoryId);
-            if (!string.IsNullOrEmpty(memory.DiscoveryFlag)) knownFlags.Add(memory.DiscoveryFlag);
-        }
-        foreach (var graph in graphs)
-        {
-            if (graph.Nodes == null) continue;
-            foreach (var node in graph.Nodes)
-            {
-                if (node == null) continue;
-                GatherFlags(node.Consequences, knownFlags);
-                if (node.Choices == null) continue;
-                foreach (var choice in node.Choices)
-                    if (choice != null) GatherFlags(choice.Consequences, knownFlags);
-            }
+            ContentValidation.Report(Validate(ContentCatalogue.Load()), "Dialogue validation");
         }
 
-        var errors = 0;
-        var warnings = 0;
-        foreach (var graph in graphs)
+        public static List<ContentIssue> Validate(ContentCatalogue catalogue)
         {
-            var nodes = new Dictionary<string, DialogueNode>();
+            var issues = new List<ContentIssue>();
+
+            foreach (var graph in catalogue.Graphs)
+            {
+                ValidateGraph(issues, graph, catalogue);
+            }
+
+            return issues;
+        }
+
+        private static void ValidateGraph(List<ContentIssue> issues, DialogueGraph graph, ContentCatalogue catalogue)
+        {
+            var subject = graph.GraphId;
+
             if (graph.Nodes == null || graph.Nodes.Count == 0)
             {
-                Error(graph, "has no nodes", ref errors);
-                continue;
+                issues.Add(new ContentIssue(ContentSeverity.Error, "dialogue-shape", subject,
+                    "has no nodes", graph));
+                return;
             }
+
+            var nodes = new Dictionary<string, DialogueNode>();
+
             foreach (var node in graph.Nodes)
             {
                 if (node == null || string.IsNullOrWhiteSpace(node.DialogueId))
                 {
-                    Error(graph, "contains a node without an id", ref errors);
+                    issues.Add(new ContentIssue(ContentSeverity.Error, "missing-id", subject,
+                        "contains a node without an id", graph));
                     continue;
                 }
+
                 if (!nodes.TryAdd(node.DialogueId, node))
-                    Error(graph, "duplicate node id " + node.DialogueId, ref errors);
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Error, "duplicate-id", subject,
+                        $"two nodes share the id '{node.DialogueId}'", graph));
+                }
             }
+
+            var reached = Walk(issues, graph, nodes);
+
+            foreach (var node in graph.Nodes)
+            {
+                if (node == null || string.IsNullOrWhiteSpace(node.DialogueId))
+                {
+                    continue;
+                }
+
+                if (!reached.Contains(node.DialogueId))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Warning, "dialogue-reach", subject,
+                        $"node '{node.DialogueId}' cannot be reached from any entry point", graph));
+
+                    // An unreachable node's own links were never followed, so check them
+                    // here — a dangling link in dead content is still a link that will
+                    // dangle the day the content is reconnected.
+                    CheckLink(issues, graph, node.NextDialogueId, nodes);
+                }
+
+                if (!string.IsNullOrEmpty(node.RequiredMemoryId) && !catalogue.MemoryIds.Contains(node.RequiredMemoryId))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Error, "unknown-id", subject,
+                        $"node '{node.DialogueId}' is gated on memory '{node.RequiredMemoryId}', which does not exist",
+                        graph));
+                }
+
+                CheckFlags(issues, graph, node.RequiredFlags, catalogue);
+                CheckFlags(issues, graph, node.BlockingFlags, catalogue);
+                CheckConsequences(issues, graph, node.Consequences, catalogue);
+
+                if (node.Choices == null)
+                {
+                    continue;
+                }
+
+                foreach (var choice in node.Choices)
+                {
+                    if (choice == null)
+                    {
+                        continue;
+                    }
+
+                    if (!reached.Contains(node.DialogueId))
+                    {
+                        CheckLink(issues, graph, choice.NextDialogueId, nodes);
+                    }
+
+                    if (!string.IsNullOrEmpty(choice.ObjectiveId) && !catalogue.ObjectiveIds.Contains(choice.ObjectiveId))
+                    {
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "unknown-id", subject,
+                            $"a choice reports objective '{choice.ObjectiveId}', which no quest defines", graph));
+                    }
+
+                    CheckFlags(issues, graph, choice.RequiredFlags, catalogue);
+                    CheckFlags(issues, graph, choice.BlockingFlags, catalogue);
+                    CheckConsequences(issues, graph, choice.Consequences, catalogue);
+                }
+            }
+        }
+
+        private static HashSet<string> Walk(List<ContentIssue> issues, DialogueGraph graph,
+            Dictionary<string, DialogueNode> nodes)
+        {
             var reached = new HashSet<string>();
             var pending = new Queue<string>();
+
             if (graph.EntryNodeIds != null && graph.EntryNodeIds.Count > 0)
             {
                 foreach (var id in graph.EntryNodeIds)
                 {
-                    if (!nodes.ContainsKey(id)) Error(graph, "missing entry node " + id, ref errors);
-                    else pending.Enqueue(id);
+                    if (!nodes.ContainsKey(id))
+                    {
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "dialogue-shape", graph.GraphId,
+                            $"names '{id}' as an entry point, but there is no such node", graph));
+                    }
+                    else
+                    {
+                        pending.Enqueue(id);
+                    }
                 }
             }
-            else if (graph.Nodes[0] != null) pending.Enqueue(graph.Nodes[0].DialogueId);
+            else if (graph.Nodes[0] != null)
+            {
+                pending.Enqueue(graph.Nodes[0].DialogueId);
+            }
 
             while (pending.Count > 0)
             {
                 var id = pending.Dequeue();
-                if (!reached.Add(id) || !nodes.TryGetValue(id, out var node)) continue;
-                Follow(graph, node.NextDialogueId, nodes, pending, ref errors);
-                if (node.Choices == null) continue;
-                foreach (var choice in node.Choices)
-                    if (choice != null) Follow(graph, choice.NextDialogueId, nodes, pending, ref errors);
-            }
-            foreach (var node in graph.Nodes)
-            {
-                if (node == null) continue;
-                if (!reached.Contains(node.DialogueId))
+
+                if (!reached.Add(id) || !nodes.TryGetValue(id, out var node))
                 {
-                    Warning(graph, "unreachable node " + node.DialogueId, ref warnings);
-                    CheckLink(graph, node.NextDialogueId, nodes, ref errors);
+                    continue;
                 }
-                if (!string.IsNullOrEmpty(node.RequiredMemoryId) && !memoryIds.Contains(node.RequiredMemoryId))
-                    Error(graph, "unknown gated memory " + node.RequiredMemoryId, ref errors);
-                CheckFlags(graph, node.RequiredFlags, knownFlags, ref warnings);
-                CheckFlags(graph, node.BlockingFlags, knownFlags, ref warnings);
-                CheckConsequences(graph, node.Consequences, questIds, objectiveIds, memoryIds, ref errors);
-                if (node.Choices == null) continue;
+
+                Follow(issues, graph, node.NextDialogueId, nodes, pending);
+
+                if (node.Choices == null)
+                {
+                    continue;
+                }
+
                 foreach (var choice in node.Choices)
                 {
-                    if (choice == null) continue;
-                    if (!reached.Contains(node.DialogueId)) CheckLink(graph, choice.NextDialogueId, nodes, ref errors);
-                    if (!string.IsNullOrEmpty(choice.ObjectiveId) && !objectiveIds.Contains(choice.ObjectiveId))
-                        Error(graph, "unknown choice objective " + choice.ObjectiveId, ref errors);
-                    CheckFlags(graph, choice.RequiredFlags, knownFlags, ref warnings);
-                    CheckFlags(graph, choice.BlockingFlags, knownFlags, ref warnings);
-                    CheckConsequences(graph, choice.Consequences, questIds, objectiveIds, memoryIds, ref errors);
+                    if (choice != null)
+                    {
+                        Follow(issues, graph, choice.NextDialogueId, nodes, pending);
+                    }
+                }
+            }
+
+            return reached;
+        }
+
+        private static void Follow(List<ContentIssue> issues, DialogueGraph graph, string id,
+            Dictionary<string, DialogueNode> nodes, Queue<string> pending)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return;
+            }
+
+            if (!nodes.ContainsKey(id))
+            {
+                issues.Add(new ContentIssue(ContentSeverity.Error, "dialogue-link", graph.GraphId,
+                    $"links to '{id}', which is not a node in this graph", graph));
+            }
+            else
+            {
+                pending.Enqueue(id);
+            }
+        }
+
+        private static void CheckLink(List<ContentIssue> issues, DialogueGraph graph, string id,
+            Dictionary<string, DialogueNode> nodes)
+        {
+            if (!string.IsNullOrEmpty(id) && !nodes.ContainsKey(id))
+            {
+                issues.Add(new ContentIssue(ContentSeverity.Error, "dialogue-link", graph.GraphId,
+                    $"links to '{id}', which is not a node in this graph", graph));
+            }
+        }
+
+        private static void CheckFlags(List<ContentIssue> issues, DialogueGraph graph, string[] flags,
+            ContentCatalogue catalogue)
+        {
+            if (flags == null)
+            {
+                return;
+            }
+
+            foreach (var flag in flags)
+            {
+                if (!string.IsNullOrEmpty(flag) && !catalogue.KnownFlags.Contains(flag))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Warning, "unknown-flag", graph.GraphId,
+                        $"reads flag '{flag}', which nothing ever sets", graph));
                 }
             }
         }
-        Debug.Log($"Dialogue validation: {graphs.Count} graphs, {errors} errors, {warnings} warnings.");
-    }
 
-    private static List<T> LoadAll<T>() where T : UnityEngine.Object
-    {
-        var result = new List<T>();
-        foreach (var guid in AssetDatabase.FindAssets("t:" + typeof(T).Name))
+        private static void CheckConsequences(List<ContentIssue> issues, DialogueGraph graph,
+            DialogueConsequence[] consequences, ContentCatalogue catalogue)
         {
-            var asset = AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guid));
-            if (asset != null) result.Add(asset);
-        }
-        return result;
-    }
-
-    private static void Follow(DialogueGraph graph, string id, Dictionary<string, DialogueNode> nodes,
-        Queue<string> pending, ref int errors)
-    {
-        if (string.IsNullOrEmpty(id)) return;
-        if (!nodes.ContainsKey(id)) Error(graph, "dangling link to " + id, ref errors);
-        else pending.Enqueue(id);
-    }
-
-    private static void CheckLink(DialogueGraph graph, string id, Dictionary<string, DialogueNode> nodes, ref int errors)
-    {
-        if (!string.IsNullOrEmpty(id) && !nodes.ContainsKey(id))
-            Error(graph, "dangling link to " + id, ref errors);
-    }
-
-    private static void Add(HashSet<string> flags, IReadOnlyList<string> values)
-    {
-        if (values == null) return;
-        foreach (var flag in values) if (!string.IsNullOrEmpty(flag)) flags.Add(flag);
-    }
-
-    private static void GatherFlags(DialogueConsequence[] consequences, HashSet<string> flags)
-    {
-        if (consequences == null) return;
-        foreach (var item in consequences)
-            if (item != null && (item.Type == ConsequenceType.SetFlag || item.Type == ConsequenceType.ClearFlag)
-                && !string.IsNullOrEmpty(item.Target)) flags.Add(item.Target);
-    }
-
-    private static void CheckFlags(DialogueGraph graph, string[] flags, HashSet<string> known, ref int warnings)
-    {
-        if (flags == null) return;
-        foreach (var flag in flags)
-            if (!string.IsNullOrEmpty(flag) && !known.Contains(flag))
-                Warning(graph, "unknown flag " + flag, ref warnings);
-    }
-
-    private static void CheckConsequences(DialogueGraph graph, DialogueConsequence[] consequences,
-        HashSet<string> quests, HashSet<string> objectives, HashSet<string> memories, ref int errors)
-    {
-        if (consequences == null) return;
-        foreach (var item in consequences)
-        {
-            if (item == null || !Enum.IsDefined(typeof(ConsequenceType), item.Type)
-                || string.IsNullOrWhiteSpace(item.Target))
+            if (consequences == null)
             {
-                Error(graph, "invalid or empty consequence", ref errors);
-                continue;
+                return;
             }
-            if (item.Type == ConsequenceType.StartQuest && !quests.Contains(item.Target))
-                Error(graph, "unknown quest " + item.Target, ref errors);
-            if (item.Type == ConsequenceType.CompleteObjective && !objectives.Contains(item.Target))
-                Error(graph, "unknown objective " + item.Target, ref errors);
-            if (item.Type == ConsequenceType.DiscoverMemory && !memories.Contains(item.Target))
-                Error(graph, "unknown memory " + item.Target, ref errors);
-        }
-    }
 
-    private static void Error(DialogueGraph graph, string message, ref int count)
-    {
-        count++;
-        Debug.LogError($"{graph.GraphId}: {message}", graph);
-    }
-    private static void Warning(DialogueGraph graph, string message, ref int count)
-    {
-        count++;
-        Debug.LogWarning($"{graph.GraphId}: {message}", graph);
+            foreach (var item in consequences)
+            {
+                if (item == null || !Enum.IsDefined(typeof(ConsequenceType), item.Type)
+                                 || string.IsNullOrWhiteSpace(item.Target))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Error, "dialogue-shape", graph.GraphId,
+                        "has a consequence with no type or no target", graph));
+                    continue;
+                }
+
+                switch (item.Type)
+                {
+                    case ConsequenceType.StartQuest when !catalogue.QuestIds.Contains(item.Target):
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "unknown-id", graph.GraphId,
+                            $"starts quest '{item.Target}', which does not exist", graph));
+                        break;
+
+                    case ConsequenceType.CompleteObjective when !catalogue.ObjectiveIds.Contains(item.Target):
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "unknown-id", graph.GraphId,
+                            $"completes objective '{item.Target}', which no quest defines", graph));
+                        break;
+
+                    case ConsequenceType.DiscoverMemory when !catalogue.MemoryIds.Contains(item.Target):
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "unknown-id", graph.GraphId,
+                            $"discovers memory '{item.Target}', which does not exist", graph));
+                        break;
+                }
+            }
+        }
     }
 }

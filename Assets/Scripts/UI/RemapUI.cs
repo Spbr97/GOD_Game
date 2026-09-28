@@ -3,6 +3,7 @@ using Game.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -109,7 +110,7 @@ namespace Game.UI
         {
             CancelActiveRebind();
 
-            bindingLabel.text = "Press any key or button...";
+            bindingLabel.text = Strings.Get(StringKeys.RemapListening);
             action.Disable();
 
             activeRebind = action.PerformInteractiveRebinding(bindingIndex)
@@ -207,7 +208,7 @@ namespace Game.UI
             buttonLabel.fontSize = 14;
             buttonLabel.alignment = TextAnchor.MiddleCenter;
             buttonLabel.color = Color.white;
-            buttonLabel.text = "Rebind";
+            buttonLabel.text = Strings.Get(StringKeys.RemapButton);
             buttonLabel.raycastTarget = false;
 
             spawnedRows.Add(rowRect.gameObject);

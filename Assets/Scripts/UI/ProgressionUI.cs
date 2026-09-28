@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -212,7 +213,7 @@ namespace Game.UI
                     }
 
                     var count = inventory.GetCount(item);
-                    var countText = item.Stackable && count != 1 ? $"  x{count}" : string.Empty;
+                    var countText = item.Stackable && count != 1 ? Strings.Format(StringKeys.ProgressionItemCount, count) : string.Empty;
                     row = AddRow(inventoryContent, row, $"    {item.DisplayName}{countText}", Color.white);
                     any = true;
                 }
@@ -242,7 +243,8 @@ namespace Game.UI
                 return;
             }
 
-            var row = AddRow(skillsContent, 0, $"Skill Points: {skills.AvailablePoints}", Color.white, bold: true);
+            var row = AddRow(skillsContent, 0, Strings.Format(StringKeys.ProgressionSkillPoints, skills.AvailablePoints),
+                Color.white, bold: true);
 
             foreach (SkillBranch branch in System.Enum.GetValues(typeof(SkillBranch)))
             {
@@ -286,10 +288,12 @@ namespace Game.UI
 
             var unlocked = skills.IsUnlocked(skillId);
             var canUnlock = skills.CanUnlock(skillId);
-            var status = unlocked ? "[unlocked]" : $"[{skill.Cost} pt]";
+            var status = unlocked
+                ? Strings.Get(StringKeys.ProgressionUnlocked)
+                : Strings.Format(StringKeys.ProgressionCost, skill.Cost);
             var colour = unlocked ? new Color(0.5f, 0.9f, 0.5f) : (canUnlock ? Color.white : Color.grey);
 
-            row = AddRow(skillsContent, row, $"    {skill.DisplayName}  {status}", colour);
+            row = AddRow(skillsContent, row, Strings.Format(StringKeys.ProgressionSkillRow, skill.DisplayName, status), colour);
             row = AddRow(skillsContent, row, $"        {skill.Description}", Color.grey);
 
             if (!unlocked)
@@ -322,7 +326,7 @@ namespace Game.UI
             label.fontSize = 15;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
-            label.text = "Unlock";
+            label.text = Strings.Get(StringKeys.ProgressionUnlockButton);
             label.raycastTarget = false;
 
             spawnedRows.Add(rect.gameObject);

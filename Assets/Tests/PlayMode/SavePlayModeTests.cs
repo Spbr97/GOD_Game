@@ -471,6 +471,12 @@ namespace Game.Tests.Play
 
             var checkpointGo = arena.Track(new GameObject("Checkpoint_Restore"));
             checkpointGo.SetActive(false);
+
+            // Away from the player, who is at the origin. Standing inside a checkpoint's
+            // trigger lets physics re-activate it part-way through the test, which sets
+            // the fresh manager's ActiveCheckpoint before the load has restored anything
+            // -- the intermittent failure recorded in TEST_PLAN.md section 1.
+            checkpointGo.transform.position = new Vector3(-12f, 0f, 7f);
             var box = checkpointGo.AddComponent<BoxCollider>();
             box.isTrigger = true;
             var checkpoint = checkpointGo.AddComponent<Checkpoint>();

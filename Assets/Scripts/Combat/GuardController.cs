@@ -75,9 +75,18 @@ namespace Game.Combat
         public event Action<bool> Parried;
 
         /// <summary>The parry window in seconds after difficulty scaling, for HUD hints and tests.</summary>
-        public float ScaledParryWindow => parryWindow * Difficulty.Modifiers.PlayerTimingWindow;
+        /// <summary>
+        /// The parry window after difficulty and after the Warrior branch's parry skill
+        /// (SPEC.md section 30, TASK 043). <c>WARRIOR_PARRY</c> carries +0.2, so one point
+        /// widens it by a fifth.
+        /// </summary>
+        public float ScaledParryWindow => parryWindow * Difficulty.Modifiers.PlayerTimingWindow
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.ParryWindowMultiplier);
 
-        public float ScaledPerfectParryWindow => perfectParryWindow * Difficulty.Modifiers.PlayerTimingWindow;
+        public float ScaledPerfectParryWindow => perfectParryWindow * Difficulty.Modifiers.PlayerTimingWindow
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.ParryWindowMultiplier);
 
         private void Awake()
         {
@@ -176,7 +185,7 @@ namespace Game.Combat
                 return false;
             }
 
-            var cost = damage.Amount * staminaPerDamageBlocked;
+            var cost = damage.Amount * ScaledStaminaPerDamageBlocked;
             if (stamina != null && !stamina.TrySpend(cost))
             {
                 BreakGuard("out of stamina");
@@ -187,6 +196,20 @@ namespace Game.Combat
             EventBus.Publish(new AttackBlockedEvent(gameObject, damage));
             return true;
         }
+
+        /// <summary>
+        /// Stamina spent per point of damage blocked, after the Guardian branch's block
+        /// skill (SPEC.md section 30, TASK 043).
+        ///
+        /// Blocking is all-or-nothing here — a blocked hit does no damage at all — so the
+        /// only thing a "better block" can improve is what it costs to hold. This is the
+        /// one effect read as <c>1 - bonus</c> rather than <c>1 + bonus</c>, because
+        /// <c>GUARDIAN_BLOCK</c> is named for the reduction it grants and carries +0.1:
+        /// more reduction, not more cost.
+        /// </summary>
+        public float ScaledStaminaPerDamageBlocked => Mathf.Max(0f, staminaPerDamageBlocked
+            * Mathf.Max(0f, 1f - Game.Progression.SkillTreeManager.Flat(
+                Game.Progression.SkillEffectType.BlockReductionBonus)));
 
         /// <summary>Test seam so the timing can be exercised without real input.</summary>
         public void Configure(float parrySeconds, float perfectSeconds, float staminaPerDamage, float stunSeconds,

@@ -240,6 +240,42 @@ namespace Game.Quests
             return true;
         }
 
+        /// <summary>Every quest this build knows about. Read by content validation and by the recovery sweep.</summary>
+        public IReadOnlyList<QuestDefinition> Catalogue =>
+            questCatalogue ?? System.Array.Empty<QuestDefinition>();
+
+        /// <summary>
+        /// Marks an objective complete without walking it through its required count, and
+        /// finishes the quest if that was the last one.
+        ///
+        /// Only <c>ProgressionRecovery</c> should call this. The ordinary path is
+        /// <see cref="ReportObjective(string)"/>, which counts; this exists for the case
+        /// where the world already records the objective as done and whatever would have
+        /// reported it — the enemy, the trigger, the pickup — is gone, so counting can
+        /// never reach the total again.
+        /// </summary>
+        public bool RecoverObjective(string questId, string objectiveId)
+        {
+            if (string.IsNullOrEmpty(questId) || string.IsNullOrEmpty(objectiveId)
+                || !active.TryGetValue(questId, out var progress)
+                || progress.Status != QuestStatus.Active
+                || progress.IsObjectiveComplete(objectiveId))
+            {
+                return false;
+            }
+
+            var objective = progress.Definition.GetObjective(objectiveId);
+            if (objective == null)
+            {
+                return false;
+            }
+
+            progress.MarkComplete(objectiveId);
+            EventBus.Publish(new QuestObjectiveCompletedEvent(progress.Definition, objective));
+            CheckCompletion(progress);
+            return true;
+        }
+
         /// <summary>Forgets all quest progress. For loading a save and for starting a new game.</summary>
         public void ClearAllProgress()
         {

@@ -1,0 +1,156 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e221e12dd4fd0ca459c6a1cf2072e3ca, type: 3}
+  m_Name: Strings_en
+  m_EditorClassIdentifier: Game.Runtime::Game.Core.Localization.StringTable
+  languageCode: en
+  languageName: English
+  entries:
+  - Key: hud.health
+    Value: Health  {0}/{1}
+    Note: HUD bar. {0} current, {1} maximum.
+  - Key: hud.stamina
+    Value: Stamina  {0}/{1}
+    Note: HUD bar.
+  - Key: hud.divine
+    Value: Divine  {0}/{1}
+    Note: HUD bar. Divine energy.
+  - Key: hud.locked_on
+    Value: 'Locked: {0}'
+    Note: '{0} is the enemy''s name.'
+  - Key: hud.combo
+    Value: '{0}  x{1}'
+    Note: '{0} combo name, {1} damage multiplier.'
+  - Key: hud.parry
+    Value: Parry
+    Note: Flashed on a successful parry.
+  - Key: hud.perfect_parry
+    Value: Perfect parry
+    Note: Flashed on a perfectly timed parry.
+  - Key: hud.guard_broken
+    Value: Guard broken
+    Note: Flashed when the player's guard breaks.
+  - Key: journal.quest_row
+    Value: '{0}  [{1}]'
+    Note: '{0} quest title, {1} status word.'
+  - Key: journal.objective_count
+    Value: '  ({0}/{1})'
+    Note: Appended to an objective. {0} done, {1} needed.
+  - Key: journal.memory_integrity
+    Value: 'Memory Integrity: {0}%'
+    Note: '{0} is a whole number 0-100.'
+  - Key: journal.memory_row
+    Value: '{0}  -  {1}, {2}'
+    Note: '{0} title, {1} category, {2} state.'
+  - Key: journal.corrupt
+    Value: Corrupt
+    Note: Shown against a corrupted memory.
+  - Key: progression.skill_points
+    Value: 'Skill Points: {0}'
+    Note: 
+  - Key: progression.item_count
+    Value: '  x{0}'
+    Note: Appended to a stackable item's name.
+  - Key: progression.skill_row
+    Value: '    {0}  {1}'
+    Note: '{0} skill name, {1} its unlocked/cost marker.'
+  - Key: progression.unlocked
+    Value: '[unlocked]'
+    Note: Marker beside an owned skill.
+  - Key: progression.cost
+    Value: '[{0} pt]'
+    Note: '{0} is the skill point cost.'
+  - Key: progression.unlock_button
+    Value: Unlock
+    Note: Button label.
+  - Key: quest.objective_complete
+    Value: Complete
+    Note: Objective state in the tracker.
+  - Key: quest.objective_failed
+    Value: Failed
+    Note: Objective state in the tracker.
+  - Key: quest.objective_count
+    Value: '{0}  ({1}/{2})'
+    Note: '{0} description, {1} done, {2} needed.'
+  - Key: menu.save_row
+    Value: '{0}
+
+      {1}  -  {2}'
+    Note: '{0} slot name, {1} scene, {2} date and time.'
+  - Key: menu.save_row_empty
+    Value: '{0}
+
+      (empty)'
+    Note: '{0} is the slot name.'
+  - Key: menu.difficulty
+    Value: 'Difficulty: {0}'
+    Note: '{0} is the difficulty name.'
+  - Key: menu.resolution
+    Value: '{0} x {1}'
+    Note: '{0} width, {1} height, in pixels.'
+  - Key: remap.listening
+    Value: Press any key or button...
+    Note: Shown while waiting for a rebind.
+  - Key: remap.button
+    Value: Rebind
+    Note: Button label.
+  - Key: map.checkpoint_reached
+    Value: '{0} (reached)'
+    Note: '{0} is the checkpoint''s name.'
+  - Key: map.boss_defeated
+    Value: '{0} (defeated)'
+    Note: '{0} is the boss''s name.'
+  - Key: memory.recovered
+    Value: Memory recovered - {0}
+    Note: '{0} is the memory''s title.'
+  - Key: interaction.prompt
+    Value: '{0} {1}'
+    Note: '{0} a verb such as Speak to, {1} the thing''s name.'
+  - Key: interaction.prompt_with_key
+    Value: '[{0}]  {1}'
+    Note: '{0} the key to press, {1} the prompt.'
+  - Key: interaction.take_item
+    Value: Take {0}
+    Note: '{0} is the item''s name.'
+  - Key: interaction.take_item_generic
+    Value: Take item
+    Note: Used when the item has no name yet.
+  - Key: interaction.toll_pay
+    Value: Offer a memory to pass ({0} integrity)
+    Note: '{0} is a percentage such as 15%.'
+  - Key: interaction.toll_paid
+    Value: The way is open
+    Note: Shown once a memory toll is paid.
+  - Key: save.backup_restored
+    Value: Your previous save could not be loaded. A safe backup has been restored.
+    Note: SPEC.md section 32 requires this wording. Translate the meaning exactly.
+  - Key: save.refused
+    Value: The game cannot be saved right now.
+    Note: Shown when saving is blocked.
+  - Key: save.failed
+    Value: The game could not be saved.
+    Note: Shown when writing the file failed.
+  - Key: save.load_failed
+    Value: That save could not be loaded.
+    Note: 
+  - Key: world.fell_out_of_world
+    Value: You fell out of the world. Returned to the last checkpoint.
+    Note: 
+  - Key: device.controller_lost
+    Value: Controller disconnected. The game is paused.
+    Note: 
+  - Key: device.controller_found
+    Value: Controller reconnected.
+    Note: 
+  - Key: dialogue.unavailable
+    Value: '[Dialogue unavailable]'
+    Note: Shown when a conversation has no available line.

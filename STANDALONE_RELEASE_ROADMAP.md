@@ -9,12 +9,15 @@ target is **Windows x64**, using Unity Personal and free tools and services.
 
 ## Baseline and definition of finished
 
-As of 24 September 2026, the project has the Avarsha/Agniya vertical slice,
-three enabled scenes (`MainMenu`, `Test`, `Avarsha`), two boss encounters, and
-310 locally passing EditMode/PlayMode tests. The newer scene tests pass after
-Avarsha's YAML conversion. There is **no verified Windows player build** and
-no full manual playthrough of TASK 027-038's changes. GitHub Actions cannot run
-Unity yet because its Unity Personal secrets have not been configured.
+As of 27 September 2026, the project has the Avarsha/Agniya vertical slice,
+four enabled scenes (`MainMenu`, `Test`, `Avarsha`, `Agniya`), two boss encounters, and
+450 locally passing EditMode/PlayMode tests. As of TASK 039 a **Windows x64 player
+builds, launches and passes an automated smoke test outside the Editor**
+(`WINDOWS_BUILD.md`), and as of TASK 041 that smoke test walks the **Avarsha ↔ Agniya
+round trip** in the shipped binary, proving progression survives a scene change. What is
+still missing is the manual pass on the player, a build from a clean checkout, and any
+full manual playthrough of TASK 027-038's changes. GitHub Actions cannot run Unity yet because its
+Unity Personal secrets have not been configured.
 
 Version 1.0 is finished only when all of these are true:
 
@@ -70,7 +73,7 @@ not wait for every temple before testing a standalone build.
   map and a content budget per region. **Gate:** approved canon and an
   achievable content list with IDs, owners and acceptance tests. Technical
   work in TASK 039 can proceed while these decisions are made.
-- [ ] **TASK 041 - Cross-scene progression and save durability.** Move the
+- [x] **TASK 041 - Cross-scene progression and save durability.** Move the
   Agniya temple into its own scene, then prove a return trip to Avarsha keeps
   quests, memories, inventory, abilities, world flags and checkpoints without
   restoring the wrong player position. Set save ownership and precedence for
@@ -211,6 +214,20 @@ temple when the existing puzzle, quest and boss frameworks can express it.
    Remote Unity CI remains blocked until the owner securely configures the
    repository's Personal license secrets; never put credentials in the repo.
 
-**Next action:** TASK 039. It establishes what actually runs outside the
-Editor and exposes packaging or player-only failures while the game is still
-small enough to fix them cheaply.
+**Next action:** Finish the open acceptance gates for TASK 039, 042 and 043, then
+author TASK 044. TASK 039 still needs a build from a clean checkout and the manual
+player pass. TASK 042 still needs a complete authored Agniya chapter through the
+validated pipeline. TASK 043 still needs the manual combat feel pass. TASK 040
+requires production and canon decisions, including the four author questions at
+the end of `STORY_BIBLE.md`; those decisions govern TASK 044 and later content.
+
+TASK 043's implementation is in place: all twelve of SPEC.md section 30's
+skills now change play and survive a save (eight of them did nothing at all before),
+divine abilities share one contract of unlock, cost, cooldown, feedback and save that
+TASK 045-050 build on, bosses and heavies throw unblockable attacks with a distinctly
+coloured telegraph so the guard is no longer the answer to everything, and the four
+difficulty modes are verified monotonic with no health multiplier anywhere. Two
+readability defects in the shipped content were found by the new tests and fixed. What
+is owed is the **manual feel pass** in `TEST_PLAN.md` M0 steps 10-14 -- whether an
+unblockable is spottable at speed, and whether Story and Mythic feel like different
+fights, are questions for a person with a controller.

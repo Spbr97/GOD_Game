@@ -2,6 +2,7 @@ using Game.Core;
 using Game.Quests;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -97,7 +98,7 @@ namespace Game.UI
 
             if (objectiveLabel != null)
             {
-                objectiveLabel.text = "Complete";
+                objectiveLabel.text = Strings.Get(StringKeys.QuestObjectiveComplete);
             }
 
             hideAt = Time.unscaledTime + completedLingerSeconds;
@@ -112,7 +113,7 @@ namespace Game.UI
 
             if (objectiveLabel != null)
             {
-                objectiveLabel.text = "Failed";
+                objectiveLabel.text = Strings.Get(StringKeys.QuestObjectiveFailed);
             }
 
             hideAt = Time.unscaledTime + completedLingerSeconds;
@@ -136,7 +137,8 @@ namespace Game.UI
 
             var required = Mathf.Max(1, objective.RequiredCount);
             objectiveLabel.text = required > 1
-                ? $"{objective.Description}  ({progress.GetCount(objective.ObjectiveId)}/{required})"
+                ? Strings.Format(StringKeys.QuestObjectiveCount, objective.Description,
+                    progress.GetCount(objective.ObjectiveId), required)
                 : objective.Description;
         }
 

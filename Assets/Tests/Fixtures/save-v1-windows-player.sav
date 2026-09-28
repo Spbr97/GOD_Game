@@ -1,0 +1,5 @@
+{
+    "Version": 1,
+    "Checksum": "ddec6a6e38373865",
+    "Payload": "{\n    \"Version\": 1,\n    \"TimestampUtc\": \"2026-09-25T20:07:46.3258790Z\",\n    \"SceneName\": \"Avarsha\",\n    \"CheckpointId\": \"\",\n    \"PlayerPosition\": {\n        \"x\": 0.0,\n        \"y\": 1.0799999237060547,\n        \"z\": -32.0\n    },\n    \"PlayerRotation\": {\n        \"x\": 0.0,\n        \"y\": 0.0,\n        \"z\": 0.0,\n        \"w\": 1.0\n    },\n    \"PlayerStats\": {\n        \"Health\": 100.0,\n        \"MaxHealth\": 100.0,\n        \"Stamina\": 100.0,\n        \"MaxStamina\": 100.0,\n        \"DivineEnergy\": 0.0,\n        \"MaxDivineEnergy\": 100.0\n    },\n    \"Inventory\": [],\n    \"Abilities\": [],\n    \"QuestStates\": [],\n    \"WorldFlags\": [],\n    \"WorldCounters\": [],\n    \"NpcStates\": [],\n    \"MemoryStates\": [],\n    \"MemoryIntegrity\": 1.0,\n    \"BossStates\": [],\n    \"DialogueFlags\": [],\n    \"EndingFlags\": [],\n    \"Difficulty\": 1,\n    \"Participants\": []\n}"
+}

@@ -27,6 +27,11 @@ namespace Game.Quests
 
         public bool HasReported => reported;
 
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042) to check this points at a real objective.</summary>
+        public string ObjectiveId => objectiveId;
+
+        public string FlagToSet => flagToSet;
+
         private void Awake()
         {
             health = GetComponent<HealthComponent>();

@@ -38,5 +38,8 @@ MonoBehaviour:
   attackRecovery: 0.35
   attackCooldown: 1
   telegraphColour: {r: 1, g: 0.45, b: 0.15, a: 1}
+  unblockableEveryNthAttack: 0
+  unblockableTelegraphColour: {r: 0.85, g: 0.15, b: 1, a: 1}
+  unblockableDamageMultiplier: 1.5
   retreatHealthFraction: 0.3
   retreatDuration: 2.5

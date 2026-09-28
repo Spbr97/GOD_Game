@@ -64,7 +64,7 @@ namespace Game.Combat
         private readonly List<ComboChain> chains;
         private readonly List<ComboStep> history = new();
         private readonly int historySize;
-        private readonly float window;
+        private float window;
         private float expiresAt = float.NegativeInfinity;
 
         /// <summary>The steps still inside the combo window, oldest first.</summary>
@@ -72,6 +72,18 @@ namespace Game.Combat
 
         /// <summary>The chain the most recent step completed, or null.</summary>
         public ComboChain Current { get; private set; }
+
+        /// <summary>
+        /// Seconds a step keeps the chain alive. Settable because the Warrior branch's
+        /// combo skill widens it (SPEC.md section 30, TASK 043), and a tracker built once
+        /// in Awake would otherwise hold the window the player had before they spent the
+        /// point.
+        /// </summary>
+        public float Window
+        {
+            get => window;
+            set => window = Mathf.Max(0f, value);
+        }
 
         /// <param name="window">Seconds a step keeps the chain alive after it is recorded.</param>
         /// <param name="historySize">How many steps are remembered; at least the longest chain.</param>

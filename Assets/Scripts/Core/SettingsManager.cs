@@ -310,5 +310,33 @@ namespace Game.Core
             Apply();
             Save();
         }
+
+        /// <summary>
+        /// Takes the difficulty a loaded save was being played on (TASK 041).
+        ///
+        /// Difficulty is the one value that both a save slot and the global settings
+        /// hold, and the two can disagree the moment a player has more than one
+        /// playthrough. The slot wins: difficulty is chosen at New Game and belongs to
+        /// that run. This exists so the global copy is told, rather than being left
+        /// describing a run that is no longer loaded — the Settings panel reads
+        /// <see cref="Current"/>, and a panel that says Normal while the game is running
+        /// Hard is a bug report waiting to happen.
+        ///
+        /// Distinct from <see cref="SetDifficulty"/> even though the body is nearly the
+        /// same, because the two mean opposite things: that one is the player changing
+        /// difficulty, this one is the game reporting what the difficulty already is.
+        /// Only <see cref="SetDifficulty"/> should ever be reachable from a UI control.
+        /// </summary>
+        public void AdoptDifficultyFromSave(DifficultyMode mode)
+        {
+            if (Current.Difficulty == mode)
+            {
+                return;
+            }
+
+            Current.Difficulty = mode;
+            Difficulty.Set(mode);
+            Save();
+        }
     }
 }

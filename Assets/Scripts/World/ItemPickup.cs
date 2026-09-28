@@ -2,6 +2,7 @@ using Game.Core;
 using Game.Inventory;
 using Game.Quests;
 using UnityEngine;
+using Game.Core.Localization;
 
 namespace Game.World
 {
@@ -23,11 +24,26 @@ namespace Game.World
         [Tooltip("Optional. If set, collecting this survives a save (SPEC.md TASK 009) — a load will not un-collect it.")]
         [SerializeField] private SaveIdentity identity;
 
+        [Tooltip("Tick for an item the player cannot finish the game without holding. Checked by ProgressionRecovery after a load (SPEC.md section 55).")]
+        [SerializeField] private bool essential;
+
         private MaterialPropertyBlock propertyBlock;
 
         public bool Collected { get; private set; }
 
-        public override string Prompt => item != null ? $"Take {item.DisplayName}" : "Take item";
+        public InventoryItem Item => item;
+
+        public bool Essential => essential;
+
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042).</summary>
+        public string ObjectiveIdOnCollect => objectiveIdOnCollect;
+
+        /// <summary>The stable id this pickup's collection is recorded against, or null when it records none.</summary>
+        public string SaveId => identity != null ? identity.Id : null;
+
+        public override string Prompt => item != null
+            ? Strings.Format(StringKeys.InteractionTakeItem, item.DisplayName)
+            : Strings.Get(StringKeys.InteractionTakeItemGeneric);
 
         public override bool CanInteract => !Collected && item != null && base.CanInteract;
 
@@ -148,11 +164,13 @@ namespace Game.World
         }
 
         /// <summary>Test and tooling seam for wiring the pickup without the Inspector.</summary>
-        public void Configure(InventoryItem inventoryItem, int itemAmount = 1, string objectiveId = null)
+        public void Configure(InventoryItem inventoryItem, int itemAmount = 1, string objectiveId = null,
+            bool isEssential = false)
         {
             item = inventoryItem;
             amount = itemAmount;
             objectiveIdOnCollect = objectiveId;
+            essential = isEssential;
             if (visual == null)
             {
                 visual = GetComponentInChildren<Renderer>();

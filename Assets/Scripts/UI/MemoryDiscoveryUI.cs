@@ -2,6 +2,7 @@ using Game.Core;
 using Game.Memory;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -57,7 +58,7 @@ namespace Game.UI
 
             if (titleLabel != null)
             {
-                titleLabel.text = $"Memory recovered — {memory.Title}";
+                titleLabel.text = Strings.Format(StringKeys.MemoryRecovered, memory.Title);
             }
 
             if (bodyLabel != null)

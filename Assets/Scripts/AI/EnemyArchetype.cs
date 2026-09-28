@@ -86,6 +86,18 @@ namespace Game.AI
         [Tooltip("Colour flashed during the telegraph, so the swing is readable without animation.")]
         [SerializeField] private Color telegraphColour = new(1f, 0.72f, 0.2f);
 
+        [Header("Unblockable attacks (SPEC.md section 16)")]
+        [Tooltip("Every Nth attack cannot be blocked and must be dodged. Zero means this enemy has none.")]
+        [Min(0)]
+        [SerializeField] private int unblockableEveryNthAttack;
+
+        [Tooltip("Flashed instead of the ordinary telegraph colour when the next swing is unblockable. Must be clearly different.")]
+        [SerializeField] private Color unblockableTelegraphColour = new(1f, 0.18f, 0.15f);
+
+        [Tooltip("An unblockable swing hits harder, because the player gave up their guard to avoid it.")]
+        [Min(1f)]
+        [SerializeField] private float unblockableDamageMultiplier = 1.5f;
+
         [Header("Retreat")]
         [Tooltip("Health fraction below which this enemy backs off. Zero means it never retreats.")]
         [Range(0f, 1f)][SerializeField] private float retreatHealthFraction;
@@ -119,6 +131,31 @@ namespace Game.AI
         public float AttackActiveDuration => attackActiveDuration;
         public float AttackRecovery => attackRecovery;
         public Color TelegraphColour => telegraphColour;
+
+        /// <summary>
+        /// How often this enemy throws a swing the player cannot block. Zero for enemies
+        /// whose whole moveset is answerable with the guard.
+        ///
+        /// This matters more than it looks. Without an unblockable, holding block is
+        /// always at least as good as dodging, and the player never has to read a
+        /// telegraph at all — SPEC.md section 16 asks for readable attack patterns, and a
+        /// pattern nobody has to read is not one.
+        /// </summary>
+        public int UnblockableEveryNthAttack => unblockableEveryNthAttack;
+
+        /// <summary>
+        /// The colour an unblockable wind-up flashes. Being clearly different from
+        /// <see cref="TelegraphColour"/> is the whole mechanic: the attack is fair only if
+        /// the player can tell before it lands. <c>EnemyReadabilityTests</c> holds the two
+        /// apart.
+        /// </summary>
+        public Color UnblockableTelegraphColour => unblockableTelegraphColour;
+
+        public float UnblockableDamageMultiplier => unblockableDamageMultiplier;
+
+        /// <summary>True when the attack at <paramref name="attackNumber"/> (1-based) cannot be blocked.</summary>
+        public bool IsUnblockableAttack(int attackNumber) =>
+            unblockableEveryNthAttack > 0 && attackNumber > 0 && attackNumber % unblockableEveryNthAttack == 0;
 
         public float RetreatHealthFraction => retreatHealthFraction;
         public float RetreatDuration => retreatDuration;
@@ -158,6 +195,28 @@ namespace Game.AI
         /// Separate from <see cref="Configure"/> because the two are tuned by
         /// different people: combat numbers above, behaviour here.
         /// </summary>
+        /// <summary>
+        /// Test and tooling seam for how this enemy reads on screen. Separate from the
+        /// stat seams because these are the numbers <c>CombatReadabilityTests</c> holds
+        /// apart, and changing one for a balance reason must not quietly change the other.
+        /// </summary>
+        public void ConfigurePresentation(Color body, Color telegraph)
+        {
+            bodyTint = body;
+            telegraphColour = telegraph;
+        }
+
+        /// <summary>Test and tooling seam for the unblockable cadence.</summary>
+        public void ConfigureUnblockable(int everyNth, float damageMultiplier = 1.5f, Color? colour = null)
+        {
+            unblockableEveryNthAttack = Mathf.Max(0, everyNth);
+            unblockableDamageMultiplier = Mathf.Max(1f, damageMultiplier);
+            if (colour.HasValue)
+            {
+                unblockableTelegraphColour = colour.Value;
+            }
+        }
+
         public void ConfigureBehaviour(float leash, float retreatFraction, float retreatSeconds,
             float loseTargetSeconds, float investigateSeconds, float searchSeconds)
         {

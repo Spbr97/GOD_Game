@@ -3,9 +3,11 @@
     "rootNamespace": "Game.Tests",
     "references": [
         "Game.Runtime",
+        "Game.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.AI.Navigation"
     ],
     "includePlatforms": [
         "Editor"

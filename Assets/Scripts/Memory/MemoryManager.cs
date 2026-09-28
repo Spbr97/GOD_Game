@@ -362,8 +362,17 @@ namespace Game.Memory
 
             GameLogger.Log(LogCategory.Memory,
                 $"Ember Step's repeated use temporarily forgot '{memory.Title}'.", this);
-            StartCoroutine(RestoreAfterDelay(memory, previousState, temporaryForgetSeconds));
+            StartCoroutine(RestoreAfterDelay(memory, previousState, ScaledForgetSeconds));
         }
+
+        /// <summary>
+        /// How long an Ember Step-forgotten memory stays gone, after the Memory branch's
+        /// restoration skill (SPEC.md section 30, TASK 043). <c>MEMORY_RESTORATION</c>
+        /// carries -0.3, so one point brings a memory back 30% sooner.
+        /// </summary>
+        public float ScaledForgetSeconds => temporaryForgetSeconds
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.EmberStepForgetRestoreMultiplier);
 
         private MemoryFragment FindRandomKnownOptionalMemory()
         {

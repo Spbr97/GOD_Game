@@ -3,6 +3,422 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## Closure pass (28 September 2026)
+
+A pass over the open entries from TASK 039–043, taking the ones that needed no decision
+from anybody. Thirteen were addressed; the entries below are amended in place and say
+what closed them. Two genuine content defects were found by the new checks rather than
+by review, and are recorded here because finding them is the argument for the checks.
+
+### Found: two enemies were the same colour to a colour-blind player
+
+`Enemy_Boss_Agniya` (0.90, 0.25, 0.05) and `Enemy_DivineGuardian` (0.75, 0.35, 0.10)
+are two oranges. They pass an RGB-distance check comfortably and collapse to a
+simulated distance of 0.11 under deuteranopia — indistinguishable to roughly one man in
+twelve. The Divine Guardian is now a pale gold (0.82, 0.68, 0.30), which separates them
+by luminance rather than by hue and therefore survives every dichromacy.
+`Enemy_MiniBoss_TempleGuardian`'s telegraph was brightened from (1, 0.40, 0.15) to
+(1, 0.55, 0.25) for the same reason: against the violet unblockable flash it had a
+luminance gap of 0.15, which is too close to call in the half-second available.
+
+### Found: a clean checkout does not contain the build system
+
+`Tools/build-from-clean-checkout.ps1` was written to test TASK 039's reproducibility
+clause, and the first thing it establishes is that the clause is further from true than
+the entry below suggested. `Tools/build-windows.ps1`, `Assets/Editor/WindowsBuild.cs`,
+`Assets/Editor/ContentValidation.cs`, both localization folders, `Assets/Scenes/Agniya.unity`
+and the whole of `Assets/Scripts/Combat/Abilities/` are **untracked**, not merely
+modified. A clean checkout today has no build script and no temple. **Consequence:** the
+clean-checkout build cannot be run at all until the commit lands, and the script
+correctly refuses rather than building a stale commit and reporting success.
+
+## TASK 043 — Shared combat and progression rules
+
+Every skill does something, abilities share one contract, and attacks are readable.
+These are what that leaves.
+
+### The manual feel pass has not been done
+
+This is half of TASK 043's gate and no test can stand in for it. Whether an unblockable
+is spottable at speed, whether a parry feels like it landed, whether Warrior and Mythic
+feel like different games rather than different numbers — all of it needs a person with
+a controller. `TEST_PLAN.md` M0 has the steps. **Consequence:** the tuning is coherent
+and unplayed. Every number in the difficulty table is an argument, not an observation.
+
+### CLOSED — The unblockable was distinguished by colour and a pulse (closure pass, 28 September 2026)
+
+The pulse existed but was the same size for both kinds of swing, so it separated "an
+attack is coming" from "no attack" and said nothing about which one. Colour was doing
+all the work on the read that decides whether to block or dodge.
+
+Two things changed. An unblockable wind-up now swells to 1.38× against an ordinary
+1.12×, which is a cue no colour vision is needed for, asserted by
+`AnUnblockableWindUpSwellsFurtherThanAnOrdinaryOne`. And the palette is now checked
+against deuteranopia, protanopia and tritanopia simulations, with the primary assertion
+on Rec. 709 luminance — the one channel no dichromacy removes —
+in `AnUnblockableTelegraphIsLegibleWithoutColourVision` and
+`EnemyVariantsStayDistinguishableWithoutColourVision`. Those checks found the two
+oranges recorded at the top of this file.
+
+**Still true:** a distinct silhouette would be better than either, and there is no
+animation budget for one while the art is primitives. That is polish, not an
+accessibility hole.
+
+### The ability contract has one real ability in it
+
+Ember Step is the only divine ability that exists. The contract's reuse is proven by
+`TestTideStepEffect`, a test double written the way a temple's ability will be written.
+That is real evidence — it is the same interface and the same controller — but a test
+double never surprises you. **Closing it:** TASK 045's Varuna ability is the first
+honest test, and anything the contract is missing will show up there.
+
+### Ember Step's memory cost did not generalise
+
+SPEC.md section 20's "repeated use temporarily removes minor memories" is written
+against Ember Step specifically, and `MemoryManager` still listens for
+`EmberStepUsedEvent` rather than the shared `DivineAbilityUsedEvent`. **Why left:**
+whether every temple's ability costs memory is a design decision, not a refactor —
+making them all cost memory would change the feel of six abilities nobody has designed
+yet. **Closing it:** decide it in TASK 045 when there is a second ability to compare
+against.
+
+### The anti-grind claim is arithmetic, not play
+
+`TheHardestEnemyDiesToAnUnskilledPlayerInABoundedNumberOfHits` divides health by an
+unskilled light attack and checks the result is under 120. That proves no enemy is a
+health sponge you must out-level. **It does not prove the fight is winnable** — it says
+nothing about whether an unskilled player survives long enough to land those hits on
+Mythic. **Closing it:** the manual pass, on each of the four modes.
+
+### Difficulty does not change enemy behaviour, only its timings
+
+The modifiers scale damage, telegraph, cooldown, group aggression and player windows.
+What they do not do is change *what* an enemy does — a Mythic enemy uses the same
+moveset as a Story one, faster. SPEC.md section 44 asks difficulty to move behaviour,
+and this moves the timing of behaviour, which is not quite the same claim.
+**Consequence:** a player who has learned a fight on Normal learns nothing new on
+Mythic except to be quicker. **Closing it:** per-mode attack pattern variation, which is
+content for TASK 045–050 rather than a rule change here.
+
+### The unblockable cadence is fixed, not adaptive
+
+Every Nth attack, counted from the start of the fight. A player who counts can predict
+it exactly. **Why left:** predictability is a feature at this stage — a fixed cadence is
+learnable, and learnable is what "readable" means. **Consequence:** a boss fight has a
+rhythm rather than a threat. **Closing it:** a design call in TASK 044's boss pass, not
+a defect to fix blind.
+
+## TASK 042 — Content authoring and validation
+
+The content is checked before a build, and the strings players read are out of the
+code. These are what that leaves.
+
+### Only text in *code* is localizable
+
+SPEC.md section 73 says all user-facing text must be externalized. What TASK 042 did is
+the code half: every literal a script showed a player is now a key in
+`Assets/Resources/Localization/Strings_en.asset`. **What is still hard to translate is
+the content**, and that is most of the words in the game — every quest title and
+objective description, every memory's title and description, every dialogue line, every
+item name. They live in ScriptableObjects, which is the right place for them, but a
+translator has no way to produce a Hindi set short of duplicating the assets. **Why
+left:** the mechanism for that is a different design — per-language asset variants, or a
+key on each asset pointing into a table — and choosing it before there is a second
+language to test against would be guessing. **Closing it:** decide when a second
+language is actually commissioned; the code side will not need to change.
+
+### Text typed into a scene is not localizable at all
+
+`promptVerb` and `displayName` on an `Interactable`, `locationName` on a
+`LocationTrigger`, the Main Menu's button labels, the pause menu's. These are authored
+per-object in the Inspector, so they are not in the code and not in a catalogue either.
+**Consequence:** a player switching to Hindi would get translated HUD readouts and
+English button labels. **Closing it:** the same decision as above; a scene field would
+have to hold a key rather than a sentence, which is a change to every scene.
+
+### PARTLY CLOSED — No second language exists (closure pass, 28 September 2026)
+
+There is now a real second table: `Assets/Resources/Localization/Strings_qps.asset`, a
+pseudo-locale generated from English by `Tools/make-pseudo-locale.py`. It accents every
+letter, pads each string by about a third so a label that only ever held English is
+caught before a translator finds it, and **deliberately omits three keys** so the
+English fallback is a path something walks rather than a branch only a test double has
+entered. `LocalizationTests` now loads it from Resources, checks the fallback produces
+English rather than a raw key, checks placeholders survive translation in every entry,
+and checks the accents survive the asset import as UTF-8.
+
+**Still open, and unchanged by this:** a pseudo-locale is not a language. A font missing
+Devanagari glyphs will not show up here, because the pseudo-locale is Latin by design —
+it has to stay readable to a reviewer. TMP font atlases remain the likely first problem
+of a real translation.
+
+### The validator checks references, not meaning
+
+It proves an objective id resolves to a real objective. It cannot tell you the objective
+is reachable, that the quest is completable in the order the level is laid out, or that
+a door the player needs is on the right side of a wall. **Why:** that needs a reachability
+model of the level, which does not exist. **Consequence:** a quest can pass validation
+and still be impossible to finish. **Closing it:** partly TASK 044's manual play pass;
+a real solver is out of scope for 1.0.
+
+### CLOSED — Two quests promised rewards they did not grant (closure pass, 28 September 2026)
+
+Both now grant what they say. `Q001 The Queen's Charge` gives the Divine Mark and a
+skill point; `Q002 The Ash at the Gate` gives two Ember Draughts and a skill point.
+The `rewardsSummary` prose on both was placeholder text that named the absence of a
+reward system that has existed since TASK 035, and is rewritten to describe what is
+actually granted.
+
+**Worth keeping in view:** TASK 044 re-authors both quests, and these rewards are a
+first pass chosen to be plausible rather than balanced against a progression curve
+nobody has drawn yet.
+
+### No ending conditions are authored
+
+Nothing sets any `ENDING_*` flag, so the rule that would check them has nothing to check
+and reports one warning saying so. Expected until Act V exists. It is recorded here so
+that "the validator passes" is not mistaken for "the endings work".
+
+### CLOSED — The build gate's refusal was untested end to end (closure pass, 28 September 2026)
+
+`Build_RefusesBrokenContentBeforeItTouchesThePreviousPlayer` breaks the content for
+real. It writes a quest asset with no objectives — which the validator rates an error —
+asks `WindowsBuild.Run` to build, and asserts it refuses. Nothing has to be committed
+broken: the asset is created and deleted inside the test.
+
+It also checks *where* the refusal happens, which the original entry did not ask for and
+should have. `Run` empties the output directory before it builds, so a gate that fired
+after that point would still refuse correctly and would have destroyed the player the
+author was running five minutes ago in exchange for nothing. A marker file written into
+the output directory before the attempt is the assertion.
+
+## TASK 041 — Cross-scene progression and save durability
+
+The temple is its own scene, a round trip out and back keeps everything, and the whole
+journey is verified in a shipped Windows player. These are what that does **not** settle.
+
+### Only two scenes have ever been travelled between
+
+The mechanism is general — a `SceneExit` names a scene and a spawn point, and nothing in
+it knows about Avarsha or Agniya — but exactly one pair of scenes has ever exercised it,
+in one direction and back. **Why left:** the other six temples do not exist. **What could
+still be wrong:** a three-scene chain (city → temple → deeper chamber) would make the
+session's `SceneMemory` hold three records, and nothing has ever held three. The saved
+file shape supports it and `SceneTravelTests` covers three names in a `SaveData`, but no
+running game has done it. **Closing it:** TASK 045's second temple is the first honest
+test of the general case.
+
+### PARTLY CLOSED — A journey is not resumable (closure pass, 28 September 2026)
+
+The crossing is no longer held only in RAM. `TravelJournal` writes the destination and
+the captured progression to `travel.journal` beside the save files when a journey
+starts, and deletes it on arrival. `SaveManager.TryCompleteArrival` falls back to it when
+the statics are gone, so a domain reload or a replaced `SaveManager` no longer costs the
+run everything since the last save — which matters because saving is deliberately
+blocked for the whole crossing.
+
+It is **not** a save slot and never appears as one. The Main Menu deletes it, along with
+`SceneTravel` and `SceneMemory`, because reaching the menu is the one unambiguous signal
+that the journey is over — and a stale journal would otherwise deposit a previous run's
+progression into a New Game that happened to start in the same scene.
+
+**Still open, and it is a decision rather than a defect:** nothing offers to resume an
+interrupted journey at boot. After a crash the game starts at the Main Menu, which
+abandons the journal by design. Whether "Continue" should notice one, and whether
+entering a temple should simply autosave, is a design call — see the difficulty entry
+below for the same shape of question.
+
+### The temple's own quests and dialogue were not re-authored for the split
+
+The split moved objects, not content. Quest objectives, dialogue nodes and memory
+prerequisites that referred to the temple still refer to it by id and still work, because
+all of them were already id-based. **What was not done:** nothing checks that a quest
+whose objectives span both scenes reads sensibly — for instance, whether a journal
+objective should say where to go now that "go to the temple" means changing scene.
+**Closing it:** TASK 042's content validation pass, which is where cross-scene quest links
+are meant to be checked anyway.
+
+### PARTLY CLOSED — Recovery only knows about items and doors (closure pass, 28 September 2026)
+
+A third rule was added: `RecoverStrandedObjectives`. An active quest whose objective the
+world already records as done — the objective's own `CompletionFlag` is set and the
+journal still lists it outstanding — is completed. This is the unfinishable-quest
+softlock, and it needs no `essential` marking because the evidence is unambiguous on its
+own: whatever would have reported the objective restored itself from that same flag and
+will therefore never report again.
+
+Like the other two rules it only ever grants. The opposite case, a journal ahead of the
+world, is deliberately left alone: it is not a softlock, and un-completing an objective
+is exactly the confiscation this class refuses to do.
+
+**Still not covered:** a player saved inside geometry they cannot walk out of, a boss
+recorded as alive in an arena whose entrance has re-sealed, an essential NPC who is
+dead. Each needs its own rule, written when the content that can produce it exists.
+
+### PARTLY CLOSED — Nothing is marked `essential` yet (closure pass, 28 September 2026)
+
+`Gate_TempleFirePuzzle` in Avarsha and `Gate_AgniyaPuzzle` in Agniya are now marked
+essential, so the sweep has something to sweep. Marking a gate is safe in a way that
+marking an item is not: recovery only opens a gate whose puzzle the save already records
+as solved, so a false positive cannot exist.
+
+`Pickup_EmberDraught` is deliberately **not** marked. It is a consumable, losing one is
+not a softlock, and an essential consumable would be re-granted every load.
+
+**Still true:** no shipped *item* is essential, because the current content has none the
+player can be permanently locked out by. That is a fact about the content, not a gap in
+the machinery, and TASK 044's real key items are where it changes.
+
+### PARTLY CLOSED — The migration had only been run on an empty file (closure pass, 28 September 2026)
+
+Two tests now put content through it.
+`MigratingAPopulatedVersionOneSaveCarriesEveryListAcrossIntact` builds a version 1 save
+with something in all nine collections — including a quest with two objectives, which is
+a list inside a list and is where a migration loses things — and checks every one
+survives. `APopulatedVersionOneFileLoadsAndMigratesThroughTheOrdinaryReader` does the
+same through the reader: envelope, checksum and a payload written with **no
+`SceneStates` key at all**, because a migration that works only when the field happens
+to be present as an empty array is not a migration of anything a version 1 build wrote.
+
+**The distinction that matters, and the reason the old entry is not simply closed:**
+these saves are *constructed*, so the shape they use is this build's idea of version 1.
+`save-v1-windows-player.sav` remains the only evidence about what version 1 actually
+looked like, and the two kinds of test answer different questions. **Closing it
+properly:** still keep a fixture from each format version as it is retired, taken from a
+real playthrough.
+
+### Difficulty's ownership is settled in code and not yet in the UI
+
+The slot wins and `SettingsManager` is told (see ARCHITECTURE.md). **What is untested:**
+changing difficulty from the in-game Settings panel mid-run writes to the global copy and
+to the live `Difficulty`, but the loaded slot only learns about it at the next save. Quit
+without saving and the change is lost, silently. **Why left:** SPEC.md section 44 allows
+mid-run difficulty changes but does not say whether one is meant to survive a reload
+without a save. **Closing it:** a decision, then one line — either the panel refuses while
+a game is loaded, or changing it marks the run dirty.
+
+### Avarsha's NavMesh was briefly an in-memory object
+
+Fixed during this task, recorded because the failure mode is invisible. A
+`NavMeshSurface.BuildNavMesh()` produces a `NavMeshData` attached to nothing. The Editor
+works perfectly for the rest of the session, the scene saves, and every test that asks
+"is there a NavMesh" passes — the live object is still there. The player build has
+nothing to serialize and ships a scene whose enemies cannot move.
+`GameplayScene_BakedNavigationIsASavedAssetAndNotInMemoryOnly` now asserts the asset path
+rather than the triangulation.
+
+**CLOSED (closure pass, 28 September 2026):** staleness is now checked too.
+`GameplayScene_BakedNavigationIsCurrentWithItsGeometry` asks whether the places
+navigation actually has to work are on the mesh — every spawn point, every enemy, every
+patrol waypoint — within two metres. A bake taken before the floor moved, a corridor
+widened or a room was added fails there. It is not a proof that the bake is byte-identical
+to a fresh one; it is a proof that nothing which has to navigate is standing off the
+mesh, which is the form the bug takes.
+
+## TASK 039 — Reproducible Windows x64 build
+
+A Windows player now builds, launches and passes an automated smoke test outside the
+Editor (`WINDOWS_BUILD.md`). These are what that first verified build does **not**
+establish.
+
+### The gate's "clean checkout" clause is not yet satisfied
+
+TASK 039 asks for a build from a clean checkout. Every build so far has been made in the
+working tree, which is a different claim: a working tree carries an imported `Library`,
+generated project files, and — the failure this is actually about — files that are on
+disk and were never added to Git.
+
+**Closure pass (28 September 2026):** `Tools/build-from-clean-checkout.ps1` now exists.
+It clones the repository at a commit into a scratch directory, asserts no generated
+directory came along and that everything a build needs is committed, then builds by
+calling the *clone's* copy of `build-windows.ps1` so the committed build script is what
+gets tested. It refuses to run against a dirty working tree, because a clean-checkout
+build of a commit that does not contain your changes passes while telling you nothing.
+
+Running it established that the clause is further from satisfied than this entry said —
+see "a clean checkout does not contain the build system" at the top of this file.
+**Closing it:** run `.\Tools\build-from-clean-checkout.ps1 -Variant Both` once the
+commit lands. It cannot usefully be run before then.
+
+### The manual pass on the Release player has not been done
+
+`TEST_PLAN.md` section M0 exists and nobody has run it. The automated smoke test
+covers the Development player only, and covers no input, no rendering and no legibility.
+**Why left:** it needs a person at a keyboard; nothing in this task could do it.
+**Closing it:** work through M0's six steps, ideally on a Windows account with no Unity
+installed, and record the result in `WINDOWS_BUILD.md`. Until then, "a Windows player
+exists" is true and "the Windows player is good" is unverified.
+
+### The new two-process save check has not run yet
+
+The wrapper now relaunches the Development player after its first smoke run, loads the
+save from the previous process and checks progression. Both runs use the isolated
+`SmokeTestSaves` directory. This closes the design gap in the harness, but the change
+has not passed a new Windows build: an already-open Unity Editor prevented batchmode
+from opening the project on 27 September. **Closing it:** run the Development build
+with the Editor closed and record both smoke reports in `WINDOWS_BUILD.md`.
+
+### The scripting backend is Mono
+
+The build uses Mono2x, the project default. The smoke-test harness and menu seam are
+compiled out of Release by `#if`, verified by searching the shipped assembly, but Mono
+does not strip every unreferenced developer type or obfuscate the assembly. The
+`DebugMode` comment now states that accurately. **Closing it:** choose the 1.0 backend
+in TASK 055 using performance measurements and verify the release gate again.
+
+### CLOSED — `DEVELOPMENT_BUILD` is deprecated in Unity 6 (closure pass, 28 September 2026)
+
+Replaced by `GAME_DEVELOPER_TOOLS`, a define this project owns. `WindowsBuild` adds it
+to the Development player through `BuildPlayerOptions.extraScriptingDefines` and to
+nothing else; the four gated files (`DebugMode`, `StandaloneSmokeTest`, `SaveStorage`,
+`MainMenuController`) now read `#if UNITY_EDITOR || GAME_DEVELOPER_TOOLS`, and the
+wrapper script's binary gating check searches for the same thing.
+
+**Why not `DEBUG`, which the warning suggests:** `DEBUG` is a gate but it is Unity's
+symbol, so what it means is decided by a compiler configuration a future Editor upgrade
+is free to change underneath us. A runtime `Debug.isDebugBuild` check is worse — it is
+not a gate at all, since the code stays in the Release binary and a flag can be flipped.
+SPEC.md section 52 asks for absence, not for a disabled feature.
+
+`BuildOptions.Development` is still passed, because that is what makes a development
+player a development player. What it no longer does is decide what is compiled in.
+
+The failure direction is unchanged and still safe: if the define were ever dropped, the
+developer tools would vanish from the Development player rather than appear in the
+Release one, and the wrapper's first check catches that immediately.
+
+### A build dirties four URP settings files
+
+Every player build rewrites `Assets/Settings/PC_RPAsset.asset`,
+`DefaultVolumeProfile.asset`, `UniversalRenderPipelineGlobalSettings.asset` and
+`ProjectSettings/GraphicsSettings.asset`. Almost all of it is `m_Prefiltering*` and
+`m_Prefilter*` fields — URP's record of which shader keywords *this build* was able to
+strip — plus one field Unity renames back to its historical misspelling
+(`chromaticAbberationIntensity`). **Why left:** it is Unity writing build output into
+source assets, and there is no supported switch to stop it. **Consequence:** `git status`
+looks alarming after every build, and committing the churn would make graphics settings
+flip back and forth between whoever built last. These four files were reverted after the
+TASK 039 build for exactly that reason.
+
+**CLOSED (closure pass, 28 September 2026):** the build now does it itself.
+`WindowsBuild` reads those four files immediately before `BuildPipeline.BuildPlayer` and
+writes them back immediately after, whether the build succeeded or not, logging which
+ones it reverted. Restoring rather than committing the churn is the right way round: the
+stripping record is derived from the build, so it is reproducible from the build and
+belongs in the player, not in the repository — nothing at runtime reads it back out of
+these files. The manual `git checkout --` step is no longer needed.
+
+### No signing, installer or crash reporting
+
+The output is a folder and a ZIP. Windows SmartScreen will warn on an unsigned
+executable from an unknown publisher. **Why left:** signing costs money and TASK 057
+owns the distribution decision. **Closing it:** TASK 057.
+
+### Remote CI still cannot build this
+
+GitHub Actions has no Unity Personal licence secrets configured, so the build is
+reproducible locally and by hand only. Carried forward from TASK 030 unchanged.
+
 ## SPEC AUDIT (after TASK 019) — all seven gaps now CLOSED by TASK 020–026
 
 A full pass over SPEC.md sections 1–87 after the vertical slice closed found

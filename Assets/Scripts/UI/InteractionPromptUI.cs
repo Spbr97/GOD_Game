@@ -2,6 +2,7 @@ using Game.Core;
 using Game.World;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -52,7 +53,7 @@ namespace Game.UI
             {
                 promptLabel.text = string.IsNullOrEmpty(keyHint)
                     ? target.Prompt
-                    : $"[{keyHint}]  {target.Prompt}";
+                    : Strings.Format(StringKeys.InteractionPromptWithKey, keyHint, target.Prompt);
             }
         }
     }

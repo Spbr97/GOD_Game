@@ -59,7 +59,26 @@ namespace Game.Save
         public const string TemporaryExtension = ".sav.tmp";
 
         /// <summary>Where saves live for a real player. Tests pass their own root instead.</summary>
-        public static string DefaultRoot => Path.Combine(Application.persistentDataPath, "Saves");
+        public static string DefaultRoot
+        {
+            get
+            {
+#if UNITY_EDITOR || GAME_DEVELOPER_TOOLS
+                // The standalone smoke test starts a fresh run by clearing its slots.
+                // Keep those slots separate from saves made by someone playing this
+                // Development build on the same Windows account.
+                foreach (var argument in Environment.GetCommandLineArgs())
+                {
+                    if (string.Equals(argument, "-smokeTest", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(argument, "-smokeTestResume", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Path.Combine(Application.persistentDataPath, "SmokeTestSaves");
+                    }
+                }
+#endif
+                return Path.Combine(Application.persistentDataPath, "Saves");
+            }
+        }
 
         public static string PrimaryPath(string root, SaveSlot slot) => Path.Combine(root, SlotName(slot) + PrimaryExtension);
         public static string BackupPath(string root, SaveSlot slot) => Path.Combine(root, SlotName(slot) + BackupExtension);

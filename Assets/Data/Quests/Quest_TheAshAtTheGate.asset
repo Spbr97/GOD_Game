@@ -27,4 +27,17 @@ MonoBehaviour:
   completionFlags:
   - QUEST_Q002_COMPLETE
   failureFlags: []
-  rewardsSummary: Nothing yet - there is no inventory or progression system to grant a reward.
+  rewardsSummary: Two ember draughts from the guards you put down, and what the fight taught you.
+  rewards:
+  - Type: 0
+    Item: {fileID: 11400000, guid: ed82f5312de57f647b6439881cc985d3, type: 2}
+    Amount: 2
+    TargetId: 
+    IntegrityAmount: 0
+    FlagValue: 1
+  - Type: 3
+    Item: {fileID: 0}
+    Amount: 1
+    TargetId: 
+    IntegrityAmount: 0
+    FlagValue: 1

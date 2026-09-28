@@ -61,3 +61,9 @@ crashlytics-build.properties
 # OS
 .DS_Store
 Thumbs.db
+
+# Windows player output (STANDALONE_RELEASE_ROADMAP.md TASK 039).
+# Tools/build-windows.ps1 writes players, logs, ZIPs and checksums under Build/,
+# which [Bb]uild/ above already covers. Named here so it is obvious why nothing
+# from a build appears in a diff.
+/[Bb]uild/[Ww]indows/

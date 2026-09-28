@@ -4,7 +4,7 @@ Required by SPEC.md sections 81 and 53. Section 53 asks that **every major
 system have automated and manual tests**; this document says which tests exist,
 what each is for, what is deliberately not automated, and how to run any of it.
 
-Last verified: **180 EditMode + 130 PlayMode = 310 passing tests** on Unity 6000.6.2f1 with Unity Personal. After the Avarsha YAML conversion, all 8 scene integrity tests passed again.
+Last verified: **263 EditMode + 187 PlayMode = 450 passing tests** on Unity 6000.6.2f1 with Unity Personal. TASK 039 added 11 EditMode tests over the Windows build and a **smoke test that runs inside the built Windows player**. TASK 041 added 22 EditMode and 27 PlayMode tests over scene travel, the version 2 save shape and the version 1 fixture migration, and grew the smoke test to 13 steps so it walks the Avarsha↔Agniya round trip. TASK 042 added 15 EditMode tests over the content validator -- eleven of which feed it broken content and assert it complains -- and 14 over the string table. TASK 043 added 13 EditMode tests over readability and difficulty tuning and 18 PlayMode tests over the twelve skill effects, the divine-ability contract and unblockable attacks. See section M0 and `WINDOWS_BUILD.md`.
 
 ---
 
@@ -175,6 +175,70 @@ frame rate holds. The automated suite cannot answer any of those.
 
 Run the manual pass **before any commit that changes combat, the scenes, or the
 UI**, and in full before any release.
+
+### M0 — The Windows player, before anything else (~25 minutes)
+
+New with TASK 039. Everything below M0 can be done in the Editor and therefore
+proves nothing about a download. Do this first, on the **Release** player, from a
+folder that is not the project:
+
+```powershell
+.\Tools\build-windows.ps1 -Variant Both
+```
+
+The script already does the automated half — it smoke tests the Development player
+through New Game → save → Continue, confirms the Release assembly contains no
+developer-only code, and checks that the Release player starts. `WINDOWS_BUILD.md`
+explains each step. What it cannot do, and you must:
+
+1. Launch the **Release** player by double-clicking the `.exe`. It should reach the
+   Main Menu with no console window and no Unity splash error.
+2. Press backquote. **Nothing should happen** — the debug console does not exist in a
+   Release build. Type nothing else; there is nothing to type into.
+3. New Game → Normal → Avarsha. Move, attack, open the map with M, open the pause
+   menu. Confirm text is legible at the default resolution.
+4. Save, then **quit the process entirely**, then relaunch and Continue. This is the
+   one thing the automated smoke test does not cover: a save written by one process
+   and read by the next.
+5. Change resolution and quality in Settings, then quit and relaunch. The choice
+   should survive.
+6. Unzip the packaged ZIP somewhere else entirely and launch that copy. A player that
+   only runs from its build folder is not a player anyone can download.
+
+TASK 041 adds three more, all about the second scene. The automated smoke test walks
+this route already, but it presses no buttons and reads no pixels:
+
+7. Walk to the temple entrance and press Interact. You should arrive **inside** the
+   temple, facing in, on your feet — not in the air, not under the floor, not at the
+   far end. Check the loading transition does not leave the screen black or the HUD
+   blank.
+8. Inside, light the braziers, pass the gate, and let an enemy see you. Enemies must
+   **move** — a temple whose NavMesh did not ship looks exactly like a temple whose
+   enemies are asleep. Then save, walk back out to Avarsha, and confirm your quest
+   log, inventory, abilities and memory integrity are all as you left them.
+9. Quit the process entirely, relaunch, Continue. You should resume in the scene you
+   saved in, standing where you saved, with the checkpoint you lit in **that** scene
+   still yours — die once to confirm where you respawn.
+
+TASK 043 adds the combat feel pass, which is the half of that task's gate no test can
+do. On the **Release** player, on a controller if you have one:
+
+10. Fight the Forgotten Soldier and the Stone Guardian in the ruins. You should be able
+    to tell them apart at a glance, and tell a wind-up from a resting enemy.
+11. Fight the Temple Guardian. Every fourth swing is **unblockable** and flashes violet
+    instead of orange. Hold block through one on purpose: it should go through, break
+    your guard and hurt. Then dodge one. The question is whether you can *see* it coming
+    in time -- if you cannot, the telegraph is too short or the colour too close.
+12. Spend a skill point in each branch and confirm you feel the difference: a wider
+    combo window, a wider parry, cheaper blocking, Ember Step recovering faster.
+13. Play the same fight on Story and on Mythic. They should feel like different fights,
+    not like the same fight with different numbers. Note honestly if they do not.
+14. On Mythic, with **no skill points spent**, confirm the fight is hard rather than
+    impossible. If it needs points, difficulty has become a grind and the tuning is
+    wrong.
+
+**Pass:** all fourteen, on a machine account without Unity installed if one is available.
+A failure here outranks every automated result in this document.
 
 ### M1 — The vertical slice, start to finish (~20 minutes)
 Main Menu → New Game → Normal → Avarsha. Then:

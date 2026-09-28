@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.Core.Localization;
 
 namespace Game.Core
 {
@@ -68,8 +69,15 @@ namespace Game.Core
         [Tooltip("Also do it in the Editor. Off by default: clicking out of the Game view would otherwise freeze every PlayMode test that happens to be running.")]
         [SerializeField] private bool pauseOnFocusLossInEditor;
 
-        [SerializeField] private string controllerLostMessage = "Controller disconnected. The game is paused.";
-        [SerializeField] private string controllerFoundMessage = "Controller reconnected.";
+        // Left blank by default and filled from the string table (TASK 042, SPEC.md
+        // section 73). Kept as fields rather than removed so a scene can still override
+        // the wording for a one-off situation; an override is not translated, which is
+        // why the default is empty rather than English.
+        [Tooltip("Optional override. Leave blank to use the translated string.")]
+        [SerializeField] private string controllerLostMessage;
+
+        [Tooltip("Optional override. Leave blank to use the translated string.")]
+        [SerializeField] private string controllerFoundMessage;
 
         /// <summary>Whether a gamepad was present the last time this looked. Read by tests and the debug overlay.</summary>
         public bool HasGamepad { get; private set; }
@@ -125,7 +133,9 @@ namespace Game.Core
             // wrong. The event only tells us to go and look again.
             HasGamepad = Gamepad.all.Count > 0;
 
-            var message = connected ? controllerFoundMessage : controllerLostMessage;
+            var message = connected
+                ? Override(controllerFoundMessage, StringKeys.DeviceControllerFound)
+                : Override(controllerLostMessage, StringKeys.DeviceControllerLost);
             var lostTheLastOne = !connected && !HasGamepad;
 
             if (!connected && !lostTheLastOne)
@@ -191,5 +201,9 @@ namespace Game.Core
             GameLogger.Log(LogCategory.Game, $"Auto-pausing: {reason}.", this);
             EventBus.Publish(new AutoPauseRequestedEvent(reason));
         }
+
+        /// <summary>A scene's own wording if it set any, otherwise the translated string.</summary>
+        private static string Override(string authored, string key) =>
+            string.IsNullOrWhiteSpace(authored) ? Strings.Get(key) : authored;
     }
 }

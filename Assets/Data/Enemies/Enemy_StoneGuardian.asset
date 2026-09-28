@@ -15,7 +15,7 @@ MonoBehaviour:
   archetypeId: ENEMY_STONE_GUARDIAN
   displayName: Stone Guardian
   enemyClass: 3
-  bodyTint: {r: 0.38, g: 0.42, b: 0.48, a: 1}
+  bodyTint: {r: 0.3, g: 0.45, b: 0.62, a: 1}
   maxHealth: 140
   poise: 60
   poiseRecoveryPerSecond: 12
@@ -38,5 +38,8 @@ MonoBehaviour:
   attackRecovery: 0.8
   attackCooldown: 2.4
   telegraphColour: {r: 0.85, g: 0.85, b: 1, a: 1}
+  unblockableEveryNthAttack: 5
+  unblockableTelegraphColour: {r: 0.85, g: 0.15, b: 1, a: 1}
+  unblockableDamageMultiplier: 1.5
   retreatHealthFraction: 0
   retreatDuration: 2.5

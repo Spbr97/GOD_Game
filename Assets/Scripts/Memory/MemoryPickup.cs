@@ -41,6 +41,19 @@ namespace Game.Memory
 
         public override bool CanInteract => !Collected && memory != null && base.CanInteract;
 
+        /// <summary>
+        /// Widened by the Memory branch's detection skill (SPEC.md section 30, TASK 043):
+        /// "sense memory fragments from further away". <c>MEMORY_DETECTION</c> carries
+        /// +0.5, so one point reaches half again as far.
+        ///
+        /// Overridden here rather than applied in <c>PlayerInteractor</c> because the skill
+        /// is about sensing *memories*, not about reaching NPCs and doors from across a
+        /// room.
+        /// </summary>
+        public override float InteractionRange => base.InteractionRange
+            * Game.Progression.SkillTreeManager.Scale(
+                Game.Progression.SkillEffectType.MemoryDetectionRangeMultiplier);
+
         private void Awake()
         {
             restPosition = transform.position;

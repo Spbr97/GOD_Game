@@ -14,5 +14,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Avarsha.unity
     guid: 6ecd9ba263b8e7a4f8d4c5714859f74a
+  - enabled: 1
+    path: Assets/Scenes/Agniya.unity
+    guid: 5111d0ef005260b4baa25564ce157a36
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

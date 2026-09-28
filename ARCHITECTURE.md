@@ -256,7 +256,7 @@ TASK 018's placeholder pass at SPEC.md section 40's combat cues. No audio asset 
 `Inventory` → `Core`, and reads `Memory`'s `MemoryDiscoveredEvent` payload to grant a Divine Mark — the same one-way-payload shape `Memory` itself uses for `Combat`'s event.
 `Progression` → `Core`, and reads `Quests`' `QuestCompletedEvent` and `AI`'s `BossDefeatedEvent` payloads to grant skill points. Nothing in `Progression` is ever referenced back by `Quests` or `AI`.
 `Player.PlayerProgressionStats` → `Combat` (`HealthComponent`, `DivineEnergyComponent`, both on the same GameObject) and `Progression` (`SkillTreeManager`, `SkillBonusesChangedEvent`).
-`Save` → `Core`, `Combat`, `Quests`, `Memory`, `Inventory`, `Progression` and `Dialogue`'s event payloads. Nothing references `Save`.
+`Save` → `Core`, `Combat`, `Quests`, `Memory`, `Inventory`, `Progression`, `World` (`SceneSpawnPoint`, `PuzzleGate` and `ItemPickup`, for TASK 041's arrivals and recovery sweep) and `Dialogue`'s event payloads. Nothing references `Save` — including `SceneExit`, which asks for travel by publishing `SceneTravelRequestedEvent` and never learns who answers.
 `UI` → every content system, read-only, through `EventBus` payloads.
 
 `VFX`/`Audio` → `Core` (`EventBus`), and `Combat`'s event payloads (`CombatVfx`/`CombatAudio`) or a companion component's own host (`FireBrazierVfx`) — the same read-only, one-way shape `UI` already uses. `VfxSpawner`/`SfxSpawner` themselves are stateless utilities with no dependency of their own, the same exception `GameLogger` already is: `World` (`PuzzleController`, `MemoryPickup`) and `AI` (`BossController`, indirectly through `BossPresentationHooks`) call them directly for a cosmetic one-shot, which is calling a utility, not depending on a system — nothing in `VFX`/`Audio` ever calls back into `World` or `AI`. `Animation`'s `PlaceholderAnimator` → `Player` (`PlayerController`) and `Combat` (`CombatController`, `WeaponController`), read-only, on the player's own GameObject; nothing depends on `Animation` in return.
@@ -332,7 +332,7 @@ AI additions to Avarsha: a `Navigation` object carrying a baked `NavMeshSurface`
 
 `Cinematic_NirvaanSpeaks` (TASK 014, section 61's "one cinematic"): a `CinematicPlayer` triggered by `WorldFlags.FirstMemoryFound` — section 68's scene 9 (the memory found) leading into scene 10 (Nirvaan speaks) — four subtitle beats, completing to `WorldFlags.NirvaanAwakened`. `UI_Canvas` also carries `CinematicUI` and its `CinematicRoot` panel (letterbox bars, subtitle, skip hint), wired to the same `PlayerControls` asset as `PauseMenu`/`JournalUI`.
 
-`AgniyaTemple` (TASK 015, Phase 3, section 61's "one small temple section"): a linear dungeon built in the same scene, at world position (0, 0, 65) — deliberately clear of every other district, `AncientRuins` and `MiniBossArena`, rather than a second Unity scene. A separate scene per temple is the naturally-implied structure (SPEC.md section 57's `SCN_Temple_Agniya` naming example), but `QuestManager`/`MemoryManager`/`DialogueRunner` are scene-scoped (see "Manager lookup" above) and nothing yet carries their state across an ordinary scene transition the way `SaveManager.PendingLoad` carries it across a menu Continue/Load — building a real second scene now would have silently reset quest and memory progress on every temple visit. See KNOWN_ISSUES.md. The temple, entrance to boss:
+`Assets/Scenes/Agniya.unity` (TASK 015, then moved out of Avarsha by TASK 041) is the temple, a linear dungeon and the game's second gameplay scene. TASK 015 built it inside Avarsha at world position (0, 0, 65) because `QuestManager`, `MemoryManager`, `InventoryManager`, `SkillTreeManager` and `CheckpointManager` are all scene-scoped (see "Manager lookup" above) and nothing carried their state across an ordinary scene transition — a real second scene would have silently reset quest and memory progress on every visit. TASK 041 built that carrying mechanism (see "Scene travel" below) and then made the split, which is the structure SPEC.md section 57's `SCN_Temple_Agniya` naming example implies and the one the remaining six temples need. The scene was made by copying Avarsha, promoting the `AgniyaTemple` subtree to a root and deleting the city, so the player rig, managers and canvas carried over intact; it has its own baked `AgniyaNavMesh.asset` and its own `WorldBounds` sized to the temple. Avarsha keeps the entrance pillars and lintel as `AgniyaTempleEntrance`, with `SceneExit_AgniyaTemple` and `Spawn_FromAgniya` on them. The temple, entrance to boss:
   - an entrance archway and `Trigger_EnterAgniyaTemple` (`LocationTrigger`, sets `ENTERED_AGNIYA_TEMPLE`);
   - warm point lights as fire VFX placeholders (SPEC.md sections 35 and 36, section 78) rather than particle systems, the same colour-only idiom `FireBrazier` already uses;
   - a second `FireBrazier`/`PuzzleController`/`PuzzleGate` puzzle (`AGNIYA_PUZZLE`, four braziers) proving the TASK 012 framework's reuse claim for real, for the first time;
@@ -342,6 +342,175 @@ AI additions to Avarsha: a `Navigation` object carrying a baked `NavMeshSurface`
   - `Reward_AgniyasEmber`, a `MemoryPickup` (`Memory_AgniyasEmber`, category Divine) revealed on defeat, discovering `AGNIYA_MARK_OBTAINED` — SPEC.md Act II's "obtain divine marks".
 
 TASK 016 additions: `GameSystems` also carries `SkillTreeManager` (all twelve skills) and `InventoryManager` (the Astra Blade, Divine Mark and Ember Draught items, with the Astra Blade as a starting item); `Player` also carries `PlayerProgressionStats`; `UI_Canvas` also carries `ProgressionUI` and its `ProgressionRoot` panel (Inventory/Skills tabs), built the same way `CinematicRoot` was and wired to the same `PlayerControls` asset. `Marketplace` holds `Pickup_EmberDraught`, an `ItemPickup` — the one physical item pickup placed in the world so far, proving `ItemPickup` end to end the way `Memory_NameBeneathTheStone` proved `MemoryPickup` in TASK 003.
+
+## Scene travel and save ownership (TASK 041)
+
+**How progression crosses a scene boundary.** A door is a `SceneExit`. Pressing it
+publishes `SceneTravelRequestedEvent` and nothing else. `SaveManager` answers: it
+captures the whole game into a `SaveData` held in memory, blocks saving, records the
+destination and arrival point in the static `SceneTravel`, and asks `GameSceneManager`
+to load. In the destination scene the new `SaveManager`'s `Start` consumes the arrival —
+but only if the arrival names *that* scene — applies the carried snapshot, and places the
+player at the named `SceneSpawnPoint`.
+
+Travel reuses capture-and-apply rather than making the progression managers survive the
+load. Five of them are scene singletons (`QuestManager`, `MemoryManager`,
+`InventoryManager`, `SkillTreeManager`, `CheckpointManager`); making each persistent
+would be five lifetime changes, five new duplicate-instance cases, and a second way for
+progression to cross a boundary that would then need its own tests. Capture and apply is
+the way progression already crosses a boundary, it is the best-tested path in the
+project, and anything carried wrongly here is carried wrongly by save and load too, where
+it would be found anyway. The snapshot is never written to disk: a save file records
+where the player is, not that they were in a doorway.
+
+**Where the player ends up.** `SaveManager.Apply` takes a `PlayerPlacement`, because a
+position is only meaningful in the scene it was measured in.
+
+| | Position comes from | Used by |
+|---|---|---|
+| `FromSave` | this save's record **for the active scene** | Continue, Load |
+| `AtSpawnPoint` | the named `SceneSpawnPoint`, falling back to `FromSave` | arriving through a door |
+| `Unchanged` | nowhere; nobody moves | applying state without moving anyone |
+
+A record for a different scene is never used, for either position or checkpoint. Save
+format version 2 added `SaveData.SceneStates`, one entry per scene the player has stood
+in, and `SceneMemory` keeps the same records for scenes that are not currently loaded so
+a save written in the temple does not forget where the player was in Avarsha.
+
+**Who owns what.** Two stores hold player state and they must not argue:
+
+| | Owner | Notes |
+|---|---|---|
+| Display, audio, accessibility, input rebinds | `SettingsManager` (PlayerPrefs) | Global. The same on every playthrough. |
+| Quests, memories, inventory, abilities, flags, counters, positions, checkpoints | the save slot | Per playthrough. |
+| Difficulty | **the slot**, while a game is loaded | The one value both hold. |
+
+Difficulty is chosen at New Game and belongs to that run, so loading a save must not
+inherit whatever the last run was played on. `Apply` sets it from the slot and calls
+`SettingsManager.AdoptDifficultyFromSave` so the global copy agrees — the Settings panel
+reads `SettingsManager.Current`, and a panel saying Normal while the game runs Hard is a
+bug report waiting to happen. The write goes one way; `SettingsManager` never pushes
+difficulty back into a loaded slot.
+
+**When saving is refused.** `SaveManager` keeps a reason-keyed set of blockers, so an
+unbalanced call cannot disable saving by an amount nobody can see. Saving is refused
+mid-conversation, while the player is dead and waiting to respawn, while a cinematic is
+playing (it sets flags and moves the player as it runs), and while scene travel is in
+flight.
+
+**The travel journal.** Because saving is blocked for the whole crossing, the captured
+progression is the only copy of everything the player has done since their last real
+save — and until the closure pass it lived in a static and nowhere else. `TravelJournal`
+writes it to `travel.journal` beside the save files when a crossing begins and deletes
+it on arrival; `TryCompleteArrival` falls back to it when the statics are gone, which is
+what a domain reload or a replaced `SaveManager` looks like.
+
+It is deliberately **not** a `SaveSlot`. It names a destination rather than a place the
+player is, it is written without being asked for, and it is consumed exactly once —
+every menu that lists slots would otherwise have to learn to hide it. Like
+`SceneTravel.TryConsume` it is keyed on the destination scene, so an abandoned journey
+cannot deposit its progression into whatever scene opens next, and the Main Menu deletes
+it outright: reaching the menu is the one unambiguous signal that the journey is over,
+and a stale journal would otherwise leak a previous run into a New Game that happened to
+start in the same scene.
+
+**Anti-softlock recovery.** `ProgressionRecovery` runs at the end of every `Apply`. It
+only ever grants items, opens doors and completes objectives — never confiscates, closes
+or un-completes. A recovery rule that can take things away can itself cause the
+softlock, and a false positive would then be unrecoverable rather than untidy. It logs
+everything it does, because a recovery that fires in ordinary play is a bug somewhere
+else.
+
+Two of its three rules act only on things content has marked `essential`. The third,
+`RecoverStrandedObjectives`, needs no marking: an active quest's objective whose own
+`CompletionFlag` is already set is unambiguous on its own evidence, because whatever
+would have reported it restored itself from that same flag and will never report again.
+The opposite case — a journal ahead of the world — is left alone. It is not a softlock,
+and un-completing an objective is precisely the confiscation this class refuses.
+
+## Divine abilities and skill effects (TASK 043)
+
+**One contract for seven abilities.** A `DivineAbilityDefinition` asset holds the
+unlock flag, the divine energy cost, the cooldown and the duration.
+`DivineAbilityController` is the single authority for whether a use is allowed, in a
+fixed order — unlocked, then the effect's own readiness, then cooldown, then cost. Cost
+is last so a refusal for any other reason never charges the player, which is the bug
+that ordering exists to make impossible. `IDivineAbilityEffect` is what the ability
+actually does, and is called only after the cost is paid and the cooldown started, so an
+effect never has to check any of it and cannot forget to.
+
+Ember Step is the first ability expressed this way. `CombatController.TryAbility` is now
+the input binding; the dash is that class's `IDivineAbilityEffect` implementation. Where
+a scene has not authored a controller, one is created on demand and seeded from
+`CombatController`'s own serialized fields — on demand rather than required so that
+every existing scene keeps working, but still a single code path, because the controller
+is always the authority.
+
+The controller is an `ISaveParticipant`: use counts and remaining cooldowns are its own
+business, `SaveData` does not grow a field per ability, and a temple added later needs no
+save migration. A cooldown is stored as **seconds remaining**, not as an absolute time —
+`Time.time` restarts with the scene, so an absolute one would come back either already
+elapsed or hours away.
+
+**All twelve skill effects are read by a system.** `SkillDefinition`'s enum doc lists
+where each lands. Every multiplier call site applies `1 + bonus` through
+`SkillTreeManager.Scale`, and direction lives in the data: a skill that should reduce
+something carries a negative `effectValue`. The single exception is `BlockReductionBonus`,
+named for the reduction it grants, which reads as `1 - bonus` and says so at its call
+site. `EverySkillEffectTypeIsReadBySomeSystem` fails if a skill is ever added without a
+reader — the state eight of them were in before this task.
+
+**Readability.** Bosses and heavies throw an unblockable every third to fifth swing. It
+is decided *before* the wind-up plays, because an attack that decides what it is after
+the telegraph is an attack the player could not have read; it flashes a colour far from
+the enemy's ordinary telegraph; and it goes through a raised guard. Without one, holding
+block is never worse than dodging and the telegraph is decoration.
+
+**Difficulty** scales damage, telegraph length, attack cooldown, group aggression and
+player timing windows — and deliberately **not health**. A health multiplier turns a hard
+mode into a long one, and a long one into something the player levels up to survive
+rather than learns to beat. `DifficultyTuningTests` checks that structurally, so no
+future change can add one by accident.
+
+## Content validation and player-facing text (TASK 042)
+
+**Why a validator exists.** Almost everything in this project is joined by a string the
+compiler never sees: a quest objective is completed by whatever reports its id, a
+dialogue node starts a quest by naming it, a door names a scene and an arrival point, a
+gate names a puzzle. That is the right design — it is what lets content be authored
+without recompiling, and what lets two scenes refer to each other at all — but it means
+a typo is not a build error. It is a quest that can never complete, found by a player.
+
+`Assets/Editor/ContentValidation.cs` checks them. It runs from `God Game → Validate
+Content`, from `ContentValidationTests` in CI, and from `WindowsBuild` before a player is
+produced. **Errors stop a build; warnings do not** — the split is by whether a player
+would be stuck. A dangling objective id is an error; a flag nothing sets is a warning,
+because that is usually content not yet written, which is normal mid-production and a
+bad reason to refuse to build.
+
+Scenes are walked twice. A flag set by a `LocationTrigger` in one scene and read by a
+door in another is perfectly good content, so every flag the scenes set has to be known
+before any flag reference is judged — and a component cannot be held across a scene
+close, so it is a second walk rather than a saved list.
+
+**Player-facing text** (SPEC.md section 73) comes from
+`Assets/Resources/Localization/Strings_en.asset` through `Strings.Get`/`Strings.Format`,
+keyed by constants in `StringKeys`. Constants, not literals, so a typo is a compile error
+and so a test can walk the class by reflection and prove the table covers every key.
+Placeholders are positional (`{0}`), never C# interpolation: interpolated text is baked
+into the assembly and cannot be translated at all, and positional placeholders let a
+translator reorder them, which Hindi needs.
+
+`Strings` is static and self-loading from `Resources` with no initialization call,
+because the alternative is every UI script needing a reference to a manager that must
+exist in every scene before any of them wake — and the first scene to forget it renders
+blank labels. A missing key shows the key, which is ugly, obvious and greppable, rather
+than an empty label nobody can diagnose.
+
+Text authored **as data** — quest titles, memory descriptions, dialogue lines, item names
+— stays in its ScriptableObject and is not yet translatable. See `KNOWN_ISSUES.md`.
+
+`CONTENT_PIPELINE.md` is the authoring procedure this all serves.
 
 ## Content data (`Assets/Data/`)
 

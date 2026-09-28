@@ -17,12 +17,29 @@ namespace Game.Progression
     /// values of every unlocked skill with a given type, so a new skill is a new
     /// <see cref="SkillDefinition"/> asset, not a new class.
     ///
-    /// Only <see cref="AttackDamageMultiplier"/>, <see cref="MaxHealthBonus"/>,
-    /// <see cref="MaxDivineEnergyBonus"/> and <see cref="MemoryCorruptionCostMultiplier"/>
-    /// are read by a system today — one per branch, proving the mechanism end to end.
-    /// The rest exist so the tree has all twelve of section 30's named upgrades and can
-    /// be unlocked, persisted and shown correctly; see KNOWN_ISSUES.md for wiring the
-    /// remaining eight into their systems.
+    /// **All twelve are read by a system** as of TASK 043. Where each one lands:
+    ///
+    /// <list type="table">
+    /// <item><term>AttackDamageMultiplier</term><description><c>WeaponController</c> — outgoing damage.</description></item>
+    /// <item><term>ComboWindowBonusSeconds</term><description><c>CombatController</c> — the <c>ComboTracker</c>'s window, in seconds.</description></item>
+    /// <item><term>ParryWindowMultiplier</term><description><c>GuardController.ScaledParryWindow</c>, and the perfect window with it.</description></item>
+    /// <item><term>MaxHealthBonus</term><description><c>PlayerProgressionStats</c>.</description></item>
+    /// <item><term>BlockReductionBonus</term><description><c>GuardController.ScaledStaminaPerDamageBlocked</c>.</description></item>
+    /// <item><term>IncomingDamageMultiplier</term><description><c>Hurtbox</c>, for <c>Faction.Player</c> only.</description></item>
+    /// <item><term>AbilityDashSpeedMultiplier</term><description><c>CombatController.ScaledAbilityDashSpeed</c>.</description></item>
+    /// <item><term>AbilityCooldownMultiplier</term><description><c>CombatController.ScaledAbilityCooldown</c>.</description></item>
+    /// <item><term>MaxDivineEnergyBonus</term><description><c>PlayerProgressionStats</c>.</description></item>
+    /// <item><term>MemoryDetectionRangeMultiplier</term><description><c>MemoryPickup.InteractionRange</c>.</description></item>
+    /// <item><term>EmberStepForgetRestoreMultiplier</term><description><c>MemoryManager.ScaledForgetSeconds</c>.</description></item>
+    /// <item><term>MemoryCorruptionCostMultiplier</term><description><c>MemoryManager.Corrupt</c>.</description></item>
+    /// </list>
+    ///
+    /// **Direction lives in the value, not in the reader.** A skill that should make
+    /// something smaller carries a negative <see cref="SkillDefinition.EffectValue"/>,
+    /// and every multiplier call site applies <c>1 + bonus</c> through
+    /// <see cref="SkillTreeManager.Scale"/>. The single exception is
+    /// <see cref="BlockReductionBonus"/>, which is named for the reduction it grants and
+    /// so reads as <c>1 - bonus</c>; its own call site says so.
     /// </summary>
     public enum SkillEffectType
     {

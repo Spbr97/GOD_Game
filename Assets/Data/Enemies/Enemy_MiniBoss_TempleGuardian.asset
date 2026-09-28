@@ -15,7 +15,7 @@ MonoBehaviour:
   archetypeId: MINIBOSS_TEMPLE_GUARDIAN
   displayName: Temple Guardian
   enemyClass: 8
-  bodyTint: {r: 0.32, g: 0.28, b: 0.4, a: 1}
+  bodyTint: {r: 0.34, g: 0.24, b: 0.52, a: 1}
   maxHealth: 320
   poise: 90
   poiseRecoveryPerSecond: 14
@@ -37,6 +37,9 @@ MonoBehaviour:
   attackActiveDuration: 0.24
   attackRecovery: 0.7
   attackCooldown: 2.2
-  telegraphColour: {r: 1, g: 0.4, b: 0.15, a: 1}
+  telegraphColour: {r: 1, g: 0.55, b: 0.25, a: 1}
+  unblockableEveryNthAttack: 4
+  unblockableTelegraphColour: {r: 0.85, g: 0.15, b: 1, a: 1}
+  unblockableDamageMultiplier: 1.5
   retreatHealthFraction: 0
   retreatDuration: 2.5

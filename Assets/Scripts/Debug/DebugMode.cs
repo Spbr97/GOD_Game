@@ -9,10 +9,10 @@ namespace Game.DevTools
     /// Two separate questions, deliberately:
     ///
     /// <see cref="IsAvailableInThisBuild"/> is compiled in or out. In a release player
-    /// it is a constant false, so the branches behind it are dead code the IL2CPP
-    /// stripper removes — the tools are not merely hidden from the player, they are
-    /// not in the binary to be found. That is what section 52 asks for, and a runtime
-    /// flag alone would not deliver it.
+    /// it is a constant false. The standalone smoke-test harness and menu test seam
+    /// are also compiled out of Release builds with <c>#if</c>. The current Mono
+    /// backend may retain other unreferenced developer types in the assembly, so
+    /// this gate does not claim that every developer type is absent from the binary.
     ///
     /// <see cref="IsEnabled"/> is the developer's own switch inside a build where the
     /// tools do exist. It starts off, so a stray key in a playtest cannot teleport
@@ -29,7 +29,7 @@ namespace Game.DevTools
         /// constant, not a setting.
         /// </summary>
         public static bool IsAvailableInThisBuild =>
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || GAME_DEVELOPER_TOOLS
             true;
 #else
             false;

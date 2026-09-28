@@ -1,6 +1,7 @@
 using Game.Core;
 using Game.Memory;
 using UnityEngine;
+using Game.Core.Localization;
 
 namespace Game.World
 {
@@ -32,9 +33,12 @@ namespace Game.World
 
         public bool Paid { get; private set; }
 
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042).</summary>
+        public string PaidFlag => paidFlag;
+
         public override string Prompt => Paid
-            ? "The way is open"
-            : $"Offer a memory to pass ({integrityCost:P0} integrity)";
+            ? Strings.Get(StringKeys.InteractionTollPaid)
+            : Strings.Format(StringKeys.InteractionTollPay, integrityCost.ToString("P0"));
 
         public override bool CanInteract => !Paid && base.CanInteract;
 

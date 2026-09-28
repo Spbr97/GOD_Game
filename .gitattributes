@@ -1,0 +1,13 @@
+# Save files are captured bytes, not source text.
+#
+# This repository is cloned with core.autocrlf=true on Windows, which rewrites the
+# line endings of anything Git considers text. Assets/Tests/Fixtures/*.sav is a save
+# file written by a shipped player and kept as evidence of what an older save format
+# actually looked like (see that folder's README). A save is validated by a checksum
+# over its payload, and its whole value here is being byte-for-byte what the player
+# wrote -- so it must never be normalised, reformatted or converted on checkout.
+#
+# Marking it binary is the only way to say that to Git. Deliberately scoped to save
+# files alone: adding rules for Unity's YAML scenes and assets would renormalise
+# every one of them across the whole history, which is a separate change.
+*.sav binary

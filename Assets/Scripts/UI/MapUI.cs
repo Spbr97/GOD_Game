@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -241,7 +242,7 @@ namespace Game.UI
                 entries.Add(new MapEntry(
                     checkpoint.RespawnPosition,
                     "C",
-                    reached ? $"{checkpoint.CheckpointId} (reached)" : checkpoint.CheckpointId,
+                    reached ? Strings.Format(StringKeys.MapCheckpointReached, checkpoint.CheckpointId) : checkpoint.CheckpointId,
                     reached ? new Color(0.5f, 0.95f, 0.6f) : new Color(0.55f, 0.55f, 0.55f)));
             }
 
@@ -275,7 +276,7 @@ namespace Game.UI
                 entries.Add(new MapEntry(
                     boss.transform.position,
                     "B",
-                    boss.Defeated ? $"{boss.DisplayName} (defeated)" : boss.DisplayName,
+                    boss.Defeated ? Strings.Format(StringKeys.MapBossDefeated, boss.DisplayName) : boss.DisplayName,
                     boss.Defeated ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.95f, 0.35f, 0.35f)));
             }
 

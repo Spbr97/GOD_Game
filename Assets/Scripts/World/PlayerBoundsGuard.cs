@@ -1,6 +1,7 @@
 using Game.Combat;
 using Game.Core;
 using UnityEngine;
+using Game.Core.Localization;
 
 namespace Game.World
 {
@@ -26,8 +27,8 @@ namespace Game.World
         [Tooltip("Ignore further recoveries for this long after one, so a checkpoint that is itself out of bounds cannot loop.")]
         [SerializeField] private float recoveryCooldown = 1f;
 
-        [Tooltip("Shown by RecoveryMessageUI. SPEC.md section 50 does not dictate the wording, only that the position is corrected.")]
-        [SerializeField] private string recoveryMessage = "You fell out of the world. Returned to the last checkpoint.";
+        [Tooltip("Shown by RecoveryMessageUI. Optional override; leave blank to use the translated string (TASK 042). SPEC.md section 50 does not dictate the wording, only that the position is corrected.")]
+        [SerializeField] private string recoveryMessage;
 
         private CharacterController characterController;
         private Game.Player.PlayerController playerController;
@@ -121,7 +122,10 @@ namespace Game.World
                 $"teleported to {position}",
                 this);
 
-            EventBus.Publish(new OutOfWorldRecoveryEvent(gameObject, fellFrom, position, true, recoveryMessage));
+            EventBus.Publish(new OutOfWorldRecoveryEvent(gameObject, fellFrom, position, true,
+                string.IsNullOrWhiteSpace(recoveryMessage)
+                    ? Strings.Get(StringKeys.WorldFellOutOfWorld)
+                    : recoveryMessage));
         }
 
         private bool TryFindRecoveryPoint(out Vector3 position, out Quaternion rotation)

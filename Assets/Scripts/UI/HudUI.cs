@@ -3,6 +3,7 @@ using Game.Combat;
 using Game.Core;
 using UnityEngine;
 using UnityEngine.UI;
+using Game.Core.Localization;
 
 namespace Game.UI
 {
@@ -99,19 +100,22 @@ namespace Game.UI
             if (health != null)
             {
                 SetBar(healthFill, health.HealthFraction);
-                SetText(healthLabel, $"Health  {health.CurrentHealth:0}/{health.MaxHealth:0}");
+                SetText(healthLabel, Strings.Format(StringKeys.HudHealth,
+                    health.CurrentHealth.ToString("0"), health.MaxHealth.ToString("0")));
             }
 
             if (stamina != null)
             {
                 SetBar(staminaFill, stamina.StaminaFraction);
-                SetText(staminaLabel, $"Stamina  {stamina.CurrentStamina:0}/{stamina.MaxStamina:0}");
+                SetText(staminaLabel, Strings.Format(StringKeys.HudStamina,
+                    stamina.CurrentStamina.ToString("0"), stamina.MaxStamina.ToString("0")));
             }
 
             if (divine != null)
             {
                 SetBar(divineFill, divine.EnergyFraction);
-                SetText(divineLabel, $"Divine  {divine.CurrentEnergy:0}/{divine.MaxEnergy:0}");
+                SetText(divineLabel, Strings.Format(StringKeys.HudDivine,
+                    divine.CurrentEnergy.ToString("0"), divine.MaxEnergy.ToString("0")));
             }
 
             if (comboHideAt > 0f && Time.unscaledTime >= comboHideAt)
@@ -153,22 +157,24 @@ namespace Game.UI
 
         private void OnLockOnChanged(LockOnChangedEvent changed)
         {
-            SetText(lockOnLabel, changed.Target != null ? $"Locked: {changed.Target.name}" : string.Empty);
+            SetText(lockOnLabel, changed.Target != null
+                ? Strings.Format(StringKeys.HudLockedOn, changed.Target.name)
+                : string.Empty);
         }
 
         private void OnComboPerformed(ComboPerformedEvent combo)
         {
-            Flash($"{combo.ChainName}  x{combo.DamageMultiplier:0.##}");
+            Flash(Strings.Format(StringKeys.HudCombo, combo.ChainName, combo.DamageMultiplier.ToString("0.##")));
         }
 
         private void OnParry(ParryEvent parry)
         {
-            Flash(parry.Perfect ? "Perfect parry" : "Parry");
+            Flash(Strings.Get(parry.Perfect ? StringKeys.HudPerfectParry : StringKeys.HudParry));
         }
 
         private void OnGuardBroken(GuardBrokenEvent broken)
         {
-            Flash("Guard broken");
+            Flash(Strings.Get(StringKeys.HudGuardBroken));
         }
 
         private void OnRespawned(PlayerRespawnedEvent respawned)

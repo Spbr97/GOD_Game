@@ -15,7 +15,7 @@ MonoBehaviour:
   archetypeId: ENEMY_DIVINE_GUARDIAN
   displayName: Divine Guardian
   enemyClass: 7
-  bodyTint: {r: 0.75, g: 0.35, b: 0.1, a: 1}
+  bodyTint: {r: 0.82, g: 0.68, b: 0.3, a: 1}
   maxHealth: 100
   poise: 50
   poiseRecoveryPerSecond: 10
@@ -38,5 +38,8 @@ MonoBehaviour:
   attackRecovery: 0.6
   attackCooldown: 1.8
   telegraphColour: {r: 1, g: 0.55, b: 0.1, a: 1}
+  unblockableEveryNthAttack: 5
+  unblockableTelegraphColour: {r: 0.85, g: 0.15, b: 1, a: 1}
+  unblockableDamageMultiplier: 1.5
   retreatHealthFraction: 0
   retreatDuration: 2.5

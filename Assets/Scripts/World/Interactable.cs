@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Game.Core;
 using UnityEngine;
+using Game.Core.Localization;
 
 namespace Game.World
 {
@@ -39,11 +41,21 @@ namespace Game.World
         [Tooltip("Flags that block interaction while set. Used to retire an interaction once it is spent.")]
         [SerializeField] private string[] blockingFlags;
 
-        public float InteractionRange => interactionRange;
+        /// <summary>
+        /// How close the player must be. Virtual so a subclass can widen it from a skill —
+        /// <see cref="Game.Memory.MemoryPickup"/> does, for the Memory branch's detection
+        /// skill (TASK 043).
+        /// </summary>
+        public virtual float InteractionRange => interactionRange;
         public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
 
+        /// <summary>Read by <c>ContentValidation</c> (TASK 042) to check gating flags are ones something sets.</summary>
+        public IReadOnlyList<string> RequiredFlags => requiredFlags;
+
+        public IReadOnlyList<string> BlockingFlags => blockingFlags;
+
         /// <summary>The line shown on the interaction prompt, e.g. "Speak to Queen Amara".</summary>
-        public virtual string Prompt => $"{promptVerb} {DisplayName}";
+        public virtual string Prompt => Strings.Format(StringKeys.InteractionPrompt, promptVerb, DisplayName);
 
         /// <summary>
         /// Whether the player may interact right now. Overrides should call
