@@ -1,0 +1,23 @@
+DEFAULT CONTROLS
+
+Action               Keyboard / mouse        Gamepad
+Move                 W A S D                 Left stick
+Look                 Mouse                   Right stick
+Jump                 Space                   A / South
+Sprint               Left Shift              Left-stick press
+Light attack         Left mouse              X / West
+Heavy attack         Right mouse             Y / North
+Dodge                Left Ctrl               B / East
+Guard                Q                       Left shoulder
+Lock on              Middle mouse            Right-stick press
+Divine ability       R                       Right trigger
+Interact / dialogue  E                       D-pad Up
+Map                  M                       D-pad Down
+Journal              J                       View / Select
+Progression          P                       Right shoulder
+Pause                Esc                     Menu / Start
+Skip cinematic       Enter                   A / South
+
+Bindings can be changed in the in-game Controls screen. The gamepad labels above
+use the common Xbox-style face button positions; other pads may label them
+differently. A physical controller playtest is still required before release.

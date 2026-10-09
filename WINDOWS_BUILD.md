@@ -30,6 +30,12 @@ Build/Windows/TheGodWhoWasForgotten-<version>-windows-x64-development.zip
 Build/Windows/…zip.sha256
 ```
 
+Each player directory and ZIP also receives `PLAYER_README.txt`, `CONTROLS.txt`,
+`RELEASE_NOTES.txt`, `CREDITS.txt` and `ASSET_LICENSES.md` from checked-in release
+sources. The build script inserts the current bundle version into the player
+documents. The owner checklist for the remaining hands-on checks is
+`OWNER_RELEASE_CHECKLIST.md`.
+
 The Editor version is read from `ProjectSettings/ProjectVersion.txt`, never written
 into the script. Building with a different Unity than the project is pinned to is the
 single easiest way to make a "reproducible" build not reproducible, so the script

@@ -38,6 +38,7 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 | `CHANGELOG.md` | What changed, per task. |
 | `KNOWN_ISSUES.md` | Every open limitation, with why it was left. |
 | `ASSET_LICENSES.md` | Provenance for anything not written here. |
+| `OWNER_RELEASE_CHECKLIST.md` | Hands-on playtest and release approvals needed from the project owner. |
 
 ## Running the tests
 
@@ -55,8 +56,9 @@ manual pass that the automated suite cannot replace.
 .\Tools\build-windows.ps1 -Variant Both   # build, smoke test, package, checksum
 ```
 
-Nothing may be open in Unity. `WINDOWS_BUILD.md` explains the two variants, what is
-verified automatically, and what still needs a person.
+Nothing may be open in Unity. The ZIP includes player instructions, controls,
+release notes, credits and the asset ledger. `WINDOWS_BUILD.md` explains the
+two variants, what is verified automatically, and what still needs a person.
 
 ## Opening the project
 

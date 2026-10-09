@@ -1,0 +1,11 @@
+THE GOD WHO WAS FORGOTTEN — CREDITS
+
+Game design, writing and development: project contributors. The source history
+at https://github.com/Spbr97/GOD_Game records contributions.
+
+Engine: Unity 6, using the project's Unity Personal license.
+Current visuals: original scene arrangements using Unity built-in primitives.
+External non-code assets: none recorded in ASSET_LICENSES.md as of this build.
+
+The project owner will review contributor names and the final asset ledger
+before a public 1.0 release.

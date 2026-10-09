@@ -1,0 +1,17 @@
+THE GOD WHO WAS FORGOTTEN — {{VERSION}} WORK-IN-PROGRESS BUILD
+
+Included: Avarsha, the Agniya temple, Act I quests, two boss encounters,
+Ember Step, saving and loading, keyboard/mouse and gamepad bindings.
+
+This is the Act I slice. The other six temples, Acts II-V and the full story
+endings are planned for later releases. The Release player has passed startup
+and code-gating checks; the Development player has passed an automated
+Avarsha–Agniya round trip and save reload in a second process.
+
+Before a public 1.0 release, the game still needs a full hands-on Release
+playthrough, physical-controller and accessibility checks, measured Windows
+performance, final art/audio polish and a release-candidate QA pass.
+
+The binary is currently unsigned. Windows may ask you to confirm before its
+first launch. The source repository and build record are at:
+https://github.com/Spbr97/GOD_Game

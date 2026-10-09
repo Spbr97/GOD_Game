@@ -369,6 +369,43 @@ function Test-ReleasePlayerLaunches([string] $PlayerDirectory) {
     return $true
 }
 
+function Copy-PlayerDocs([string] $PlayerDirectory, [string] $Version) {
+    $documents = @(
+        @{ Source = 'Release\PLAYER_README.txt'; Destination = 'PLAYER_README.txt' },
+        @{ Source = 'Release\CONTROLS.txt'; Destination = 'CONTROLS.txt' },
+        @{ Source = 'Release\RELEASE_NOTES.txt'; Destination = 'RELEASE_NOTES.txt' },
+        @{ Source = 'Release\CREDITS.txt'; Destination = 'CREDITS.txt' },
+        @{ Source = 'ASSET_LICENSES.md'; Destination = 'ASSET_LICENSES.md' }
+    )
+
+    foreach ($document in $documents) {
+        $source = Join-Path $RepoRoot $document.Source
+        if (-not (Test-Path -LiteralPath $source)) {
+            Write-Bad "player document is missing: $source"
+            return $false
+        }
+
+        try {
+            $destination = Join-Path $PlayerDirectory $document.Destination
+            if ($document.Destination -eq 'ASSET_LICENSES.md') {
+                Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+            }
+            else {
+                $contents = [System.IO.File]::ReadAllText($source).Replace('{{VERSION}}', $Version)
+                [System.IO.File]::WriteAllText($destination, $contents,
+                    [System.Text.UTF8Encoding]::new($false))
+            }
+        }
+        catch {
+            Write-Bad "could not copy player document '$source': $($_.Exception.Message)"
+            return $false
+        }
+    }
+
+    Write-Ok 'player instructions, controls, notes, credits and asset ledger copied'
+    return $true
+}
+
 function New-Package([string] $PlayerDirectory, [string] $VariantName, [string] $Version) {
     $zip = Join-Path $BuildRoot "TheGodWhoWasForgotten-$Version-windows-x64-$($VariantName.ToLower()).zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
@@ -453,6 +490,9 @@ foreach ($current in $variants) {
     $info = Join-Path $playerDirectory 'build-info.txt'
     if (Test-Path $info) { Get-Content $info | ForEach-Object { Write-Info $_ } }
 
+    $docsReady = Copy-PlayerDocs -PlayerDirectory $playerDirectory -Version $bundleVersion
+    if (-not $docsReady) { $failed += "$current player documents" }
+
     if (-not $SkipSmokeTest) {
         Write-Step "Verifying the $current player outside the Editor"
 
@@ -473,6 +513,11 @@ foreach ($current in $variants) {
     }
 
     if (-not $NoZip) {
+        if (-not $docsReady) {
+            Write-Bad "skipping $current packaging because player documents are missing"
+            continue
+        }
+
         Write-Step "Packaging the $current player"
 
         # Contained on purpose. A packaging problem must not abandon the variants after

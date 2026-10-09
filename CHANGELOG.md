@@ -11,6 +11,9 @@
 - Both Windows variants built and packaged from `706ece2`. Development passed
   the scene-travel and cold-start smoke tests; Release passed code gating and
   startup. Controller feel still needs a physical-device playtest.
+- Windows packages now include versioned player instructions, default controls,
+  release notes, credits and the current asset-rights ledger. A separate owner
+  checklist names only the hands-on playtest and release approvals.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 

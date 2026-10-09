@@ -239,6 +239,10 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   and keep GitHub for source, as `PRODUCTION_BRIEF.md` specifies. Recheck host
   limits and terms at launch. **Gate:** another person can download, unpack,
   launch and complete the published Act I build.
+  **Packaging preparation:** checked-in player instructions, controls, release
+  notes, credits and the asset ledger are copied into each Windows ZIP. The
+  owner actions are listed in `OWNER_RELEASE_CHECKLIST.md`. Publishing and the
+  final rights/credits review remain open.
 
 ## Ongoing release rules
 
