@@ -762,7 +762,9 @@ logic rather than duplicating it.
 ### [POLISH] Gamepad navigation onto dynamically built rows is still unwired
 
 See "The journal has no gamepad navigation" below (TASK 010) — the fix this
-task adds is a first-selection only; rows built at runtime (quest list, memory
+task adds is a first-selection only. Main Menu panels now also select an active,
+interactable control on open, so focus does not remain on a hidden panel. Rows built
+at runtime (quest list, memory
 list, remap rows) still have no explicit `Selectable.navigation` between them.
 
 ## TASK 016 — Inventory, progression and skill tree

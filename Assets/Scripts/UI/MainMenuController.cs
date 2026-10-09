@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Core;
 using Game.Save;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Game.Core.Localization;
 
@@ -173,6 +174,13 @@ namespace Game.UI
             RefreshContinueButton();
         }
 
+        private void Start()
+        {
+            // EventSystem may enable after this component. All scene objects have
+            // enabled by Start, so the initial screen also gets controller focus.
+            SelectFirstUsable(rootPanel);
+        }
+
         // ------------------------------------------------------------------ navigation
 
         private void OpenRoot() => ShowPanel(rootPanel);
@@ -204,6 +212,25 @@ namespace Game.UI
             SetActiveIfAssigned(settingsPanel, panel == settingsPanel);
             SetActiveIfAssigned(controlsPanel, panel == controlsPanel);
             SetActiveIfAssigned(creditsPanel, panel == creditsPanel);
+
+            // A controller cannot navigate a newly opened screen if focus still
+            // belongs to a button on the panel we just hid.
+            SelectFirstUsable(panel);
+        }
+
+        private static void SelectFirstUsable(GameObject panel)
+        {
+            if (EventSystem.current != null && panel != null && panel.activeInHierarchy)
+            {
+                foreach (var selectable in panel.GetComponentsInChildren<Selectable>())
+                {
+                    if (selectable.IsActive() && selectable.IsInteractable())
+                    {
+                        EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+                        break;
+                    }
+                }
+            }
         }
 
         private static void SetActiveIfAssigned(GameObject go, bool active)

@@ -337,6 +337,31 @@ of thing only a real end-to-end run surfaces, which is the argument for running 
 `Build/` is not committed, so this section is the durable record; re-run the script to
 regenerate `Build/Windows/_logs/`.
 
+### 10 October 2026 — player document package
+
+Unity Personal 6000.6.2f1 built the Release player from `4ed0ddc`. The wrapper's
+developer-code gate and 20-second startup check passed. The ZIP at
+`Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip` has SHA-256
+`CD8B92C3ACD9CB32DECD31F8AAFE7800DEE9B4ED48816C7BC9B42F28A2E14AEC`.
+The archive was inspected after packaging: player instructions, controls, release
+notes, credits, asset-rights ledger and build provenance are present; the
+`{{VERSION}}` placeholder was replaced by `0.1.0`.
+
+This is an automated packaging check. The manual Release playthrough and
+controller review in `OWNER_RELEASE_CHECKLIST.md` are still required.
+
+After the Main Menu controller-focus fix, `.\Tools\build-windows.ps1 -Variant Both`
+completed from `4ed0ddc` plus the documented working-tree changes. Development
+passed the scene-travel and cold-start save smoke tests. Release passed the
+developer-code gate and 20-second startup check. Both ZIPs were inspected for
+all six player documents. A further Release build includes the initial-menu
+focus fix and passed the same automated checks. The latest SHA-256 checksums are:
+
+| Variant | SHA-256 |
+|---|---|
+| Development | `9529B56B407CE42EA2273A7961ABBBFA973350B170A20CC7D70F723CC221F80D` |
+| Release | `297C184EE3697AA364EE566C091057D63F57061F04DEFB8D6EDF8DA6C3234E99` |
+
 ## Known limits of this setup
 
 These are recorded in `KNOWN_ISSUES.md` as well, with the reasoning:

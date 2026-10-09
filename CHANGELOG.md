@@ -14,6 +14,8 @@
 - Windows packages now include versioned player instructions, default controls,
   release notes, credits and the current asset-rights ledger. A separate owner
   checklist names only the hands-on playtest and release approvals.
+- Opening a Main Menu panel now gives controller focus to a usable control on
+  that panel, instead of leaving focus on a hidden button.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 
