@@ -1,6 +1,7 @@
 using System.Linq;
 using Game.AI;
 using Game.Combat;
+using Game.Dialogue;
 using Game.EditorTools;
 using Game.Quests;
 using Game.World;
@@ -65,6 +66,31 @@ namespace Game.Tests
                 "Agniya had no quest of its own. The scene was complete — puzzle, toll, encounter, boss, "
                 + "reward — and nothing told the player what any of it was for.");
             Assert.AreEqual(4, quest.Objectives.Count);
+        }
+
+        [Test]
+        public void AmaraPointsToAgniyaAfterTheQueensCharge()
+        {
+            var graph = ContentValidation.LoadAll<DialogueGraph>()
+                .FirstOrDefault(dialogue => dialogue.GraphId == "DLG_AMARA");
+            Assert.IsNotNull(graph, "Amara's dialogue graph is missing");
+
+            var charge = graph.GetNode("AMARA_AFTER");
+            Assert.IsNotNull(charge, "Amara has no post-Q001 temple direction");
+            Assert.Contains(charge.DialogueId, graph.EntryNodeIds.ToList());
+            Assert.Contains("RETURNED_TO_AMARA", charge.RequiredFlags.ToList());
+            Assert.IsTrue(charge.Consequences.Any(consequence =>
+                consequence.Type == ConsequenceType.StartQuest && consequence.Target == "Q003"),
+                "The player can hear Amara's direction but never receive the temple quest.");
+
+            var afterTemple = graph.GetNode("AMARA_TEMPLE_COMPLETE");
+            Assert.IsNotNull(afterTemple);
+            Assert.Contains(afterTemple.DialogueId, graph.EntryNodeIds.ToList());
+            Assert.Contains("QUEST_Q003_COMPLETE", charge.BlockingFlags.ToList(),
+                "After the temple is complete, Amara must stop directing the player there.");
+            Assert.Contains("QUEST_Q003_COMPLETE", afterTemple.RequiredFlags.ToList());
+            Assert.Less(graph.EntryNodeIds.ToList().IndexOf(afterTemple.DialogueId),
+                graph.EntryNodeIds.ToList().IndexOf(charge.DialogueId));
         }
 
         /// <summary>

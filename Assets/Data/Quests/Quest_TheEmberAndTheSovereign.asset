@@ -18,7 +18,7 @@ MonoBehaviour:
     inside it is still burning, and still calling itself a god.
   objectives:
   - ObjectiveId: REACH_AGNIYA_TEMPLE
-    Description: Enter the temple past the district
+    Description: Go to the temple beyond the district
     Type: 0
     RequiredCount: 1
     Hidden: 0

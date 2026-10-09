@@ -10,15 +10,18 @@ using Unity Personal and free tools and services.
 
 ## Baseline and definition of finished
 
-As of 27 September 2026, the project has the Avarsha/Agniya vertical slice,
-four enabled scenes (`MainMenu`, `Test`, `Avarsha`, `Agniya`), two boss encounters, and
-450 locally passing EditMode/PlayMode tests. As of TASK 039 a **Windows x64 player
+The project has the Avarsha/Agniya vertical slice, four enabled scenes (`MainMenu`,
+`Test`, `Avarsha`, `Agniya`), two boss encounters, and 486 locally passing
+EditMode/PlayMode tests as of 9 October 2026. As of TASK 039 a **Windows x64 player
 builds, launches and passes an automated smoke test outside the Editor**
 (`WINDOWS_BUILD.md`), and as of TASK 041 that smoke test walks the **Avarsha ↔ Agniya
 round trip** in the shipped binary, proving progression survives a scene change. What is
-still missing is the manual pass on the player, a build from a clean checkout, and any
-full manual playthrough of TASK 027-038's changes. GitHub Actions cannot run Unity yet because its
-Unity Personal secrets have not been configured.
+still missing is the manual pass on the player and a full manual playthrough of
+TASK 027-038's changes. GitHub Actions cannot run Unity yet because its Unity
+Personal secrets have not been configured.
+Both Windows variants built and packaged from a fresh local clone of commit
+`994112b` on 9 October 2026; the Development smoke and Release startup checks
+passed (`WINDOWS_BUILD.md`).
 
 Version 1.0 is finished only when all of these are true:
 
@@ -128,21 +131,19 @@ writing and usability work run throughout production.
   `ABILITY_UNLOCKED_EMBER_STEP`. Verified by `ActOneContentTests`, two new
   `BossPlayModeTests`, and three new smoke-test checks.
 
-  **Still to do, in order:**
+  **Amara's direction is now authored (9 October 2026).** After Q001 she points
+  toward the temple and starts Q003. The entrance trigger remains a fallback for
+  players who arrive first; a post-temple line replaces the direction after Q003.
+  The first objective now reads "Go to the temple beyond the district."
 
-  1. **Amara's dialogue node pointing at the temple.** `Q003` currently starts when
-     the player walks into Agniya, which means they hear about the temple by
-     arriving at it. Nothing in Avarsha says the place is worth going to. The beat
-     belongs on Amara after `Q001`, as one node with a `StartQuest` consequence -
-     which would also let `Q003`'s first objective read "go to the temple" rather
-     than completing the instant it begins. This is the last authoring gap in the
-     Act I critical path.
-  2. **The manual pass**, which is the rest of the gate and which no test replaces.
+  **Still to do:**
+
+  1. **The manual pass**, which is the rest of the gate and which no test replaces.
      `TEST_PLAN.md` M0, on a Release player. It is also the only thing that can
      answer whether a *locked* Ember Step makes the approach to the temple feel
      worse: nothing in Agniya requires the dash and that is asserted by a test, but
      "possible without it" and "pleasant without it" are different questions.
-  3. **Optional, and not part of the gate:** the temple is still one encounter and
+  2. **Optional, and not part of the gate:** the temple is still one encounter and
      one puzzle before its boss. Authoring a quest over it does not add pacing.
 
 ### Gate C - the remaining six temples (after 1.0)
@@ -251,15 +252,12 @@ temple when the existing puzzle, quest and boss frameworks can express it.
    Remote Unity CI remains blocked until the owner securely configures the
    repository's Personal license secrets; never put credentials in the repo.
 
-**Next action:** **finish TASK 044.** Its automated half is done (see the task's own
-entry for what landed). Two things remain: **Amara's dialogue node pointing at the
-temple**, which is the last authoring gap in the Act I critical path, and the
-`TEST_PLAN.md` M0 **manual pass**, which is the rest of the gate and which the owner
-runs.
+**Next action:** **finish TASK 044's manual pass.** Amara's temple direction and the
+automated critical path checks are in place. The `TEST_PLAN.md` M0 manual pass is
+the rest of the gate and needs a person to play the Release build.
 
-Open gates that are not blocking it: TASK 039 needs a build from a clean checkout
-(the harness is `Tools/build-from-clean-checkout.ps1`, and it needs the work
-committed first) and the `TEST_PLAN.md` M0 manual pass. TASK 042 needs the authored
+Open gates that are not blocking it: TASK 039 needs the `TEST_PLAN.md` M0 manual
+pass. Its clean-checkout build passed on 9 October 2026. TASK 042 needs the authored
 Agniya chapter, which is TASK 044. TASK 043 needs the manual combat feel pass.
 
 **Scope note:** 1.0 is the Act I vertical slice. TASK 045-052 (the remaining six

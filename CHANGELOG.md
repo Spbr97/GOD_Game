@@ -10,6 +10,15 @@
 - The repaired Development player passed the full Avarsha → Agniya → Avarsha smoke
   test and a second-process save reload. Unity Personal ran 289 EditMode and 196
   PlayMode tests with no failures.
+- Both Windows variants built and packaged from a fresh clone of `994112b` with Unity
+  Personal. Development passed scene travel and cold-start smoke tests; Release passed
+  its developer-code and startup checks. Build provenance now compares source content
+  so Unity's line-ending rewrite does not falsely mark a clean clone dirty.
+- Amara now directs the player to Agniya after Q001 and starts Q003 before arrival.
+  The temple entrance remains a fallback, and Amara has a separate line after Q003.
+- The updated content passed 290 EditMode and 196 PlayMode tests. One pre-existing
+  line-of-sight test failed in the first PlayMode run; it passed in isolation and the
+  complete suite passed on rerun.
 
 ## Unreleased — TASK 044 (in progress): Finish Avarsha and Agniya
 

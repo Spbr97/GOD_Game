@@ -417,7 +417,7 @@ public static class WindowsBuild
     }
 
     /// <summary>
-    /// The current commit and whether the tree was dirty. Best effort: a build from a
+    /// The current commit and whether its source content differed. Best effort: a build from a
     /// source archive with no <c>.git</c> is legitimate, and should say so rather than
     /// fail a build over provenance metadata.
     /// </summary>
@@ -429,7 +429,14 @@ public static class WindowsBuild
             return "unknown (no git metadata available at build time)";
         }
 
-        var dirty = !string.IsNullOrEmpty(Git("status --porcelain"));
+        // Unity can rewrite line endings while importing a fresh clone. Git status
+        // then reports those files as modified even when the normalized content is
+        // identical to HEAD. Compare actual content and include untracked files so
+        // the manifest describes source changes, not import-only file churn.
+        var trackedChanges = Git("diff --name-only HEAD --");
+        var untrackedFiles = Git("ls-files --others --exclude-standard");
+        var dirty = !string.IsNullOrEmpty(trackedChanges) ||
+                    !string.IsNullOrEmpty(untrackedFiles);
         return dirty ? $"{commit} (working tree had uncommitted changes)" : commit;
     }
 

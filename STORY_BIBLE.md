@@ -299,8 +299,9 @@ omniscient guide. The third line's "it" is the First Memory.
   recover what the ruins remember, return to Amara. Rewards: Amara's trust.
 - **Q003 — The Ember and the Sovereign.** A temple stands where the city stops
   pretending to be a city. Enter it, wake the fire it was built around, put down
-  what the fire is pretending to be, and take what is left. Starts when the
-  player walks into Agniya, so it cannot be missed; its reward is Ember Step.
+  what the fire is pretending to be, and take what is left. Amara directs Ishan
+  there after Q001 and starts the quest; the temple entrance starts it as a
+  fallback if he arrives before speaking to her. Its reward is Ember Step.
 - **Q002 — The Ash at the Gate.** Something crawled out of the ruins behind you.
   Put it down. (Three enemies.)
 

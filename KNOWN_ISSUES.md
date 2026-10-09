@@ -115,16 +115,16 @@ by luminance rather than by hue and therefore survives every dichromacy.
 (1, 0.55, 0.25) for the same reason: against the violet unblockable flash it had a
 luminance gap of 0.15, which is too close to call in the half-second available.
 
-### Found: a clean checkout does not contain the build system
+### Resolved: the earlier clean checkout did not contain the build system
 
 `Tools/build-from-clean-checkout.ps1` was written to test TASK 039's reproducibility
-clause, and the first thing it establishes is that the clause is further from true than
-the entry below suggested. `Tools/build-windows.ps1`, `Assets/Editor/WindowsBuild.cs`,
+clause. Its first run found that `Tools/build-windows.ps1`, `Assets/Editor/WindowsBuild.cs`,
 `Assets/Editor/ContentValidation.cs`, both localization folders, `Assets/Scenes/Agniya.unity`
-and the whole of `Assets/Scripts/Combat/Abilities/` are **untracked**, not merely
-modified. A clean checkout today has no build script and no temple. **Consequence:** the
-clean-checkout build cannot be run at all until the commit lands, and the script
-correctly refuses rather than building a stale commit and reporting success.
+and the whole of `Assets/Scripts/Combat/Abilities/` were **untracked**. That checkout
+had no build script or temple. **Consequence:** the
+clean-checkout build could not run until those files were committed. They are now
+committed. On 9 October 2026, a fresh clone of `994112b` built and packaged both
+Windows variants; the Development smoke and Release startup checks passed.
 
 ## TASK 043 — Shared combat and progression rules
 
@@ -444,9 +444,9 @@ A Windows player now builds, launches and passes an automated smoke test outside
 Editor (`WINDOWS_BUILD.md`). These are what that first verified build does **not**
 establish.
 
-### The gate's "clean checkout" clause is not yet satisfied
+### Resolved: the gate's "clean checkout" clause
 
-TASK 039 asks for a build from a clean checkout. Every build so far has been made in the
+TASK 039 asks for a build from a clean checkout. Earlier builds were made in the
 working tree, which is a different claim: a working tree carries an imported `Library`,
 generated project files, and — the failure this is actually about — files that are on
 disk and were never added to Git.
@@ -458,10 +458,12 @@ calling the *clone's* copy of `build-windows.ps1` so the committed build script 
 gets tested. It refuses to run against a dirty working tree, because a clean-checkout
 build of a commit that does not contain your changes passes while telling you nothing.
 
-Running it established that the clause is further from satisfied than this entry said —
-see "a clean checkout does not contain the build system" at the top of this file.
-**Closing it:** run `.\Tools\build-from-clean-checkout.ps1 -Variant Both` once the
-commit lands. It cannot usefully be run before then.
+That first attempt exposed the uncommitted source files mentioned above. After they
+were committed, the wrapper itself exposed an argument-passing bug; commit `994112b`
+fixed it. The next run cloned that commit without `Library` or other generated state,
+built and zipped both variants, and passed the Development scene-travel and cold-start
+smoke checks plus the Release code-gating and startup checks. TASK 039 still requires
+the M0 manual pass below.
 
 ### The manual pass on the Release player has not been done
 

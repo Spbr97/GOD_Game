@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.DialogueGraph
   graphId: DLG_AMARA
   entryNodeIds:
+  - AMARA_TEMPLE_COMPLETE
   - AMARA_AFTER
   - AMARA_RETURN
   - AMARA_WAITING
@@ -145,14 +146,32 @@ MonoBehaviour:
     VoiceAssetId: 
   - DialogueId: AMARA_AFTER
     Speaker: Queen Amara
-    Text: ...
+    Text: I lost the end of that sentence. Beyond the district, the road from the stone reaches a temple. Its fire may remember what I cannot. Follow that road until it gives up its secret.
     RequiredFlags:
     - RETURNED_TO_AMARA
-    BlockingFlags: []
+    BlockingFlags:
+    - QUEST_Q003_COMPLETE
     RequiredMemoryId: 
     RequiredMemoryState: 
-    Consequences: []
+    Consequences:
+    - Type: 2
+      Target: Q003
+      Amount: 0
     Choices: []
     NextDialogueId: 
     Subtitle: 
     VoiceAssetId: 
+  - DialogueId: AMARA_TEMPLE_COMPLETE
+    Speaker: Queen Amara
+    Text: The ash on you is from that temple. I remember sending you to the stone, but not the words I meant to say after. Tell me what survived the fire when you can.
+    RequiredFlags:
+    - RETURNED_TO_AMARA
+    - QUEST_Q003_COMPLETE
+    BlockingFlags: []
+    RequiredMemoryId:
+    RequiredMemoryState:
+    Consequences: []
+    Choices: []
+    NextDialogueId:
+    Subtitle:
+    VoiceAssetId:

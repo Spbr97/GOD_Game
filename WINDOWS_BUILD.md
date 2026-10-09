@@ -57,9 +57,9 @@ two are loaded **by name** at runtime — `MainMenuController.startingScene` and
 one log line and no visible error. That is worth failing a build over.
 
 `build-info.txt` is written next to each player, after a success, recording the commit
-and whether the tree was dirty. TASK 057 has to be able to say which commit a
-downloaded binary came from, and build time is the only moment that is known for
-certain.
+and whether tracked content or untracked source files differed from it. TASK 057 has
+to be able to say which commit a downloaded binary came from, and build time is the
+only moment that is known for certain.
 
 ## What the automated smoke test does
 
@@ -128,6 +128,28 @@ things instead:
 Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
+
+### 9 October 2026 — clean checkout of `994112b`
+
+`.\Tools\build-from-clean-checkout.ps1 -Variant Both -Keep` cloned only committed
+files into a new directory with no `Library`, `Build`, `Temp` or user settings. The
+Development and Release players built with Unity Personal 6000.6.2f1 and were zipped.
+The Development player passed the full Avarsha → Agniya → Avarsha smoke test, including
+Q003 starting on arrival, and loaded the saved progression in a second process. The
+Release player passed developer-code gating and its twenty-second startup check.
+Package SHA-256 hashes:
+
+```text
+development  30F944D36434D7518464E38CBEB7A23993496072102B6C2DB6305630E71F16A6
+release      709FBDB910D07A7E60DF90D288CDC746167759E446E19A5CE85B0DFD9850F108
+```
+
+Unity's first import changed file line endings in three tracked settings files. Git
+reported them as modified, although `git diff HEAD` found no content change. The
+players' `build-info.txt` therefore incorrectly says the clone had uncommitted changes.
+The manifest check now compares normalized content and untracked files. The initial
+clone was verified clean before Unity opened it, so this label does not affect the
+clean-checkout result. M0 still needs a person to play the Release build.
 
 ### 9 October 2026 — task 044 scene-arrival regression and repair
 
@@ -286,10 +308,8 @@ These are recorded in `KNOWN_ISSUES.md` as well, with the reasoning:
   `WindowsBuild.DeveloperToolsDefine` for why neither `DEBUG` nor a runtime check was
   the right substitute.
 - The cross-process save check now has a recorded passing run (28 September 2026).
-- A **clean-checkout** build still has not happened, and cannot until the work is
-  committed. `.\Tools\build-from-clean-checkout.ps1` exists to do it and refuses to run
-  against a dirty tree. Running it established that the build system itself is currently
-  untracked, so a clone today would not build at all.
+- A **clean-checkout** build passed on 9 October 2026. The wrapper cloned committed
+  source, built both variants, ran their automated checks and packaged the players.
 - A build no longer dirties the four URP settings files; `WindowsBuild` captures and
   restores them around `BuildPipeline.BuildPlayer`. The old manual
   `git checkout -- Assets/Settings ProjectSettings/GraphicsSettings.asset` step is gone.

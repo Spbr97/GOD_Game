@@ -116,7 +116,7 @@ asks for it and because it will stop being uniform the moment anyone else contri
 |---|---|---|---|
 | `Q001` | The Queen's Charge | Authored, rewards granted | Completable start to finish in a Release player; grants the Divine Mark and a skill point |
 | `Q002` | The Ash at the Gate | Authored, rewards granted | Three ruin guards close it; grants two Ember Draughts and a skill point |
-| `Q003` | The Ember and the Sovereign | Authored and wired (TASK 044) | Starts on entering Agniya; all four objectives reported by the scene; grants 2 skill points and Ember Step via the boss |
+| `Q003` | The Ember and the Sovereign | Authored and wired (TASK 044) | Amara starts it after Q001, with temple-entry fallback; all four objectives reported by the scene; grants 2 skill points and Ember Step via the boss |
 
 ### Memories
 
@@ -138,7 +138,7 @@ asks for it and because it will stop being uniform the moment anyone else contri
 
 | ID | State | Acceptance |
 |---|---|---|
-| `Dialogue_Amara` | Authored | Starts `Q001`; closes it on return; never names Nirvaan |
+| `Dialogue_Amara` | Authored | Starts `Q001`; closes it on return; points to Agniya and starts `Q003`; never names Nirvaan |
 | `Dialogue_Mira` | Authored | May hint she is Forgotten; may not say it |
 | `Dialogue_Dev` | Authored | Validator reports no dangling links or unreachable nodes |
 
@@ -157,14 +157,13 @@ asks for it and because it will stop being uniform the moment anyone else contri
 | `Agniya` | Built, needs authoring finished (TASK 044) | Same, plus the temple's own quest and dialogue content |
 | `MainMenu` | Built | New Game, Continue, Load, Settings, Controls, Credits, Quit all work |
 
-### What Act I still lacks
+### Remaining Act I checks and limits
 
 Named so the table above is not mistaken for a finished list:
 
-- **Agniya's dialogue.** The temple's *quest* is authored and wired (`Q003`, TASK 044),
-  but nothing in Avarsha yet tells the player the temple is worth going to — the quest
-  starts when they arrive rather than when they hear about it. Amara's dialogue is the
-  place for that beat.
+- **Agniya's dialogue:** Amara now points toward the temple after Q001 and starts
+  Q003. The temple entrance still starts it for a player who arrives first. The
+  remaining check is whether the beat reads clearly in a manual Release playthrough.
 - **Essential item and door marking.** Both puzzle gates are marked; no item is,
   because Act I currently has no item the player can be permanently locked out by.
   TASK 044's real key items change that.
