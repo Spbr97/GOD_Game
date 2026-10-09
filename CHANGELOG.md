@@ -8,6 +8,9 @@
   new checks for these shipped bindings.
 - Updated the issue tracker and test plan to reflect Amara's implemented temple
   dialogue and the passing second-process save test.
+- Both Windows variants built and packaged from `706ece2`. Development passed
+  the scene-travel and cold-start smoke tests; Release passed code gating and
+  startup. Controller feel still needs a physical-device playtest.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 

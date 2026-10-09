@@ -129,6 +129,23 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 10 October 2026 — controller binding repair, commit `706ece2`
+
+`.\Tools\build-windows.ps1 -Variant Both` exited 0 using Unity Personal
+6000.6.2f1. Development passed the full Avarsha → Agniya → Avarsha smoke test
+and loaded the resulting save in a second process. Release passed developer-code
+gating and the twenty-second startup check. Both ZIPs were packaged under
+`Build/Windows/`:
+
+```text
+development  03E8F9BB45DC9485087DF579F5FF4B17BB19B792280FC0093D6A503BB1B89C2E
+release      C13D82167C014BFDBCB45EDF82D04F1CAF957E2673B69D912BAC70F56731321C
+```
+
+These hashes are SHA-256. The two new EditMode checks for controller movement,
+sprint and the Map/Interact separation passed as part of a 292-test EditMode
+run. A physical-controller Release playthrough is still required.
+
 ### 9 October 2026 — final authored slice, clean checkout of `b663619`
 
 `.\Tools\build-from-clean-checkout.ps1 -Variant Both -Keep` exited 0 from a
