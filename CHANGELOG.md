@@ -19,6 +19,9 @@
 - The updated content passed 290 EditMode and 196 PlayMode tests. One pre-existing
   line-of-sight test failed in the first PlayMode run; it passed in isolation and the
   complete suite passed on rerun.
+- A second clean clone of `b663619` built and packaged both Windows variants with
+  clean commit metadata. The build wrapper now reports only real graphics settings
+  content differences after Unity runs.
 
 ## Unreleased — TASK 044 (in progress): Finish Avarsha and Agniya
 

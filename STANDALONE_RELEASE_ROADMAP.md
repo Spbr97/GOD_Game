@@ -20,7 +20,7 @@ still missing is the manual pass on the player and a full manual playthrough of
 TASK 027-038's changes. GitHub Actions cannot run Unity yet because its Unity
 Personal secrets have not been configured.
 Both Windows variants built and packaged from a fresh local clone of commit
-`994112b` on 9 October 2026; the Development smoke and Release startup checks
+`b663619` on 9 October 2026; the Development smoke and Release startup checks
 passed (`WINDOWS_BUILD.md`).
 
 Version 1.0 is finished only when all of these are true:
@@ -257,7 +257,7 @@ automated critical path checks are in place. The `TEST_PLAN.md` M0 manual pass i
 the rest of the gate and needs a person to play the Release build.
 
 Open gates that are not blocking it: TASK 039 needs the `TEST_PLAN.md` M0 manual
-pass. Its clean-checkout build passed on 9 October 2026. TASK 042 needs the authored
+pass. Its clean-checkout build passed on 9 October 2026 at `b663619`. TASK 042 needs the authored
 Agniya chapter, which is TASK 044. TASK 043 needs the manual combat feel pass.
 
 **Scope note:** 1.0 is the Act I vertical slice. TASK 045-052 (the remaining six

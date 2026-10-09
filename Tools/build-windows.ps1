@@ -492,14 +492,13 @@ foreach ($current in $variants) {
 
 Write-Step 'Result'
 
-# URP writes its shader-keyword prefiltering results back into the source assets on
-# every build. Committing that churn makes graphics settings flip between whoever built
-# last, so say so rather than letting someone discover it in a review.
-$churn = & git -C $RepoRoot status --porcelain -- 'Assets/Settings' 'ProjectSettings/GraphicsSettings.asset' 2>$null
+# URP can write shader-keyword prefiltering results into source assets. Compare
+# content to HEAD: a fresh Unity import can make git status report modified files
+# whose normalized content is unchanged, and that is not a change to review.
+$churn = & git -C $RepoRoot diff --name-only HEAD -- 'Assets/Settings' 'ProjectSettings/GraphicsSettings.asset' 2>$null
 if ($LASTEXITCODE -eq 0 -and $churn) {
-    Write-Info 'This build rewrote URP settings assets (shader keyword prefiltering). Unless you'
-    Write-Info 'changed a graphics setting on purpose, discard it:'
-    Write-Info '  git checkout -- Assets/Settings ProjectSettings/GraphicsSettings.asset'
+    Write-Info 'Graphics settings differ from HEAD. Inspect these files before committing:'
+    $churn | ForEach-Object { Write-Info "  $_" }
 }
 
 if ($failed.Count -eq 0) {

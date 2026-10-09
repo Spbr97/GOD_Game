@@ -129,6 +129,27 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 9 October 2026 — final authored slice, clean checkout of `b663619`
+
+`.\Tools\build-from-clean-checkout.ps1 -Variant Both -Keep` exited 0 from a
+fresh clone of `b663619` using Unity Personal 6000.6.2f1. The clone contained no
+generated Unity state. Both `build-info.txt` files name that commit without a dirty
+marker. Development passed the Avarsha → Agniya → Avarsha smoke test, Q003 arrival
+checks, and a second-process Continue. Release passed developer-code gating and its
+twenty-second startup check. Both players were packaged; computed SHA-256 hashes
+match the `.sha256` files:
+
+```text
+development  782BC17ADA587D0B3C6AB23C974AE5B1B51FB1BBE22312F67F03F27DC8588C5F
+release      310FB8867FF22211598034E0C637636AD7BC9A6B83D81661A66CB1D3CBF7C270
+```
+
+The packages are in `Build/clean-checkout-20261009c/repo/Build/Windows/` on this
+machine. `Build/` is ignored by Git. The post-build wrapper printed a URP settings
+warning because Git status saw line ending changes; `git diff HEAD` found no source
+content change. The diagnostic now compares content too. The Release player still
+needs the M0 manual playtest before this gate can be closed.
+
 ### 9 October 2026 — clean checkout of `994112b`
 
 `.\Tools\build-from-clean-checkout.ps1 -Variant Both -Keep` cloned only committed

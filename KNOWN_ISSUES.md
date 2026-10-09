@@ -123,7 +123,7 @@ clause. Its first run found that `Tools/build-windows.ps1`, `Assets/Editor/Windo
 and the whole of `Assets/Scripts/Combat/Abilities/` were **untracked**. That checkout
 had no build script or temple. **Consequence:** the
 clean-checkout build could not run until those files were committed. They are now
-committed. On 9 October 2026, a fresh clone of `994112b` built and packaged both
+committed. On 9 October 2026, fresh clones of `994112b` and then `b663619` built and packaged both
 Windows variants; the Development smoke and Release startup checks passed.
 
 ## TASK 043 — Shared combat and progression rules
@@ -462,7 +462,8 @@ That first attempt exposed the uncommitted source files mentioned above. After t
 were committed, the wrapper itself exposed an argument-passing bug; commit `994112b`
 fixed it. The next run cloned that commit without `Library` or other generated state,
 built and zipped both variants, and passed the Development scene-travel and cold-start
-smoke checks plus the Release code-gating and startup checks. TASK 039 still requires
+smoke checks plus the Release code-gating and startup checks. A second clean clone of
+`b663619` verified the final authored dialogue build. TASK 039 still requires
 the M0 manual pass below.
 
 ### The manual pass on the Release player has not been done
