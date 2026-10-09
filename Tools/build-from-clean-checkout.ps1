@@ -183,10 +183,7 @@ Write-Step "Building the $Variant player inside the clone"
 Write-Info 'Unity reimports every asset on first open, so this is slower than a working-tree build.'
 
 $inner = Join-Path $clone 'Tools\build-windows.ps1'
-$arguments = @('-Variant', $Variant)
-if ($SkipSmokeTest) { $arguments += '-SkipSmokeTest' }
-
-& $inner @arguments
+& $inner -Variant $Variant -SkipSmokeTest:$SkipSmokeTest
 $buildExit = $LASTEXITCODE
 
 # ---------------------------------------------------------------------- result
