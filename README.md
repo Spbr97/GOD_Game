@@ -8,7 +8,7 @@ Third-person mythological action-adventure prototype. Unity 6 + C#.
 
 The vertical slice (SPEC.md section 61) is playable in Unity: Avarsha, the
 Agniya temple, combat, quests, dialogue, memory, puzzles, saving and two bosses.
-486 automated tests passed locally. A **Windows x64 player builds, launches and
+488 automated tests passed locally. A **Windows x64 player builds, launches and
 passes an automated smoke test outside the Editor** (TASK 039), and the temple is
 now **its own scene** — the smoke test walks Avarsha → Agniya → back in the shipped
 binary and proves quests, memories, inventory, abilities, flags and checkpoints all
@@ -42,8 +42,8 @@ See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 ## Running the tests
 
 ```bash
-unity command run_tests --mode editor     # 263 tests at the last local run
-unity command run_tests --mode playmode   # 187 tests at the last local run
+unity command run_tests --mode editor     # 292 tests at the last local run
+unity command run_tests --mode playmode   # 196 tests at the last local run
 ```
 
 `TEST_PLAN.md` covers the two failure modes that are not your change, and the

@@ -11,7 +11,7 @@ using Unity Personal and free tools and services.
 ## Baseline and definition of finished
 
 The project has the Avarsha/Agniya vertical slice, four enabled scenes (`MainMenu`,
-`Test`, `Avarsha`, `Agniya`), two boss encounters, and 486 locally passing
+`Test`, `Avarsha`, `Agniya`), two boss encounters, and 488 locally passing
 EditMode/PlayMode tests as of 9 October 2026. As of TASK 039 a **Windows x64 player
 builds, launches and passes an automated smoke test outside the Editor**
 (`WINDOWS_BUILD.md`), and as of TASK 041 that smoke test walks the **Avarsha ↔ Agniya
@@ -207,6 +207,10 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   translations can follow; do not claim a language is supported until its
   complete text and layout are tested. **Gate:** a first-time tester can play
   without instructions and accessibility options visibly work in Release.
+  **Controller input repair (10 October 2026):** the shared Gameplay asset now
+  binds left-stick movement and sprint, and gives Map its own D-pad direction.
+  The authored bindings pass two EditMode checks; a physical controller still
+  needs the manual Release pass.
 - [ ] **TASK 055 - Windows performance and stability.** Profile the actual
   player on the agreed reference PC and fallback hardware. Apply scene
   loading/unloading, LOD, pooling, texture and particle budgets, AI update
@@ -252,9 +256,10 @@ temple when the existing puzzle, quest and boss frameworks can express it.
    Remote Unity CI remains blocked until the owner securely configures the
    repository's Personal license secrets; never put credentials in the repo.
 
-**Next action:** **finish TASK 044's manual pass.** Amara's temple direction and the
-automated critical path checks are in place. The `TEST_PLAN.md` M0 manual pass is
-the rest of the gate and needs a person to play the Release build.
+**Next gate:** **finish TASK 044's manual pass.** Amara's temple direction and the
+automated critical path checks are in place. The `TEST_PLAN.md` M0 manual pass
+needs a person to play the Release build. Engineering and content work on
+TASK 042 and TASK 053-057 can continue while that pass is pending.
 
 Open gates that are not blocking it: TASK 039 needs the `TEST_PLAN.md` M0 manual
 pass. Its clean-checkout build passed on 9 October 2026 at `b663619`. TASK 042 needs the authored

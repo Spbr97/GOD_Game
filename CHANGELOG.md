@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased — 10 October 2026: controller movement
+
+- The shared Gameplay input asset now binds the gamepad left stick to movement and
+  left-stick press to sprint. Map moved to D-pad Down so D-pad Up interacts without
+  opening the map at the same time. All 292 EditMode checks passed, including two
+  new checks for these shipped bindings.
+- Updated the issue tracker and test plan to reflect Amara's implemented temple
+  dialogue and the passing second-process save test.
+
 ## Unreleased — 9 October 2026: Agniya arrival fix
 
 - The Windows player smoke test exposed that `Q003` did not start when scene travel

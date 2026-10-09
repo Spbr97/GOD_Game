@@ -7,15 +7,13 @@ was left, and what closing it involves.
 
 The temple now has a quest and Ember Step is its reward. What that leaves:
 
-### Agniya has a quest but no dialogue leading to it
+### CLOSED — Amara now directs the player to Agniya
 
-`Q003` starts when the player arrives at the temple spawn, which means it cannot be missed —
-but it also means the player hears about the temple by arriving at it. Nothing in Avarsha
-says the place is worth going to. **Why left:** the beat belongs in Amara's dialogue,
-after `Q001`, and adding it is authoring rather than wiring. **Consequence:** a player
-wanders into the temple rather than setting out for it, which is weaker but not broken.
-**Closing it:** one dialogue node on Amara with a `StartQuest` consequence, which would
-also let `Q003`'s first objective read "go to the temple" instead of completing instantly.
+After `Q001`, Amara's `AMARA_AFTER` dialogue points toward the temple and starts
+`Q003`. The scene entrance starts it as a fallback for players who arrive first.
+`AMARA_TEMPLE_COMPLETE` replaces the direction after Q003 is finished. This was
+added on 9 October 2026 and verified by the EditMode content check. The wording
+still needs the manual Release playthrough below.
 
 ### The temple is still one encounter and one puzzle
 
@@ -475,14 +473,12 @@ covers the Development player only, and covers no input, no rendering and no leg
 installed, and record the result in `WINDOWS_BUILD.md`. Until then, "a Windows player
 exists" is true and "the Windows player is good" is unverified.
 
-### The new two-process save check has not run yet
+### CLOSED — The two-process save check has run
 
 The wrapper now relaunches the Development player after its first smoke run, loads the
 save from the previous process and checks progression. Both runs use the isolated
-`SmokeTestSaves` directory. This closes the design gap in the harness, but the change
-has not passed a new Windows build: an already-open Unity Editor prevented batchmode
-from opening the project on 27 September. **Closing it:** run the Development build
-with the Editor closed and record both smoke reports in `WINDOWS_BUILD.md`.
+`SmokeTestSaves` directory. The check passed in the clean-checkout Windows builds
+of 9 October 2026; see `WINDOWS_BUILD.md`.
 
 ### The scripting backend is Mono
 
