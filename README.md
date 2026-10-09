@@ -8,13 +8,15 @@ Third-person mythological action-adventure prototype. Unity 6 + C#.
 
 The vertical slice (SPEC.md section 61) is playable in Unity: Avarsha, the
 Agniya temple, combat, quests, dialogue, memory, puzzles, saving and two bosses.
-450 automated tests passed locally. A **Windows x64 player builds, launches and
+485 automated tests passed locally. A **Windows x64 player builds, launches and
 passes an automated smoke test outside the Editor** (TASK 039), and the temple is
 now **its own scene** — the smoke test walks Avarsha → Agniya → back in the shipped
 binary and proves quests, memories, inventory, abilities, flags and checkpoints all
-survive the trip (TASK 041). The manual pass has still not been done, and the
-remaining six temples and Acts III–V are still to be made. See `STANDALONE_RELEASE_ROADMAP.md` for the path to a finished
-Windows 1.0 game and `WINDOWS_BUILD.md` for how to build one today.
+survive the trip (TASK 041). The manual pass has still not been done. The
+remaining six temples and Acts II–V are planned for later releases. Version 1.0
+targets a polished Act I vertical slice; see `PRODUCTION_BRIEF.md` for that scope,
+`STANDALONE_RELEASE_ROADMAP.md` for the remaining work, and `WINDOWS_BUILD.md` for how
+to build the player today.
 
 See `CHANGELOG.md` for progress and `KNOWN_ISSUES.md` for open problems.
 

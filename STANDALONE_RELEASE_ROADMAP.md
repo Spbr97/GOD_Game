@@ -2,10 +2,11 @@
 
 This is the path from the current playable Unity vertical slice to a finished,
 downloadable Windows game. It extends [ROADMAP.md](ROADMAP.md) after TASK 038.
-`SPEC.md` remains the design authority, especially sections 60, 63, 64, 72, 73
-and 77. The scope assumed here is the **full story in SPEC.md**: seven temples,
-Acts I-V, and the three main endings plus the hidden ending. The first release
-target is **Windows x64**, using Unity Personal and free tools and services.
+`SPEC.md` remains the design authority for the full story. `PRODUCTION_BRIEF.md`
+sets the first release scope: a polished **Act I vertical slice** in Avarsha and
+Agniya, with no authored ending. The other six temples, Acts II-V and the endings
+remain on this roadmap for later releases. The first target is **Windows x64**,
+using Unity Personal and free tools and services.
 
 ## Baseline and definition of finished
 
@@ -22,11 +23,11 @@ Unity Personal secrets have not been configured.
 Version 1.0 is finished only when all of these are true:
 
 - A person can download a Windows package, unzip it, launch the game without
-  Unity installed, finish all five acts and seven temples, and reach every
-  authored ending from a fresh save.
+  Unity installed, finish Act I and Agniya from a fresh save, and reach a clear
+  chapter close that does not pretend to be a full-game ending.
 - Every critical quest, memory and ability is obtainable; backtracking, death,
   saving, loading and changing scenes cannot permanently block progression.
-- Combat, dialogue, puzzles, bosses, endings and settings have their final
+- Combat, dialogue, puzzles, bosses, the Act I close and settings have their final
   player-facing feedback. No placeholder blocks a critical story or gameplay
   moment. Any remaining optional placeholder is explicitly accepted in the
   release notes.
@@ -50,9 +51,10 @@ verification and useful automated tests where practical.
 
 ## Milestones and tasks
 
-Tasks are ordered by dependency. Art, audio, writing and usability work run
-throughout production; their final acceptance gates appear near the end. Do
-not wait for every temple before testing a standalone build.
+Tasks within each release phase are ordered by dependency. Gates C and D are
+the future full-game campaign after the Act I 1.0 release; Gates E and F apply
+to the 1.0 slice first and will be repeated for later releases. Art, audio,
+writing and usability work run throughout production.
 
 ### Gate A - a real Windows player
 
@@ -143,7 +145,7 @@ not wait for every temple before testing a standalone build.
   3. **Optional, and not part of the gate:** the temple is still one encounter and
      one puzzle before its boss. Authoring a quest over it does not add pacing.
 
-### Gate C - the remaining six temples
+### Gate C - the remaining six temples (after 1.0)
 
 Each temple task delivers a separate region/scene, entrance and exit, one
 distinct traversal or puzzle mechanic, its named ability and boss, authored
@@ -170,7 +172,7 @@ after allowed backtracking. Every god has a distinct fight and the save can
 resume at every chapter boundary. Avoid building a new global system for each
 temple when the existing puzzle, quest and boss frameworks can express it.
 
-### Gate D - complete story and endings
+### Gate D - complete story and endings (after 1.0)
 
 - [ ] **TASK 051 - Acts II-IV and the memory consequences.** Author the
   Archivist, Forgotten, reveals, optional lore and cross-region quests using
@@ -193,7 +195,7 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   combat cues, absent ambience/music and incomplete cinematics. Use original,
   Unity-built-in, CC0 or other suitably licensed free assets; record every
   external asset and any generated-asset provenance in `ASSET_LICENSES.md`.
-  **Gate:** coherent art/audio across all regions, readable combat cues and a
+  **Gate:** coherent art/audio across the 1.0 regions, readable combat cues and a
   complete rights ledger. Content production begins earlier; this task is its
   final audit, not a late start.
 - [ ] **TASK 054 - UI, accessibility and text readiness.** Finish map,
@@ -208,15 +210,15 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   player on the agreed reference PC and fallback hardware. Apply scene
   loading/unloading, LOD, pooling, texture and particle budgets, AI update
   frequency and static/baked optimizations only where measurements justify
-  them. **Gate:** record 1080p frame-time and memory results for hub, temples,
-  bosses and ending; achieve SPEC.md's 60 FPS target and usable 30 FPS
+  them. **Gate:** record 1080p frame-time and memory results for the hub, Agniya,
+  both bosses and the Act I close; achieve SPEC.md's 60 FPS target and usable 30 FPS
   fallback without long stalls or growth across repeated scene travel.
 
 ### Gate F - release candidate and distribution
 
 - [ ] **TASK 056 - Full QA and release candidate.** Make an RC from a clean
   commit. Run EditMode, PlayMode, validators, a fresh-save full playthrough,
-  all endings, save migration/corruption/backup, controller disconnect,
+  the Act I chapter close, save migration/corruption/backup, controller disconnect,
   window-focus, graphics changes, repeated deaths and scene transitions.
   Test the packaged build on a Windows account/machine without Unity. Triage
   every known issue; fix all progression blockers and crashes, and record
@@ -228,11 +230,10 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   controls, requirements, credits, license notices, change notes and a
   checksum. Publish the binary separately from the source archive, retain the
   exact commit/build record, and provide a bug-report path and patch process.
-  A free first channel can be [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)
-  (each asset must remain under its current 2 GiB limit); a free
-  [itch.io page](https://itch.io/docs/creators/faq) is an option if desired.
-  Recheck host limits and terms at launch. **Gate:** another person can
-  download, unpack, launch and complete the published build.
+  Publish the player on the planned [itch.io page](https://itch.io/docs/creators/faq)
+  and keep GitHub for source, as `PRODUCTION_BRIEF.md` specifies. Recheck host
+  limits and terms at launch. **Gate:** another person can download, unpack,
+  launch and complete the published Act I build.
 
 ## Ongoing release rules
 
@@ -261,9 +262,9 @@ Open gates that are not blocking it: TASK 039 needs a build from a clean checkou
 committed first) and the `TEST_PLAN.md` M0 manual pass. TASK 042 needs the authored
 Agniya chapter, which is TASK 044. TASK 043 needs the manual combat feel pass.
 
-**Scope note:** 1.0 is the Act I vertical slice, so TASK 045-050 (the remaining six
-temples) now sit **after** the 1.0 release rather than before it. TASKS 051-057 stay
-in front of it.
+**Scope note:** 1.0 is the Act I vertical slice. TASK 045-052 (the remaining six
+temples, Acts II-V and endings) sit **after** the 1.0 release. TASK 053-057
+finish and ship the Act I slice first.
 
 TASK 043's implementation is in place: all twelve of SPEC.md section 30's
 skills now change play and survive a save (eight of them did nothing at all before),

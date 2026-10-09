@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Unreleased — 9 October 2026: Agniya arrival fix
+
+- The Windows player smoke test exposed that `Q003` did not start when scene travel
+  placed the player at Agniya's outer spawn. `LocationTrigger` can now fire on a named
+  scene arrival, and the temple entrance uses `FromAvarsha`. The physical trigger
+  remains for a player who reaches it by walking.
+- Content validation rejects an arrival trigger whose named spawn is absent.
+- The repaired Development player passed the full Avarsha → Agniya → Avarsha smoke
+  test and a second-process save reload. Unity Personal ran 289 EditMode and 196
+  PlayMode tests with no failures.
+
 ## Unreleased — TASK 044 (in progress): Finish Avarsha and Agniya
 
 Agniya's *structure* was already complete — fire puzzle, memory toll, encounter,

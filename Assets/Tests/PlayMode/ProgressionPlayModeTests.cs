@@ -104,6 +104,38 @@ namespace Game.Tests.Play
         }
 
         [UnityTest]
+        public IEnumerator Quest_StartsWhenThePlayerArrivesAtItsNamedSpawn()
+        {
+            var quest = arena.TrackAsset(ScriptableObject.CreateInstance<QuestDefinition>());
+            quest.Configure("Q_ARRIVAL", "Arrival quest", "", new[]
+            {
+                new QuestObjective { ObjectiveId = "ARRIVE", Description = "Arrive", RequiredCount = 1 },
+                new QuestObjective { ObjectiveId = "FINISH", Description = "Finish", RequiredCount = 1 }
+            });
+            var quests = arena.SpawnQuestManager(quest);
+
+            var triggerGo = arena.Track(new GameObject("Arrival trigger"));
+            triggerGo.SetActive(false);
+            triggerGo.AddComponent<BoxCollider>();
+            var trigger = triggerGo.AddComponent<LocationTrigger>();
+            trigger.Configure("Temple", "ARRIVE", "TEMPLE_ENTERED", questId: "Q_ARRIVAL",
+                arrivalSpawn: "FromAvarsha");
+            triggerGo.SetActive(true);
+            yield return null;
+
+            var sceneName = triggerGo.scene.name;
+            EventBus.Publish(new SceneArrivedEvent(sceneName, "OtherSpawn", true));
+            EventBus.Publish(new SceneArrivedEvent(sceneName, "FromAvarsha", false));
+            Assert.IsFalse(WorldState.Instance.GetFlag("TEMPLE_ENTERED"));
+            Assert.AreEqual(QuestStatus.NotStarted, quests.GetStatus("Q_ARRIVAL"));
+
+            EventBus.Publish(new SceneArrivedEvent(sceneName, "FromAvarsha", true));
+            Assert.IsTrue(WorldState.Instance.GetFlag("TEMPLE_ENTERED"));
+            Assert.AreEqual(QuestStatus.Active, quests.GetStatus("Q_ARRIVAL"));
+            Assert.IsTrue(quests.ActiveQuests["Q_ARRIVAL"].IsObjectiveComplete("ARRIVE"));
+        }
+
+        [UnityTest]
         public IEnumerator Quest_ProgressesAndCompletesAsTheTargetsActuallyDie()
         {
             var quest = DefeatQuest("Q_KILLS", "DEFEAT_TARGETS", 3);

@@ -129,6 +129,23 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 9 October 2026 — task 044 scene-arrival regression and repair
+
+On commit `44ad794`, the clean working-tree build produced both Windows variants,
+but the Development smoke test failed: entering Agniya did not start `Q003` or close
+`REACH_AGNIYA_TEMPLE`. The player arrives at spawn `FromAvarsha` at z=46 while the
+physical entrance trigger is at z=-22. The smoke test exposed that gap before a
+release. The Release variant compiled, passed its developer-code gate and startup
+check, and packaged, but the overall build command correctly returned failure.
+
+`LocationTrigger` now responds to an authored scene-arrival spawn as well as a
+physical collider entry. Agniya names `FromAvarsha` on its entrance trigger, and
+content validation rejects a missing arrival spawn. With this working-tree fix,
+`.\Tools\build-windows.ps1 -Variant Development -NoZip` exited 0: the full
+Avarsha → Agniya → Avarsha smoke run passed, followed by a second-process Continue
+that restored the save and progression. The player was built from a dirty tree, so
+the clean-checkout gate remains open until this fix is committed and rebuilt.
+
 ### 28 September 2026 — the closure pass build
 
 Development variant, `.\Tools\build-windows.ps1 -Variant Development -NoZip`, exit 0.

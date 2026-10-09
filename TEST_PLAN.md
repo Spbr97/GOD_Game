@@ -4,7 +4,7 @@ Required by SPEC.md sections 81 and 53. Section 53 asks that **every major
 system have automated and manual tests**; this document says which tests exist,
 what each is for, what is deliberately not automated, and how to run any of it.
 
-Last verified: **263 EditMode + 187 PlayMode = 450 passing tests** on Unity 6000.6.2f1 with Unity Personal. TASK 039 added 11 EditMode tests over the Windows build and a **smoke test that runs inside the built Windows player**. TASK 041 added 22 EditMode and 27 PlayMode tests over scene travel, the version 2 save shape and the version 1 fixture migration, and grew the smoke test to 13 steps so it walks the Avarsha↔Agniya round trip. TASK 042 added 15 EditMode tests over the content validator -- eleven of which feed it broken content and assert it complains -- and 14 over the string table. TASK 043 added 13 EditMode tests over readability and difficulty tuning and 18 PlayMode tests over the twelve skill effects, the divine-ability contract and unblockable attacks. See section M0 and `WINDOWS_BUILD.md`.
+Last verified 9 October 2026: **289 EditMode + 196 PlayMode = 485 passing tests** on Unity 6000.6.2f1 with Unity Personal. The new PlayMode test checks that a named scene arrival starts the Agniya-style entrance quest; the Development player also passed its Avarsha↔Agniya smoke test and cold-start save reload. TASK 039 added build tests, TASK 041 added scene travel and save tests, TASK 042 added content validation and localization tests, TASK 043 added combat tests, and TASK 044 added Act I content tests. See section M0 and `WINDOWS_BUILD.md`.
 
 ---
 

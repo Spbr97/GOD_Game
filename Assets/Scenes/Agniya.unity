@@ -13374,6 +13374,7 @@ MonoBehaviour:
   objectiveId: REACH_AGNIYA_TEMPLE
   flagToSet: ENTERED_AGNIYA_TEMPLE
   questToStart: Q003
+  arrivalSpawnId: FromAvarsha
   requiredFlags: []
   once: 1
   playerLayers:

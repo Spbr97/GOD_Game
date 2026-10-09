@@ -36,8 +36,8 @@ the first act of the real game, at release quality, and the parts that exist hav
 finished rather than representative. The deferred column above is the only thing the
 narrower scope buys.
 
-**Consequence for the roadmap.** TASK 045–050 (the remaining six temples) move behind
-1.0. TASK 044 and TASKS 051–057 stay in front of it. Nothing already built is thrown
+**Consequence for the roadmap.** TASK 045–052 (the remaining six temples, Acts II–V
+and endings) move behind 1.0. TASK 044 and TASKS 053–057 stay in front of it. Nothing already built is thrown
 away — the divine-ability contract, the scene-travel machinery and the content
 validator were all built to take six more temples, and they still will.
 

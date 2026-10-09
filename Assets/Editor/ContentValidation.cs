@@ -703,6 +703,14 @@ namespace Game.EditorTools
                 {
                     CheckObjectiveReference(issues, catalogue, path, trigger, trigger.ObjectiveId, "reports");
 
+                    if (!string.IsNullOrWhiteSpace(trigger.ArrivalSpawnId)
+                        && SceneSpawnPoint.Find(trigger.ArrivalSpawnId) == null)
+                    {
+                        issues.Add(new ContentIssue(ContentSeverity.Error, "scene-arrival", Where(path, trigger),
+                            $"fires on arrival at '{trigger.ArrivalSpawnId}', which has no spawn point in '{sceneName}'",
+                            trigger));
+                    }
+
                     if (!string.IsNullOrWhiteSpace(trigger.QuestToStart)
                         && !catalogue.QuestIds.Contains(trigger.QuestToStart))
                     {

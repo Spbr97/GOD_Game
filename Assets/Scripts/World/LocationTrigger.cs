@@ -26,6 +26,9 @@ namespace Game.World
         [Tooltip("Quest started on entry, by id from the QuestManager catalogue. Optional.")]
         [SerializeField] private string questToStart;
 
+        [Tooltip("Also fire after scene travel places the player at this named spawn. Optional.")]
+        [SerializeField] private string arrivalSpawnId;
+
         [Tooltip("All of these flags must be set for the trigger to fire.")]
         [SerializeField] private string[] requiredFlags;
 
@@ -41,12 +44,28 @@ namespace Game.World
 
         public string QuestToStart => questToStart;
 
+        public string ArrivalSpawnId => arrivalSpawnId;
+
         public bool HasFired { get; private set; }
         public string LocationName => locationName;
 
         private void Awake()
         {
             GetComponent<Collider>().isTrigger = true;
+        }
+
+        private void OnEnable() => EventBus.Subscribe<SceneArrivedEvent>(OnSceneArrived);
+
+        private void OnDisable() => EventBus.Unsubscribe<SceneArrivedEvent>(OnSceneArrived);
+
+        private void OnSceneArrived(SceneArrivedEvent arrival)
+        {
+            if (arrival.PlacedAtSpawn && !string.IsNullOrEmpty(arrivalSpawnId)
+                && arrival.SceneName == gameObject.scene.name
+                && arrival.SpawnId == arrivalSpawnId)
+            {
+                Fire();
+            }
         }
 
         private void OnTriggerEnter(Collider other)
@@ -109,7 +128,7 @@ namespace Game.World
 
         /// <summary>Test and tooling seam for configuring without the Inspector.</summary>
         public void Configure(string displayName, string objective, string flag, bool fireOnce = true,
-            string questId = null, string[] required = null)
+            string questId = null, string[] required = null, string arrivalSpawn = null)
         {
             locationName = displayName;
             objectiveId = objective;
@@ -117,6 +136,7 @@ namespace Game.World
             once = fireOnce;
             questToStart = questId;
             requiredFlags = required;
+            arrivalSpawnId = arrivalSpawn;
         }
 
         private void OnDrawGizmos()

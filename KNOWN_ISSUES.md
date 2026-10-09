@@ -9,7 +9,7 @@ The temple now has a quest and Ember Step is its reward. What that leaves:
 
 ### Agniya has a quest but no dialogue leading to it
 
-`Q003` starts when the player walks into the temple, which means it cannot be missed —
+`Q003` starts when the player arrives at the temple spawn, which means it cannot be missed —
 but it also means the player hears about the temple by arriving at it. Nothing in Avarsha
 says the place is worth going to. **Why left:** the beat belongs in Amara's dialogue,
 after `Q001`, and adding it is authoring rather than wiring. **Consequence:** a player
