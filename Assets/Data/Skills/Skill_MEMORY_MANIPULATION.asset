@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: MEMORY_MANIPULATION
   displayName: Careful Hand
-  description: 
+  description: Corrupting a memory costs 25% less integrity.
   branch: 3
   cost: 2
   prerequisiteId: MEMORY_RESTORATION
   effectType: 11
   effectValue: -0.25
+  localizationKey: skill.memory_manipulation

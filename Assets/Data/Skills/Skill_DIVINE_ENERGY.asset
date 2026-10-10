@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: DIVINE_ENERGY
   displayName: Deep Well
-  description: 
+  description: Gain 20 maximum Divine Energy.
   branch: 2
   cost: 2
   prerequisiteId: DIVINE_COOLDOWN
   effectType: 8
   effectValue: 20
+  localizationKey: skill.divine_energy

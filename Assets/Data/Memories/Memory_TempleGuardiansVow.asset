@@ -26,3 +26,4 @@ MonoBehaviour:
   visualTint: {r: 0.6, g: 0.1, b: 0.75, a: 1}
   audioNarrationId:
   stateOnDiscovery: 1
+  localizationKey: memory.mem_002

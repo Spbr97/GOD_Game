@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: GUARDIAN_BLOCK
   displayName: Steady Guard
-  description: 
+  description: Blocking costs 10% less stamina.
   branch: 1
   cost: 1
   prerequisiteId: GUARDIAN_HEALTH
   effectType: 4
   effectValue: 0.1
+  localizationKey: skill.guardian_block

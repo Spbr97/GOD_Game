@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: GUARDIAN_HEALTH
   displayName: Vitality
-  description: 
+  description: Gain 20 maximum health.
   branch: 1
   cost: 1
   prerequisiteId: 
   effectType: 3
   effectValue: 20
+  localizationKey: skill.guardian_health

@@ -209,7 +209,24 @@ namespace Game.EditorTools
             {
                 if (quest != null)
                 {
-                    Check(quest.LocalizationKey, quest.QuestId, quest, "title", "description");
+                    var fields = new List<string> { "title", "description" };
+                    if (!string.IsNullOrEmpty(quest.AuthoredRewardsSummary))
+                    {
+                        fields.Add("rewards");
+                    }
+
+                    if (quest.Objectives != null)
+                    {
+                        foreach (var objective in quest.Objectives)
+                        {
+                            if (objective != null && !string.IsNullOrEmpty(objective.ObjectiveId))
+                            {
+                                fields.Add("objective." + objective.ObjectiveId.ToLowerInvariant());
+                            }
+                        }
+                    }
+
+                    Check(quest.LocalizationKey, quest.QuestId, quest, fields.ToArray());
                 }
             }
 
@@ -225,7 +242,9 @@ namespace Game.EditorTools
             {
                 if (item != null)
                 {
-                    Check(item.LocalizationKey, item.ItemId, item, "name", "description");
+                    Check(item.LocalizationKey, item.ItemId, item,
+                        string.IsNullOrEmpty(item.AuthoredDescription)
+                            ? new[] { "name" } : new[] { "name", "description" });
                 }
             }
 
@@ -233,7 +252,9 @@ namespace Game.EditorTools
             {
                 if (skill != null)
                 {
-                    Check(skill.LocalizationKey, skill.SkillId, skill, "name", "description");
+                    Check(skill.LocalizationKey, skill.SkillId, skill,
+                        string.IsNullOrEmpty(skill.AuthoredDescription)
+                            ? new[] { "name" } : new[] { "name", "description" });
                 }
             }
         }

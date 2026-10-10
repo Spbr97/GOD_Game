@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: DIVINE_COOLDOWN
   displayName: Swift Renewal
-  description: 
+  description: Ember Step's cooldown is 20% shorter.
   branch: 2
   cost: 1
   prerequisiteId: DIVINE_POWER
   effectType: 7
   effectValue: -0.2
+  localizationKey: skill.divine_cooldown

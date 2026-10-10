@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Inventory.InventoryItem
   itemId: ASTRA_BLADE
   displayName: Astra Blade
-  description: 
+  description: The blade carried from the start of the journey.
   category: 0
   stackable: 0
   tint: {r: 1, g: 1, b: 1, a: 1}
   healAmount: 0
+  localizationKey: item.astra_blade

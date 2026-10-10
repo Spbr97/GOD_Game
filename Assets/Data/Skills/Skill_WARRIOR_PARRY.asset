@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: WARRIOR_PARRY
   displayName: Parry Timing
-  description: 
+  description: The parry timing window is 20% longer.
   branch: 0
   cost: 2
   prerequisiteId: WARRIOR_COMBO
   effectType: 2
   effectValue: 0.2
+  localizationKey: skill.warrior_parry

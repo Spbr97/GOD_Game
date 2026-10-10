@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Inventory.InventoryItem
   itemId: EMBER_DRAUGHT
   displayName: Ember Draught
-  description: 
+  description: Restores 30 health when used.
   category: 5
   stackable: 1
   tint: {r: 1, g: 1, b: 1, a: 1}
   healAmount: 30
+  localizationKey: item.ember_draught

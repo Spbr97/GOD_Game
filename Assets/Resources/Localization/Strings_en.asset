@@ -154,3 +154,162 @@ MonoBehaviour:
   - Key: dialogue.unavailable
     Value: '[Dialogue unavailable]'
     Note: Shown when a conversation has no available line.
+  - Key: item.astra_blade.name
+    Value: 'Astra Blade'
+    Note: 'Item display name (ASTRA_BLADE).'
+  - Key: item.divine_mark.name
+    Value: 'Divine Mark'
+    Note: 'Item display name (DIVINE_MARK).'
+  - Key: item.ember_draught.name
+    Value: 'Ember Draught'
+    Note: 'Item display name (EMBER_DRAUGHT).'
+  - Key: memory.mem_001.description
+    Value: 'The ruin stone carries eight seats, not seven. Someone has ground the eighth name away, patiently, with a blade - not to deface it, but to finish it. Underneath the damage the carving is still legible in the way a scar is legible. You do not know the name. You are certain you have said it before.'
+    Note: 'Memory description (MEM_001).'
+  - Key: memory.mem_001.title
+    Value: 'The Name Beneath the Stone'
+    Note: 'Memory display name (MEM_001).'
+  - Key: memory.mem_002.description
+    Value: 'The stone that carried it is broken open now, and what was sealed inside is a memory that is not quite yours and not quite anyone''s - a vow spoken by something built to keep one thing safe for longer than the word "forever" was supposed to mean. It does not know its vow is finished. It only knows it is not moving anymore.'
+    Note: 'Memory description (MEM_002).'
+  - Key: memory.mem_002.title
+    Value: 'The Guardian''s Vow'
+    Note: 'Memory display name (MEM_002).'
+  - Key: memory.mem_003.description
+    Value: 'The flame does not go out when the god falls. It just stops pretending to be a god and remembers being fire - patient, indifferent, older than the seven, older than the day they chose to be seven. Somewhere in the heat you were sure you heard it say your true name before it forgot how.'
+    Note: 'Memory description (MEM_003).'
+  - Key: memory.mem_003.title
+    Value: 'Agniya''s Ember'
+    Note: 'Memory display name (MEM_003).'
+  - Key: quest.q001.description
+    Value: 'Queen Amara has asked you to walk out to the old ruins past the temple district and bring back whatever is carved there.'
+    Note: 'Quest description (Q001).'
+  - Key: quest.q001.objective.find_memory
+    Value: 'Recover what the ruins remember'
+    Note: 'Quest objective (Q001/FIND_MEMORY).'
+  - Key: quest.q001.objective.reach_ruins
+    Value: 'Search the ruins beyond the temple district'
+    Note: 'Quest objective (Q001/REACH_RUINS).'
+  - Key: quest.q001.objective.return_amara
+    Value: 'Return to Queen Amara'
+    Note: 'Quest objective (Q001/RETURN_AMARA).'
+  - Key: quest.q001.rewards
+    Value: 'Queen Amara''s mark of trust, and the clarity that comes of recovering something true.'
+    Note: 'Quest reward summary (Q001).'
+  - Key: quest.q001.title
+    Value: 'The Queen''s Charge'
+    Note: 'Quest display name (Q001).'
+  - Key: quest.q002.description
+    Value: 'Something crawled out of the ruins behind you. Put it down.'
+    Note: 'Quest description (Q002).'
+  - Key: quest.q002.objective.defeat_ruin_guards
+    Value: 'Defeat what guards the ruins'
+    Note: 'Quest objective (Q002/DEFEAT_RUIN_GUARDS).'
+  - Key: quest.q002.rewards
+    Value: 'Two ember draughts from the guards you put down, and what the fight taught you.'
+    Note: 'Quest reward summary (Q002).'
+  - Key: quest.q002.title
+    Value: 'The Ash at the Gate'
+    Note: 'Quest display name (Q002).'
+  - Key: quest.q003.description
+    Value: 'A temple stands where the city stops pretending to be a city. Something inside it is still burning, and still calling itself a god.'
+    Note: 'Quest description (Q003).'
+  - Key: quest.q003.objective.defeat_flame_sovereign
+    Value: 'Put down what the fire is pretending to be'
+    Note: 'Quest objective (Q003/DEFEAT_FLAME_SOVEREIGN).'
+  - Key: quest.q003.objective.light_the_braziers
+    Value: 'Wake the fire the temple was built around'
+    Note: 'Quest objective (Q003/LIGHT_THE_BRAZIERS).'
+  - Key: quest.q003.objective.reach_agniya_temple
+    Value: 'Go to the temple beyond the district'
+    Note: 'Quest objective (Q003/REACH_AGNIYA_TEMPLE).'
+  - Key: quest.q003.objective.take_agniyas_ember
+    Value: 'Take what is left when the god stops'
+    Note: 'Quest objective (Q003/TAKE_AGNIYAS_EMBER).'
+  - Key: quest.q003.rewards
+    Value: 'Ember Step, and one more thing you are certain you used to know.'
+    Note: 'Quest reward summary (Q003).'
+  - Key: quest.q003.title
+    Value: 'The Ember and the Sovereign'
+    Note: 'Quest display name (Q003).'
+  - Key: skill.divine_cooldown.name
+    Value: 'Swift Renewal'
+    Note: 'Skill display name (DIVINE_COOLDOWN).'
+  - Key: skill.divine_energy.name
+    Value: 'Deep Well'
+    Note: 'Skill display name (DIVINE_ENERGY).'
+  - Key: skill.divine_power.name
+    Value: 'Ember Reach'
+    Note: 'Skill display name (DIVINE_POWER).'
+  - Key: skill.guardian_block.name
+    Value: 'Steady Guard'
+    Note: 'Skill display name (GUARDIAN_BLOCK).'
+  - Key: skill.guardian_health.name
+    Value: 'Vitality'
+    Note: 'Skill display name (GUARDIAN_HEALTH).'
+  - Key: skill.guardian_reduction.name
+    Value: 'Thick Skin'
+    Note: 'Skill display name (GUARDIAN_REDUCTION).'
+  - Key: skill.memory_detection.name
+    Value: 'Keen Eye'
+    Note: 'Skill display name (MEMORY_DETECTION).'
+  - Key: skill.memory_manipulation.name
+    Value: 'Careful Hand'
+    Note: 'Skill display name (MEMORY_MANIPULATION).'
+  - Key: skill.memory_restoration.name
+    Value: 'Steady Mind'
+    Note: 'Skill display name (MEMORY_RESTORATION).'
+  - Key: skill.warrior_combo.name
+    Value: 'Extended Combos'
+    Note: 'Skill display name (WARRIOR_COMBO).'
+  - Key: skill.warrior_damage.name
+    Value: 'Heavier Strikes'
+    Note: 'Skill display name (WARRIOR_DAMAGE).'
+  - Key: skill.warrior_parry.name
+    Value: 'Parry Timing'
+    Note: 'Skill display name (WARRIOR_PARRY).'
+  - Key: item.astra_blade.description
+    Value: 'The blade carried from the start of the journey.'
+    Note: 'Item description (ASTRA_BLADE).'
+  - Key: item.divine_mark.description
+    Value: 'Queen Amara''s mark of trust.'
+    Note: 'Item description (DIVINE_MARK).'
+  - Key: item.ember_draught.description
+    Value: 'Restores 30 health when used.'
+    Note: 'Item description (EMBER_DRAUGHT).'
+  - Key: skill.divine_cooldown.description
+    Value: 'Ember Step''s cooldown is 20% shorter.'
+    Note: 'Skill description (DIVINE_COOLDOWN).'
+  - Key: skill.divine_energy.description
+    Value: 'Gain 20 maximum Divine Energy.'
+    Note: 'Skill description (DIVINE_ENERGY).'
+  - Key: skill.divine_power.description
+    Value: 'Ember Step travels 20% faster.'
+    Note: 'Skill description (DIVINE_POWER).'
+  - Key: skill.guardian_block.description
+    Value: 'Blocking costs 10% less stamina.'
+    Note: 'Skill description (GUARDIAN_BLOCK).'
+  - Key: skill.guardian_health.description
+    Value: 'Gain 20 maximum health.'
+    Note: 'Skill description (GUARDIAN_HEALTH).'
+  - Key: skill.guardian_reduction.description
+    Value: 'Take 10% less damage.'
+    Note: 'Skill description (GUARDIAN_REDUCTION).'
+  - Key: skill.memory_detection.description
+    Value: 'Reach memory fragments from 50% farther away.'
+    Note: 'Skill description (MEMORY_DETECTION).'
+  - Key: skill.memory_manipulation.description
+    Value: 'Corrupting a memory costs 25% less integrity.'
+    Note: 'Skill description (MEMORY_MANIPULATION).'
+  - Key: skill.memory_restoration.description
+    Value: 'Temporarily forgotten memories return 30% sooner.'
+    Note: 'Skill description (MEMORY_RESTORATION).'
+  - Key: skill.warrior_combo.description
+    Value: 'The combo input window is 0.3 seconds longer.'
+    Note: 'Skill description (WARRIOR_COMBO).'
+  - Key: skill.warrior_damage.description
+    Value: 'Weapon attacks deal 15% more damage.'
+    Note: 'Skill description (WARRIOR_DAMAGE).'
+  - Key: skill.warrior_parry.description
+    Value: 'The parry timing window is 20% longer.'
+    Note: 'Skill description (WARRIOR_PARRY).'

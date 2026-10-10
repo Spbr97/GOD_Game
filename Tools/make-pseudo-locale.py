@@ -2,7 +2,7 @@
 #
 # Deliberately incomplete: three keys are left out so the English fallback is a path
 # something actually walks, rather than a branch only a test double has ever entered.
-import io, re, uuid
+import io, os, re, uuid
 
 SRC = 'Assets/Resources/Localization/Strings_en.asset'
 DST = 'Assets/Resources/Localization/Strings_qps.asset'
@@ -91,15 +91,16 @@ header = (header
 io.open(DST, 'w', encoding='utf-8', newline='\n').write(
     header + '  entries:\n' + '\n'.join(lines) + '\n')
 
-io.open(DST + '.meta', 'w', encoding='utf-8', newline='\n').write(
-    'fileFormatVersion: 2\n'
-    'guid: ' + uuid.uuid4().hex + '\n'
-    'NativeFormatImporter:\n'
-    '  externalObjects: {}\n'
-    '  mainObjectFileID: 11400000\n'
-    '  userData: \n'
-    '  assetBundleName: \n'
-    '  assetBundleVariant: \n')
+if not os.path.exists(DST + '.meta'):
+    io.open(DST + '.meta', 'w', encoding='utf-8', newline='\n').write(
+        'fileFormatVersion: 2\n'
+        'guid: ' + uuid.uuid4().hex + '\n'
+        'NativeFormatImporter:\n'
+        '  externalObjects: {}\n'
+        '  mainObjectFileID: 11400000\n'
+        '  userData: \n'
+        '  assetBundleName: \n'
+        '  assetBundleVariant: \n')
 
 print('wrote %s: %d of %d keys (%d omitted on purpose)'
       % (DST, kept, len(entries), len(entries) - kept))

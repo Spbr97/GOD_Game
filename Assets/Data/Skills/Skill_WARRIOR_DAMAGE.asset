@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: WARRIOR_DAMAGE
   displayName: Heavier Strikes
-  description: 
+  description: Weapon attacks deal 15% more damage.
   branch: 0
   cost: 1
   prerequisiteId: 
   effectType: 0
   effectValue: 0.15
+  localizationKey: skill.warrior_damage

@@ -67,14 +67,13 @@ and is not set up. **Why left:** it is one manual step per release and there has
 a release. **Also:** builds are unsigned, so SmartScreen warns on first run; the store
 page has to say so plainly rather than let a player conclude malware.
 
-### The localization key is a mechanism with no keys assigned
+### PARTLY CLOSED — Localization keys on authored content
 
-Content assets now carry a `localizationKey` into the shared string table, and **not one
-shipped asset has one filled in.** Every quest, memory, item, skill and ability reads the
-text typed into it, which is the intended fallback and is why this shipped safely — but
-it means the path from key to translated content asset has only ever been walked by a
-test. **Closing it:** assign keys as TASK 044 authors content; the validator warns for a
-key with nothing behind it, which is the to-do list.
+All 21 shipped quest, memory, item and skill assets now carry keys with matching
+English entries. Quest objectives and reward summaries use derived keys too. The
+pseudo-locale exercises the same paths, and an EditMode test compares each English
+entry with its authored asset. Dialogue lines, ability assets once authored, and
+scene-authored labels still need the same treatment before another language can ship.
 
 ### A run is only ever dirty for one reason
 
@@ -218,24 +217,14 @@ a defect to fix blind.
 The content is checked before a build, and the strings players read are out of the
 code. These are what that leaves.
 
-### PARTLY CLOSED — Only text in *code* is localizable (TASK 040)
+### PARTLY CLOSED — Content localization is incomplete (TASK 042)
 
-SPEC.md section 73 says all user-facing text must be externalized. What TASK 042 did is
-the code half: every literal a script showed a player is now a key in
-`Assets/Resources/Localization/Strings_en.asset`. **What is still hard to translate is
-the content**, and that is most of the words in the game — every quest title and
-objective description, every memory's title and description, every dialogue line, every
-item name. They live in ScriptableObjects, which is the right place for them, but a
-translator has no way to produce a Hindi set short of duplicating the assets. **Why
-**Decided (TASK 040):** a **key on each asset pointing into the shared string table**,
-not per-language asset variants. Variants keep the Inspector readable and scale badly —
-every asset multiplies by the number of languages, and a fix to a quest has to be applied
-N times or it drifts. `QuestDefinition`, `MemoryFragment`, `InventoryItem`,
-`SkillDefinition` and `DivineAbilityDefinition` all carry `localizationKey` now, and
-`LocalizedContent` derives per-field keys from it by convention.
-
-**Still open:** no asset has a key filled in yet, so the mechanism is unexercised outside
-tests. See the TASK 040 section at the top of this file.
+The code string table and all shipped quest, memory, item and skill assets now
+have English entries. `LocalizedContent` derives their field keys from one prefix
+on each asset; the journal and quest tracker use localized objective text. The
+repeatable import and authoring steps are in `CONTENT_PIPELINE.md`. What remains
+is dialogue line text, scene-authored labels and a complete second language with
+font and layout verification. English remains the only supported language.
 
 ### Text typed into a scene is not localizable at all (still open after TASK 040)
 

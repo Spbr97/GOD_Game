@@ -49,7 +49,7 @@ MonoBehaviour:
   completionFlags:
   - QUEST_Q003_COMPLETE
   failureFlags: []
-  localizationKey: 
+  localizationKey: quest.q003
   rewardsSummary: Ember Step, and one more thing you are certain you used to know.
   rewards:
   - Type: 3

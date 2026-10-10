@@ -136,10 +136,11 @@ namespace Game.UI
             }
 
             var required = Mathf.Max(1, objective.RequiredCount);
+            var description = progress.Definition.ObjectiveDescription(objective);
             objectiveLabel.text = required > 1
-                ? Strings.Format(StringKeys.QuestObjectiveCount, objective.Description,
+                ? Strings.Format(StringKeys.QuestObjectiveCount, description,
                     progress.GetCount(objective.ObjectiveId), required)
-                : objective.Description;
+                : description;
         }
 
         private void SetVisible(bool visible)

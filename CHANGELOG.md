@@ -16,6 +16,11 @@
   checklist names only the hands-on playtest and release approvals.
 - Opening a Main Menu panel now gives controller focus to a usable control on
   that panel, instead of leaving focus on a hidden button.
+- All shipped quest, memory, item and skill assets now use English localization
+  keys. Quest objectives and rewards join the same table, and items and skills
+  have descriptions that explain their implemented effects. The pseudo-locale
+  is regenerated without changing its Unity asset GUID. All 294 EditMode and
+  196 PlayMode tests pass.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 

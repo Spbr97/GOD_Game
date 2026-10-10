@@ -141,12 +141,20 @@ the same string table** (TASK 040's decision; see `LocalizedContent`). Fill in
 
 | Asset | Key | Fields derived |
 |---|---|---|
-| `Quest_TheQueensCharge` | `quest.q001` | `quest.q001.title`, `quest.q001.description` |
+| `Quest_TheQueensCharge` | `quest.q001` | `.title`, `.description`, `.rewards`, `.objective.<objective_id>` |
 | `Memory_AgniyasEmber` | `memory.mem_003` | `.title`, `.description` |
 | `Item_EMBER_DRAUGHT` | `item.ember_draught` | `.name`, `.description` |
 | `Skill_WARRIOR_DAMAGE` | `skill.warrior_damage` | `.name`, `.description` |
 
-**Leaving the key blank is valid** and is what every shipped asset does today: the asset
+All 21 shipped quest, memory, item and skill assets now have keys. To seed keys and
+English entries for a new asset, run `Tools/key-authored-content.py` from anywhere.
+It adds missing entries without overwriting existing English copy; if you change
+authored text later, update its English table entry deliberately. Quest objective
+ids become lower-case field suffixes, for example
+`quest.q001.objective.reach_ruins`. Empty descriptions stay in the asset and do not
+create blank table entries.
+
+**Leaving a new asset's key blank is valid:** the asset
 shows the text typed into it. Adding a key before a translation exists is also valid —
 the author's text still shows, and the validator raises a warning naming the key a
 translator needs to fill. What is *not* valid is two assets sharing a key; that is an

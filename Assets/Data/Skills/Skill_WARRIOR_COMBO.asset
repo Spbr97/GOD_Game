@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: WARRIOR_COMBO
   displayName: Extended Combos
-  description: 
+  description: The combo input window is 0.3 seconds longer.
   branch: 0
   cost: 1
   prerequisiteId: WARRIOR_DAMAGE
   effectType: 1
   effectValue: 0.3
+  localizationKey: skill.warrior_combo

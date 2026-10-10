@@ -41,3 +41,4 @@ MonoBehaviour:
     TargetId: 
     IntegrityAmount: 0
     FlagValue: 1
+  localizationKey: quest.q002

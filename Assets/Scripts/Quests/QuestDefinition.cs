@@ -57,8 +57,25 @@ namespace Game.Quests
         public IReadOnlyList<string> RequiredFlags => requiredFlags;
         public IReadOnlyList<string> CompletionFlags => completionFlags;
         public IReadOnlyList<string> FailureFlags => failureFlags;
-        public string RewardsSummary => rewardsSummary;
+        public string RewardsSummary => Game.Core.Localization.LocalizedContent.Text(localizationKey, "rewards", rewardsSummary);
+        public string AuthoredRewardsSummary => rewardsSummary;
         public IReadOnlyList<QuestReward> Rewards => rewards;
+
+        public string ObjectiveDescription(QuestObjective objective)
+        {
+            if (objective == null)
+            {
+                return string.Empty;
+            }
+
+            if (string.IsNullOrEmpty(objective.ObjectiveId))
+            {
+                return objective.Description;
+            }
+
+            var field = "objective." + objective.ObjectiveId.ToLowerInvariant();
+            return Game.Core.Localization.LocalizedContent.Text(localizationKey, field, objective.Description);
+        }
 
         public int ObjectiveCount => objectives?.Length ?? 0;
 

@@ -103,5 +103,31 @@ namespace Game.Tests
 
             Object.DestroyImmediate(quest);
         }
+
+        [Test]
+        public void QuestObjectivesAndRewardsUseTheSameAssetKey()
+        {
+            var quest = ScriptableObject.CreateInstance<QuestDefinition>();
+            var objective = new QuestObjective
+            {
+                ObjectiveId = "REACH_RUINS", Description = "Search the ruins", RequiredCount = 1
+            };
+            quest.Configure("Q001", "Title", "Description", new[] { objective },
+                rewards: "A mark of trust");
+            quest.ConfigureLocalizationKey("quest.q001");
+
+            Strings.UseForTests(TableWith(
+                ("quest.q001.objective.reach_ruins", "Find the old stones"),
+                ("quest.q001.rewards", "The queen's token")));
+
+            Assert.AreEqual("Find the old stones", quest.ObjectiveDescription(objective));
+            Assert.AreEqual("The queen's token", quest.RewardsSummary);
+
+            Strings.UseForTests(TableWith());
+            Assert.AreEqual("Search the ruins", quest.ObjectiveDescription(objective));
+            Assert.AreEqual("A mark of trust", quest.RewardsSummary);
+
+            Object.DestroyImmediate(quest);
+        }
     }
 }

@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: MEMORY_DETECTION
   displayName: Keen Eye
-  description: 
+  description: Reach memory fragments from 50% farther away.
   branch: 3
   cost: 1
   prerequisiteId: 
   effectType: 9
   effectValue: 0.5
+  localizationKey: skill.memory_detection

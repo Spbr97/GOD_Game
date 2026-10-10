@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: GUARDIAN_REDUCTION
   displayName: Thick Skin
-  description: 
+  description: Take 10% less damage.
   branch: 1
   cost: 2
   prerequisiteId: GUARDIAN_BLOCK
   effectType: 5
   effectValue: -0.1
+  localizationKey: skill.guardian_reduction

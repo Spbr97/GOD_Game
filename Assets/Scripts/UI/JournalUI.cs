@@ -232,7 +232,8 @@ namespace Game.UI
                         : string.Empty;
                     var mark = complete ? "[x] " : "[ ] ";
 
-                    row = AddRow(questsContent, row, $"    {mark}{objective.Description}{countText}",
+                    row = AddRow(questsContent, row,
+                        $"    {mark}{progress.Definition.ObjectiveDescription(objective)}{countText}",
                         complete ? new Color(0.6f, 0.6f, 0.6f) : Color.white);
                 }
             }

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Game.Core.Localization;
+using Game.EditorTools;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -33,11 +34,51 @@ namespace Game.Tests
         [TearDown]
         public void Reset() => Strings.ResetForTests();
 
-        private static IEnumerable<string> AllKeys() =>
-            typeof(StringKeys)
+        private static IEnumerable<string> AllKeys()
+        {
+            foreach (var key in typeof(StringKeys)
                 .GetFields(BindingFlags.Public | BindingFlags.Static)
                 .Where(field => field.IsLiteral && field.FieldType == typeof(string))
-                .Select(field => (string)field.GetRawConstantValue());
+                .Select(field => (string)field.GetRawConstantValue()))
+            {
+                yield return key;
+            }
+
+            var catalogue = ContentCatalogue.Load();
+            foreach (var quest in catalogue.Quests)
+            {
+                if (string.IsNullOrEmpty(quest.LocalizationKey)) continue;
+                yield return quest.LocalizationKey + ".title";
+                yield return quest.LocalizationKey + ".description";
+                if (!string.IsNullOrEmpty(quest.AuthoredRewardsSummary))
+                    yield return quest.LocalizationKey + ".rewards";
+                foreach (var objective in quest.Objectives)
+                    yield return quest.LocalizationKey + ".objective." + objective.ObjectiveId.ToLowerInvariant();
+            }
+
+            foreach (var memory in catalogue.Memories)
+            {
+                if (string.IsNullOrEmpty(memory.LocalizationKey)) continue;
+                yield return memory.LocalizationKey + ".title";
+                yield return memory.LocalizationKey + ".description";
+            }
+
+            foreach (var item in catalogue.Items)
+            {
+                if (string.IsNullOrEmpty(item.LocalizationKey)) continue;
+                yield return item.LocalizationKey + ".name";
+                if (!string.IsNullOrEmpty(item.AuthoredDescription))
+                    yield return item.LocalizationKey + ".description";
+            }
+
+            foreach (var skill in catalogue.Skills)
+            {
+                if (string.IsNullOrEmpty(skill.LocalizationKey)) continue;
+                yield return skill.LocalizationKey + ".name";
+                if (!string.IsNullOrEmpty(skill.AuthoredDescription))
+                    yield return skill.LocalizationKey + ".description";
+            }
+        }
 
         // ------------------------------------------------------------------- the table
 
@@ -51,7 +92,7 @@ namespace Game.Tests
         }
 
         [Test]
-        public void TheTableHasNoEntryTheCodeNeverAsksFor()
+        public void TheTableHasNoUnusedEntry()
         {
             var known = new HashSet<string>(AllKeys());
             var orphans = english.Entries

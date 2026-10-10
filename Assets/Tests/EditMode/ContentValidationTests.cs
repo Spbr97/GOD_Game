@@ -82,6 +82,69 @@ namespace Game.Tests
             Assert.IsEmpty(errors, "The authored content has errors:\n" + ContentValidation.Format(errors));
         }
 
+        [Test]
+        public void EveryShippedContentAssetHasAnEnglishLocalizationKey()
+        {
+            var catalogue = ContentCatalogue.Load();
+            var table = Resources.Load<Game.Core.Localization.StringTable>("Localization/Strings_en");
+            Assert.IsNotNull(table);
+
+            foreach (var quest in catalogue.Quests)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(quest.LocalizationKey), quest.name);
+                Assert.IsTrue(table.Has(quest.LocalizationKey + ".title"), quest.name);
+                Assert.IsTrue(table.Has(quest.LocalizationKey + ".description"), quest.name);
+                Assert.AreEqual(quest.AuthoredTitle, table.Find(quest.LocalizationKey + ".title"), quest.name);
+                Assert.AreEqual(quest.AuthoredDescription, table.Find(quest.LocalizationKey + ".description"), quest.name);
+                if (!string.IsNullOrEmpty(quest.AuthoredRewardsSummary))
+                {
+                    Assert.IsTrue(table.Has(quest.LocalizationKey + ".rewards"), quest.name);
+                    Assert.AreEqual(quest.AuthoredRewardsSummary,
+                        table.Find(quest.LocalizationKey + ".rewards"), quest.name);
+                }
+
+                foreach (var objective in quest.Objectives)
+                {
+                    Assert.IsTrue(table.Has(quest.LocalizationKey + ".objective."
+                        + objective.ObjectiveId.ToLowerInvariant()), quest.name + "/" + objective.ObjectiveId);
+                    Assert.AreEqual(objective.Description,
+                        table.Find(quest.LocalizationKey + ".objective." + objective.ObjectiveId.ToLowerInvariant()),
+                        quest.name + "/" + objective.ObjectiveId);
+                }
+            }
+
+            foreach (var memory in catalogue.Memories)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(memory.LocalizationKey), memory.name);
+                Assert.IsTrue(table.Has(memory.LocalizationKey + ".title"), memory.name);
+                Assert.IsTrue(table.Has(memory.LocalizationKey + ".description"), memory.name);
+                Assert.AreEqual(memory.AuthoredTitle, table.Find(memory.LocalizationKey + ".title"), memory.name);
+                Assert.AreEqual(memory.AuthoredDescription, table.Find(memory.LocalizationKey + ".description"), memory.name);
+            }
+
+            foreach (var item in catalogue.Items)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(item.LocalizationKey), item.name);
+                Assert.IsTrue(table.Has(item.LocalizationKey + ".name"), item.name);
+                Assert.AreEqual(item.AuthoredDisplayName, table.Find(item.LocalizationKey + ".name"), item.name);
+                if (!string.IsNullOrEmpty(item.AuthoredDescription))
+                {
+                    Assert.AreEqual(item.AuthoredDescription, table.Find(item.LocalizationKey + ".description"), item.name);
+                }
+            }
+
+            foreach (var skill in catalogue.Skills)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(skill.LocalizationKey), skill.name);
+                Assert.IsTrue(table.Has(skill.LocalizationKey + ".name"), skill.name);
+                Assert.AreEqual(skill.AuthoredDisplayName, table.Find(skill.LocalizationKey + ".name"), skill.name);
+                if (!string.IsNullOrEmpty(skill.AuthoredDescription))
+                {
+                    Assert.AreEqual(skill.AuthoredDescription, table.Find(skill.LocalizationKey + ".description"), skill.name);
+                }
+            }
+        }
+
         /// <summary>
         /// Warnings are allowed to exist, but not silently. This pins the ones that are
         /// currently accepted, so a new one has to be looked at by whoever adds it rather

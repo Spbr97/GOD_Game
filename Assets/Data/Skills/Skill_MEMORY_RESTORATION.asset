@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Progression.SkillDefinition
   skillId: MEMORY_RESTORATION
   displayName: Steady Mind
-  description: 
+  description: Temporarily forgotten memories return 30% sooner.
   branch: 3
   cost: 1
   prerequisiteId: MEMORY_DETECTION
   effectType: 10
   effectValue: -0.3
+  localizationKey: skill.memory_restoration
