@@ -373,6 +373,13 @@ wrapper stopped at that point before packaging. This is a failed Release
 verification, not evidence of a game crash. The wrapper now catches this OS
 error so a subsequent run can package the exact player for testing elsewhere.
 
+That subsequent run built from clean commit `376d4fc`: Release compiled, the
+developer-code gate passed, Application Control again blocked launch, and the
+wrapper continued to package the player. The ZIP is
+`Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip`, SHA-256
+`922BB9954F69E6950E6B0D864838BF0A7E81BEE1550F6ECDB6A7A579FF1B829B`.
+The wrapper exited 1, correctly marking Release startup unverified.
+
 ## Known limits of this setup
 
 These are recorded in `KNOWN_ISSUES.md` as well, with the reasoning:
