@@ -11,7 +11,9 @@ run automated tests or build the game.
   launch it by double-clicking the executable. Confirm the Main Menu, default
   resolution, text and controls are usable. Do this on a Windows account or PC
   without Unity installed if available. The current candidate is in
-  `Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip`.
+  `Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip`. If Windows
+  blocks launch, send the exact message or a screenshot; the current unsigned
+  candidate was blocked by Application Control on the build machine.
 - [ ] Complete Act I and Agniya from a fresh save without debug commands.
   Talk to Amara after Q001, follow Q003, solve the puzzles, beat both bosses,
   acquire Ember Step and reach the Act I chapter close. Record any dead end,

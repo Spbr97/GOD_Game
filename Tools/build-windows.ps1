@@ -183,7 +183,14 @@ function Invoke-SmokeTest([string] $PlayerDirectory, [string] $VariantName) {
     )
 
     Write-Info "launching $exe -smokeTest"
-    $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
+    try {
+        $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -ErrorAction Stop
+    }
+    catch {
+        Write-Bad "Windows prevented the Release player from starting: $($_.Exception.Message)"
+        Write-Info 'The build and developer-code check are separate; the launch check is unverified.'
+        return $false
+    }
 
     if (-not $process.WaitForExit($SmokeTestTimeoutSeconds * 1000)) {
         Write-Bad "the player did not exit within $SmokeTestTimeoutSeconds s; killing it"

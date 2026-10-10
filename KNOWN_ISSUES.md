@@ -226,6 +226,16 @@ repeatable import and authoring steps are in `CONTENT_PIPELINE.md`. What remains
 is dialogue line text, scene-authored labels and a complete second language with
 font and layout verification. English remains the only supported language.
 
+### [RELEASE BLOCKER] Latest unsigned Release player blocked by Windows Application Control
+
+The 10 October 2026 Release build compiled and passed developer-code gating,
+but Windows refused to start its executable with "An Application Control policy
+has blocked this file." Earlier unsigned Release builds launched on the same
+machine. The wrapper now records the launch failure and still packages the
+player, so the exact binary can be tested on another Windows account or PC.
+Until it starts and passes the manual Release playthrough, this candidate is
+not an approved release. No paid signing service is assumed.
+
 ### Text typed into a scene is not localizable at all (still open after TASK 040)
 
 `promptVerb` and `displayName` on an `Interactable`, `locationName` on a

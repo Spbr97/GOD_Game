@@ -17,7 +17,7 @@ generation Core i7 and NVIDIA RTX 4060 is a target, not a measured guarantee.
 
 CONTROLS AND SAVES
 
-See CONTROLS.txt for keyboard, mouse and gamepad bindings. The in-game Controls
+See CONTROLS.txt for keyboard, mouse and gamepad bindings. The Main Menu Controls
 screen shows the current bindings and offers remapping. Save from the pause
 menu. Game saves are stored in your Windows user profile under:
 

@@ -4,14 +4,17 @@ Included: Avarsha, the Agniya temple, Act I quests, two boss encounters,
 Ember Step, saving and loading, keyboard/mouse and gamepad bindings.
 
 This is the Act I slice. The other six temples, Acts II-V and the full story
-endings are planned for later releases. The Release player has passed startup
-and code-gating checks; the Development player has passed an automated
+endings are planned for later releases. The Release player has passed
+code-gating checks, but this candidate's startup check was blocked by
+Windows Application Control on the build machine. The Development player
+has passed an automated
 Avarsha–Agniya round trip and save reload in a second process.
 
 Before a public 1.0 release, the game still needs a full hands-on Release
 playthrough, physical-controller and accessibility checks, measured Windows
 performance, final art/audio polish and a release-candidate QA pass.
 
-The binary is currently unsigned. Windows may ask you to confirm before its
-first launch. The source repository and build record are at:
+The binary is currently unsigned. Windows may warn or block its first launch.
+Please report the exact message if this happens. The source repository and
+build record are at:
 https://github.com/Spbr97/GOD_Game

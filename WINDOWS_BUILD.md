@@ -362,6 +362,17 @@ focus fix and passed the same automated checks. The latest SHA-256 checksums are
 | Development | `9529B56B407CE42EA2273A7961ABBBFA973350B170A20CC7D70F723CC221F80D` |
 | Release | `297C184EE3697AA364EE566C091057D63F57061F04DEFB8D6EDF8DA6C3234E99` |
 
+### 10 October 2026 — localized content candidate
+
+From clean commit `4591ce4`, Unity Personal 6000.6.2f1 ran all 294 EditMode
+and 196 PlayMode tests successfully. The Development Windows player built and
+passed scene travel plus a save reload in a second process. The Release player
+built and passed its developer-code gate, but Windows Application Control
+blocked its executable before the 20-second startup check could run. The
+wrapper stopped at that point before packaging. This is a failed Release
+verification, not evidence of a game crash. The wrapper now catches this OS
+error so a subsequent run can package the exact player for testing elsewhere.
+
 ## Known limits of this setup
 
 These are recorded in `KNOWN_ISSUES.md` as well, with the reasoning:

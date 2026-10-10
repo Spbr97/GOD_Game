@@ -21,6 +21,10 @@
   have descriptions that explain their implemented effects. The pseudo-locale
   is regenerated without changing its Unity asset GUID. All 294 EditMode and
   196 PlayMode tests pass.
+- The latest unsigned Release executable was blocked by Windows Application
+  Control on the build machine. The build wrapper now reports that launch
+  failure without discarding the compiled player or its ZIP. Release startup
+  remains unverified for this candidate.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 
