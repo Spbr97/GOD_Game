@@ -187,8 +187,8 @@ function Invoke-SmokeTest([string] $PlayerDirectory, [string] $VariantName) {
         $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -ErrorAction Stop
     }
     catch {
-        Write-Bad "Windows prevented the Release player from starting: $($_.Exception.Message)"
-        Write-Info 'The build and developer-code check are separate; the launch check is unverified.'
+        Write-Bad "Windows prevented the Development player from starting: $($_.Exception.Message)"
+        Write-Info 'The player smoke test is unverified.'
         return $false
     }
 
@@ -246,7 +246,13 @@ function Invoke-SmokeResume([string] $PlayerDirectory) {
     )
 
     Write-Info 'relaunching the player to load the previous process save'
-    $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
+    try {
+        $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -ErrorAction Stop
+    }
+    catch {
+        Write-Bad "Windows prevented the Development player from relaunching: $($_.Exception.Message)"
+        return $false
+    }
     if (-not $process.WaitForExit($SmokeTestTimeoutSeconds * 1000)) {
         Write-Bad "the resume player did not exit within $SmokeTestTimeoutSeconds s; killing it"
         try { $process.Kill() } catch { }
@@ -334,7 +340,14 @@ function Test-ReleasePlayerLaunches([string] $PlayerDirectory) {
 
     Write-Info "launching $exe for a 20 s start-up check"
     $arguments = @('-logFile', $playerLog, '-screen-width', '1280', '-screen-height', '720', '-screen-fullscreen', '0')
-    $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
+    try {
+        $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -ErrorAction Stop
+    }
+    catch {
+        Write-Bad "Windows prevented the Release player from starting: $($_.Exception.Message)"
+        Write-Info 'The build and developer-code check are separate; the launch check is unverified.'
+        return $false
+    }
 
     $exited = $process.WaitForExit(20000)
     if ($exited) {
