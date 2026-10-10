@@ -1,5 +1,6 @@
 using System.Linq;
 using Game.Core.Localization;
+using Game.Dialogue;
 using Game.Quests;
 using NUnit.Framework;
 using UnityEngine;
@@ -128,6 +129,31 @@ namespace Game.Tests
             Assert.AreEqual("A mark of trust", quest.RewardsSummary);
 
             Object.DestroyImmediate(quest);
+        }
+
+        [Test]
+        public void DialogueLinesAndChoicesUseTheGraphAndNodeIds()
+        {
+            var graph = ScriptableObject.CreateInstance<DialogueGraph>();
+            var node = new DialogueNode
+            {
+                DialogueId = "INTRO", Speaker = "Amara", Text = "Welcome",
+                LowIntegrityText = "Who are you?",
+                Choices = new[] { new DialogueChoice { Text = "I remember" } }
+            };
+            graph.Configure("DLG_AMARA", new[] { "INTRO" }, new[] { node });
+            Strings.UseForTests(TableWith(
+                ("dialogue.dlg_amara.node.intro.speaker", "The Queen"),
+                ("dialogue.dlg_amara.node.intro.text", "Greetings"),
+                ("dialogue.dlg_amara.node.intro.low_integrity", "Have we met?"),
+                ("dialogue.dlg_amara.node.intro.choice.0", "I know you")));
+
+            Assert.AreEqual("The Queen", graph.SpeakerText(node));
+            Assert.AreEqual("Greetings", graph.SubtitleText(node));
+            Assert.AreEqual("Have we met?", graph.LowIntegrityText(node));
+            Assert.AreEqual("I know you", graph.ChoiceText(node, 0));
+
+            Object.DestroyImmediate(graph);
         }
     }
 }

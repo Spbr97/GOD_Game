@@ -25,6 +25,10 @@
   Control on the build machine. The build wrapper now reports that launch
   failure without discarding the compiled player or its ZIP. Release startup
   remains unverified for this candidate.
+- Amara, Dev and Mira dialogue now reads speaker names, lines, low-integrity
+  variants and choices from the shared string table. The English and pseudo
+  tables cover all three graphs. A line-of-sight PlayMode test now keeps its wall
+  far enough across the arena to test occlusion without an alternate path.
 
 ## Unreleased — 9 October 2026: Agniya arrival fix
 

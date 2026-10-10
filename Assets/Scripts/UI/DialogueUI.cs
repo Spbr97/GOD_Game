@@ -149,7 +149,7 @@ namespace Game.UI
             {
                 var speaker = string.IsNullOrEmpty(node.Speaker)
                     ? DialogueRunner.Instance != null ? DialogueRunner.Instance.DefaultSpeaker : null
-                    : node.Speaker;
+                    : shown.Graph != null ? shown.Graph.SpeakerText(node) : node.Speaker;
                 speakerLabel.text = speaker ?? string.Empty;
             }
 
@@ -158,14 +158,16 @@ namespace Game.UI
                 // A node that exists but has no line is the same failure to the player
                 // as a missing graph, so it gets the same string (SPEC.md section 50)
                 // rather than an empty panel they cannot tell from a rendering bug.
-                var line = MemoryManager.Instance != null
+                var lowIntegrity = MemoryManager.Instance != null
                     && MemoryManager.Instance.Integrity < 0.35f
-                    && !string.IsNullOrWhiteSpace(node.LowIntegrityText)
-                    ? node.LowIntegrityText : node.SubtitleText;
+                    && !string.IsNullOrWhiteSpace(node.LowIntegrityText);
+                var line = lowIntegrity
+                    ? (shown.Graph != null ? shown.Graph.LowIntegrityText(node) : node.LowIntegrityText)
+                    : (shown.Graph != null ? shown.Graph.SubtitleText(node) : node.SubtitleText);
                 bodyLabel.text = string.IsNullOrWhiteSpace(line) ? DialogueRunner.UnavailableText : line;
             }
 
-            BuildChoices(node);
+            BuildChoices(shown.Graph, node);
 
             if (continueHint != null)
             {
@@ -183,7 +185,7 @@ namespace Game.UI
             }
         }
 
-        private void BuildChoices(DialogueNode node)
+        private void BuildChoices(DialogueGraph graph, DialogueNode node)
         {
             ClearChoices();
 
@@ -207,7 +209,7 @@ namespace Game.UI
                 var label = button.GetComponentInChildren<Text>();
                 if (label != null)
                 {
-                    label.text = choice.Text;
+                    label.text = graph != null ? graph.ChoiceText(node, i) : choice.Text;
                 }
 
                 button.onClick.AddListener(() => DialogueRunner.Instance?.Choose(index));

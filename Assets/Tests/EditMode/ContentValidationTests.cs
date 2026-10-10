@@ -143,6 +143,23 @@ namespace Game.Tests
                     Assert.AreEqual(skill.AuthoredDescription, table.Find(skill.LocalizationKey + ".description"), skill.name);
                 }
             }
+
+            foreach (var graph in catalogue.Graphs)
+            {
+                foreach (var node in graph.Nodes)
+                {
+                    Assert.AreEqual(node.Speaker, graph.SpeakerText(node), graph.name + "/" + node.DialogueId);
+                    Assert.AreEqual(node.Text, graph.NodeText(node), graph.name + "/" + node.DialogueId);
+                    if (!string.IsNullOrEmpty(node.Subtitle))
+                        Assert.AreEqual(node.Subtitle, graph.SubtitleText(node), graph.name + "/" + node.DialogueId);
+                    if (!string.IsNullOrEmpty(node.LowIntegrityText))
+                        Assert.AreEqual(node.LowIntegrityText, graph.LowIntegrityText(node), graph.name + "/" + node.DialogueId);
+                    if (node.Choices == null) continue;
+                    for (var i = 0; i < node.Choices.Length; i++)
+                        Assert.AreEqual(node.Choices[i].Text, graph.ChoiceText(node, i),
+                            graph.name + "/" + node.DialogueId + "/choice" + i);
+                }
+            }
         }
 
         /// <summary>

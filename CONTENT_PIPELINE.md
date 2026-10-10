@@ -145,9 +145,12 @@ the same string table** (TASK 040's decision; see `LocalizedContent`). Fill in
 | `Memory_AgniyasEmber` | `memory.mem_003` | `.title`, `.description` |
 | `Item_EMBER_DRAUGHT` | `item.ember_draught` | `.name`, `.description` |
 | `Skill_WARRIOR_DAMAGE` | `skill.warrior_damage` | `.name`, `.description` |
+| `Dialogue_Amara` | `dialogue.dlg_amara` | `.node.<node_id>.speaker`, `.text`, `.subtitle`, `.low_integrity`, `.choice.<index>` |
 
-All 21 shipped quest, memory, item and skill assets now have keys. To seed keys and
-English entries for a new asset, run `Tools/key-authored-content.py` from anywhere.
+All 21 shipped quest, memory, item and skill assets now have keys. The three
+shipped dialogue graphs derive their prefix from `GraphId` and externalize their
+lines and choices through it. To seed keys and English entries for a new asset
+or graph, run `Tools/key-authored-content.py` from anywhere.
 It adds missing entries without overwriting existing English copy; if you change
 authored text later, update its English table entry deliberately. Quest objective
 ids become lower-case field suffixes, for example

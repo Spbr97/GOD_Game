@@ -257,6 +257,29 @@ namespace Game.EditorTools
                             ? new[] { "name" } : new[] { "name", "description" });
                 }
             }
+
+            foreach (var graph in catalogue.Graphs)
+            {
+                if (graph == null || graph.Nodes == null) continue;
+                var fields = new List<string>();
+                foreach (var node in graph.Nodes)
+                {
+                    if (node == null || string.IsNullOrEmpty(node.DialogueId)) continue;
+                    var prefix = "node." + node.DialogueId.ToLowerInvariant() + ".";
+                    if (!string.IsNullOrEmpty(node.Speaker)) fields.Add(prefix + "speaker");
+                    if (!string.IsNullOrEmpty(node.Text)) fields.Add(prefix + "text");
+                    if (!string.IsNullOrEmpty(node.Subtitle)) fields.Add(prefix + "subtitle");
+                    if (!string.IsNullOrEmpty(node.LowIntegrityText)) fields.Add(prefix + "low_integrity");
+                    if (node.Choices == null) continue;
+                    for (var i = 0; i < node.Choices.Length; i++)
+                    {
+                        if (node.Choices[i] != null && !string.IsNullOrEmpty(node.Choices[i].Text))
+                            fields.Add(prefix + "choice." + i);
+                    }
+                }
+
+                Check(graph.LocalizationKey, graph.GraphId, graph, fields.ToArray());
+            }
         }
 
         /// <summary>

@@ -78,6 +78,24 @@ namespace Game.Tests
                 if (!string.IsNullOrEmpty(skill.AuthoredDescription))
                     yield return skill.LocalizationKey + ".description";
             }
+
+            foreach (var graph in catalogue.Graphs)
+            {
+                if (graph.Nodes == null) continue;
+                foreach (var node in graph.Nodes)
+                {
+                    if (node == null || string.IsNullOrEmpty(node.DialogueId)) continue;
+                    var prefix = graph.LocalizationKey + ".node." + node.DialogueId.ToLowerInvariant() + ".";
+                    if (!string.IsNullOrEmpty(node.Speaker)) yield return prefix + "speaker";
+                    if (!string.IsNullOrEmpty(node.Text)) yield return prefix + "text";
+                    if (!string.IsNullOrEmpty(node.Subtitle)) yield return prefix + "subtitle";
+                    if (!string.IsNullOrEmpty(node.LowIntegrityText)) yield return prefix + "low_integrity";
+                    if (node.Choices == null) continue;
+                    for (var i = 0; i < node.Choices.Length; i++)
+                        if (node.Choices[i] != null && !string.IsNullOrEmpty(node.Choices[i].Text))
+                            yield return prefix + "choice." + i;
+                }
+            }
         }
 
         // ------------------------------------------------------------------- the table

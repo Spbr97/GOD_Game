@@ -313,3 +313,144 @@ MonoBehaviour:
   - Key: skill.warrior_parry.description
     Value: 'The parry timing window is 20% longer.'
     Note: 'Skill description (WARRIOR_PARRY).'
+  - Key: dialogue.dlg_amara.node.amara_accept.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_ACCEPT speaker.'
+  - Key: dialogue.dlg_amara.node.amara_accept.text
+    Value: 'Go quietly. Take nothing from the stone but what it says. And Ishan - if you find you already know what is written there, come back faster.'
+    Note: 'Dialogue DLG_AMARA/AMARA_ACCEPT text.'
+  - Key: dialogue.dlg_amara.node.amara_after.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_AFTER speaker.'
+  - Key: dialogue.dlg_amara.node.amara_after.text
+    Value: 'I lost the end of that sentence. Beyond the district, the road from the stone reaches a temple. Its fire may remember what I cannot. Follow that road until it gives up its secret.'
+    Note: 'Dialogue DLG_AMARA/AMARA_AFTER text.'
+  - Key: dialogue.dlg_amara.node.amara_doubt.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_DOUBT speaker.'
+  - Key: dialogue.dlg_amara.node.amara_doubt.text
+    Value: 'No. They are not wrong. That is exactly what troubles me. A wrong history can be corrected. A history that is complete and still short one seat is something else.'
+    Note: 'Dialogue DLG_AMARA/AMARA_DOUBT text.'
+  - Key: dialogue.dlg_amara.node.amara_intro.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_INTRO speaker.'
+  - Key: dialogue.dlg_amara.node.amara_intro.text
+    Value: 'Ishan. Good. I have had the same dream four nights running, and I am told that is not a thing queens are permitted to mention aloud.'
+    Note: 'Dialogue DLG_AMARA/AMARA_INTRO text.'
+  - Key: dialogue.dlg_amara.node.amara_intro_2.choice.0
+    Value: 'I''ll go now.'
+    Note: 'Dialogue choice DLG_AMARA/AMARA_INTRO_2 #1.'
+  - Key: dialogue.dlg_amara.node.amara_intro_2.choice.1
+    Value: 'Eight? The histories are not wrong about the gods.'
+    Note: 'Dialogue choice DLG_AMARA/AMARA_INTRO_2 #2.'
+  - Key: dialogue.dlg_amara.node.amara_intro_2.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_INTRO_2 speaker.'
+  - Key: dialogue.dlg_amara.node.amara_intro_2.text
+    Value: 'In it, there are eight thrones on the ruin stone past the temple district. Our histories record seven gods. I would like you to go and count them for me.'
+    Note: 'Dialogue DLG_AMARA/AMARA_INTRO_2 text.'
+  - Key: dialogue.dlg_amara.node.amara_return.choice.0
+    Value: 'Eight. The last one was scraped out.'
+    Note: 'Dialogue choice DLG_AMARA/AMARA_RETURN #1.'
+  - Key: dialogue.dlg_amara.node.amara_return.choice.1
+    Value: 'Eight. And I think I knew the name.'
+    Note: 'Dialogue choice DLG_AMARA/AMARA_RETURN #2.'
+  - Key: dialogue.dlg_amara.node.amara_return.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_RETURN speaker.'
+  - Key: dialogue.dlg_amara.node.amara_return.text
+    Value: 'You counted them. I can see it on you. How many?'
+    Note: 'Dialogue DLG_AMARA/AMARA_RETURN text.'
+  - Key: dialogue.dlg_amara.node.amara_return_2.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_RETURN_2 speaker.'
+  - Key: dialogue.dlg_amara.node.amara_return_2.text
+    Value: 'Then we have both dreamed it. Ishan, I want you to listen carefully, because I am about to say something I will not be able to repeat, and I do not know why I am so certain of that -'
+    Note: 'Dialogue DLG_AMARA/AMARA_RETURN_2 text.'
+  - Key: dialogue.dlg_amara.node.amara_temple_complete.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_TEMPLE_COMPLETE speaker.'
+  - Key: dialogue.dlg_amara.node.amara_temple_complete.text
+    Value: 'The ash on you is from that temple. I remember sending you to the stone, but not the words I meant to say after. Tell me what survived the fire when you can.'
+    Note: 'Dialogue DLG_AMARA/AMARA_TEMPLE_COMPLETE text.'
+  - Key: dialogue.dlg_amara.node.amara_waiting.speaker
+    Value: 'Queen Amara'
+    Note: 'Dialogue DLG_AMARA/AMARA_WAITING speaker.'
+  - Key: dialogue.dlg_amara.node.amara_waiting.text
+    Value: 'The ruins are past the temple district, where the ground stops being ours. Mira can tell you what the older carvings mean, if you can get her to stop at one sentence.'
+    Note: 'Dialogue DLG_AMARA/AMARA_WAITING text.'
+  - Key: dialogue.dlg_dev.node.dev_after_sleep.speaker
+    Value: 'Dev'
+    Note: 'Dialogue DLG_DEV/DEV_AFTER_SLEEP speaker.'
+  - Key: dialogue.dlg_dev.node.dev_after_sleep.text
+    Value: '...'
+    Note: 'Dialogue DLG_DEV/DEV_AFTER_SLEEP text.'
+  - Key: dialogue.dlg_dev.node.dev_intro.choice.0
+    Value: 'You counted my laps?'
+    Note: 'Dialogue choice DLG_DEV/DEV_INTRO #1.'
+  - Key: dialogue.dlg_dev.node.dev_intro.choice.1
+    Value: 'The Queen sent for me.'
+    Note: 'Dialogue choice DLG_DEV/DEV_INTRO #2.'
+  - Key: dialogue.dlg_dev.node.dev_intro.low_integrity
+    Value: 'You look familiar, but I cannot place where we met. Were you one of the guards?'
+    Note: 'Dialogue DLG_DEV/DEV_INTRO low_integrity.'
+  - Key: dialogue.dlg_dev.node.dev_intro.speaker
+    Value: 'Dev'
+    Note: 'Dialogue DLG_DEV/DEV_INTRO speaker.'
+  - Key: dialogue.dlg_dev.node.dev_intro.text
+    Value: 'There he is. Thirty laps of the training ground before sunrise and he still walks like he is being marked on it.'
+    Note: 'Dialogue DLG_DEV/DEV_INTRO text.'
+  - Key: dialogue.dlg_dev.node.dev_joke.speaker
+    Value: 'Dev'
+    Note: 'Dialogue DLG_DEV/DEV_JOKE speaker.'
+  - Key: dialogue.dlg_dev.node.dev_joke.text
+    Value: 'I count everything. It is the only thing I am better at than you, and I intend to keep it.'
+    Note: 'Dialogue DLG_DEV/DEV_JOKE text.'
+  - Key: dialogue.dlg_dev.node.dev_quest.speaker
+    Value: 'Dev'
+    Note: 'Dialogue DLG_DEV/DEV_QUEST speaker.'
+  - Key: dialogue.dlg_dev.node.dev_quest.text
+    Value: 'The old ruins? Ishan, nobody goes out there. Not because it is forbidden. Because nobody thinks of it. I have lived here my whole life and I have never once thought of it. Does that not strike you as strange?'
+    Note: 'Dialogue DLG_DEV/DEV_QUEST text.'
+  - Key: dialogue.dlg_dev.node.dev_serious.speaker
+    Value: 'Dev'
+    Note: 'Dialogue DLG_DEV/DEV_SERIOUS speaker.'
+  - Key: dialogue.dlg_dev.node.dev_serious.text
+    Value: 'She sends for you a great deal lately. Go on. I will be here - the market does not guard itself, and someone has to be seen failing to guard it.'
+    Note: 'Dialogue DLG_DEV/DEV_SERIOUS text.'
+  - Key: dialogue.dlg_mira.node.mira_after_memory.speaker
+    Value: 'Mira'
+    Note: 'Dialogue DLG_MIRA/MIRA_AFTER_MEMORY speaker.'
+  - Key: dialogue.dlg_mira.node.mira_after_memory.text
+    Value: 'You said it out loud, did you not. Good. Then there are two of us who cannot quite repeat it, and that is one more than there was yesterday.'
+    Note: 'Dialogue DLG_MIRA/MIRA_AFTER_MEMORY text.'
+  - Key: dialogue.dlg_mira.node.mira_count.speaker
+    Value: 'Mira'
+    Note: 'Dialogue DLG_MIRA/MIRA_COUNT speaker.'
+  - Key: dialogue.dlg_mira.node.mira_count.text
+    Value: 'Seven, eight times. Eight, once. I threw that page away, which was the single least scholarly act of my life, and I could not tell you why I did it.'
+    Note: 'Dialogue DLG_MIRA/MIRA_COUNT text.'
+  - Key: dialogue.dlg_mira.node.mira_intro.speaker
+    Value: 'Mira'
+    Note: 'Dialogue DLG_MIRA/MIRA_INTRO speaker.'
+  - Key: dialogue.dlg_mira.node.mira_intro.text
+    Value: 'You are the Queen''s soldier. Do not look startled, it is not insight, you are the only person in Avarsha who stands like that.'
+    Note: 'Dialogue DLG_MIRA/MIRA_INTRO text.'
+  - Key: dialogue.dlg_mira.node.mira_quest.choice.0
+    Value: 'What did you count?'
+    Note: 'Dialogue choice DLG_MIRA/MIRA_QUEST #1.'
+  - Key: dialogue.dlg_mira.node.mira_quest.choice.1
+    Value: 'Then I''ll count it a tenth time.'
+    Note: 'Dialogue choice DLG_MIRA/MIRA_QUEST #2.'
+  - Key: dialogue.dlg_mira.node.mira_quest.speaker
+    Value: 'Mira'
+    Note: 'Dialogue DLG_MIRA/MIRA_QUEST speaker.'
+  - Key: dialogue.dlg_mira.node.mira_quest.text
+    Value: 'The ruin stone. Yes. I have copied that carving nine times and I have nine different counts, and I am not a careless woman.'
+    Note: 'Dialogue DLG_MIRA/MIRA_QUEST text.'
+  - Key: dialogue.dlg_mira.node.mira_send.speaker
+    Value: 'Mira'
+    Note: 'Dialogue DLG_MIRA/MIRA_SEND speaker.'
+  - Key: dialogue.dlg_mira.node.mira_send.text
+    Value: 'Go and look. And Ishan - whatever you read there, say it out loud before you walk away from it. Things last longer when they are spoken.'
+    Note: 'Dialogue DLG_MIRA/MIRA_SEND text.'

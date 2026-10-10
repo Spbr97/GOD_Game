@@ -106,7 +106,8 @@ writing and usability work run throughout production.
   **Localization progress (10 October 2026):** all 21 shipped quest, memory,
   item and skill assets now have keys and English entries. Quest objective and
   reward text reads the table; the pseudo-locale and validator cover these fields.
-  Dialogue lines and scene-authored labels remain, so the task stays open.
+  The three shipped dialogue graphs now use the same table for speaker names,
+  lines, variants and choices. Scene-authored labels remain, so the task stays open.
 
 ### Gate B - a production-quality first chapter
 

@@ -91,13 +91,16 @@ namespace Game.Tests.Play
         public IEnumerator LineOfSight_AWallBetweenThem_HidesThePlayer()
         {
             arena.BuildFloor();
-            arena.BuildWall(new Vector3(0f, 2f, 6f), new Vector3(16f, 4f, 1f));
+            // Keep the ends far enough away that this tests occlusion, rather
+            // than how quickly a NavMeshAgent can walk around the wall.
+            arena.BuildWall(new Vector3(0f, 2f, 6f), new Vector3(60f, 4f, 1f));
             arena.BuildNavMesh();
             yield return null;
 
             var archetype = arena.NewArchetype(sight: 30f);
             var enemy = arena.SpawnEnemy("Guard", Vector3.zero, archetype);
             arena.SpawnPlayer(new Vector3(0f, 0f, 12f));
+            Physics.SyncTransforms();
 
             var everSaw = false;
             yield return TestArena.Observe(1.5f, () => everSaw |= enemy.Perception.HasLineOfSight);

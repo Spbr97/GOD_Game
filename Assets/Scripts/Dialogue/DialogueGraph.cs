@@ -27,6 +27,26 @@ namespace Game.Dialogue
         public IReadOnlyList<DialogueNode> Nodes => nodes;
         public IReadOnlyList<string> EntryNodeIds => entryNodeIds;
 
+        public string LocalizationKey => "dialogue." + GraphId.ToLowerInvariant();
+
+        private string Localized(DialogueNode node, string field, string authored)
+        {
+            if (node == null || string.IsNullOrEmpty(node.DialogueId)) return authored;
+            return Game.Core.Localization.LocalizedContent.Text(LocalizationKey,
+                "node." + node.DialogueId.ToLowerInvariant() + "." + field, authored);
+        }
+
+        public string SpeakerText(DialogueNode node) => Localized(node, "speaker", node?.Speaker);
+        public string NodeText(DialogueNode node) => Localized(node, "text", node?.Text);
+        public string SubtitleText(DialogueNode node) => node == null ? null
+            : string.IsNullOrEmpty(node.Subtitle) ? NodeText(node) : Localized(node, "subtitle", node.Subtitle);
+        public string LowIntegrityText(DialogueNode node) => Localized(node, "low_integrity", node?.LowIntegrityText);
+        public string ChoiceText(DialogueNode node, int index)
+        {
+            if (node?.Choices == null || index < 0 || index >= node.Choices.Length) return null;
+            return Localized(node, "choice." + index, node.Choices[index]?.Text);
+        }
+
         /// <summary>
         /// Returns the node with this id, or null. The index is built once and thrown
         /// away on domain reload with the asset, so authoring changes are picked up.

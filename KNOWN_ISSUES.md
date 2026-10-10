@@ -72,8 +72,9 @@ page has to say so plainly rather than let a player conclude malware.
 All 21 shipped quest, memory, item and skill assets now carry keys with matching
 English entries. Quest objectives and reward summaries use derived keys too. The
 pseudo-locale exercises the same paths, and an EditMode test compares each English
-entry with its authored asset. Dialogue lines, ability assets once authored, and
-scene-authored labels still need the same treatment before another language can ship.
+entry with its authored asset. The three shipped dialogue graphs now route speaker
+names, lines, variants and choices through the table. Ability assets once authored,
+scene-authored labels and complete non-English text still need work.
 
 ### A run is only ever dirty for one reason
 
@@ -219,12 +220,12 @@ code. These are what that leaves.
 
 ### PARTLY CLOSED — Content localization is incomplete (TASK 042)
 
-The code string table and all shipped quest, memory, item and skill assets now
-have English entries. `LocalizedContent` derives their field keys from one prefix
-on each asset; the journal and quest tracker use localized objective text. The
-repeatable import and authoring steps are in `CONTENT_PIPELINE.md`. What remains
-is dialogue line text, scene-authored labels and a complete second language with
-font and layout verification. English remains the only supported language.
+The code string table, shipped quest, memory, item and skill assets, and the
+three authored dialogue graphs now have English entries. `LocalizedContent`
+derives their field keys; the journal, quest tracker and dialogue UI read them.
+The repeatable import and authoring steps are in `CONTENT_PIPELINE.md`. What
+remains is scene-authored labels and a complete second language with font and
+layout verification. English remains the only supported language.
 
 ### [RELEASE BLOCKER] Latest unsigned Release player blocked by Windows Application Control
 
@@ -1383,13 +1384,13 @@ does not exist yet. Scenes 1-4, 6, 8 and 10 of that sequence are not implemented
 all: no sunrise, no training scene, no empty-city exploration state, no dead soldier,
 no Nirvaan.
 
-### [MISSING CONTENT] Dialogue has no voice, no localization and no history
+### [MISSING CONTENT] Dialogue has no voice or history
 
 `DialogueNode` carries `VoiceAssetId` and `Subtitle`, and nothing reads the first —
-there is no audio (SPEC.md section 41). Text is authored in English directly in the
-assets rather than through string keys, so SPEC.md section 73 localization would need
-the data reworked. There is also no backlog or replay of lines already shown, and no
-typewriter reveal or skip.
+there is no audio (SPEC.md section 41). English text remains in the dialogue
+assets for authoring and fallback; the UI now reads it through string-table keys.
+There is still no backlog or replay of lines already shown, and no typewriter
+reveal or skip.
 
 ### CLOSED — Dialogue graphs are authored in code, not an editor (TASK 003)
 
