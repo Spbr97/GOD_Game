@@ -375,10 +375,16 @@ error so a subsequent run can package the exact player for testing elsewhere.
 
 That subsequent run built from clean commit `376d4fc`: Release compiled, the
 developer-code gate passed, Application Control again blocked launch, and the
-wrapper continued to package the player. The ZIP is
-`Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip`, SHA-256
+wrapper continued to package the player. That candidate's ZIP had SHA-256
 `922BB9954F69E6950E6B0D864838BF0A7E81BEE1550F6ECDB6A7A579FF1B829B`.
 The wrapper exited 1, correctly marking Release startup unverified.
+
+The next clean commit, `a0211f5`, includes localized dialogue. Its Development
+player passed the scene-travel and cold-start smoke tests; Unity passed 295
+EditMode and 196 PlayMode tests. Release compiled and passed developer-code
+gating, but Application Control again blocked launch. The latest packaged ZIP
+at `Build/Windows/TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip` has
+SHA-256 `E51CE66BF401DCC9687569429257903BEBA2805E732D1E50A6618A7A0B31A06B`.
 
 ## Known limits of this setup
 
