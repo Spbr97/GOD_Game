@@ -5,6 +5,25 @@ using UnityEngine.InputSystem;
 namespace Game.Core
 {
     /// <summary>
+    /// Raised when the display language changes, so screens already on screen redraw.
+    ///
+    /// Without it, a language change lands in the string table and the panel the player
+    /// is looking at keeps its old words until it is closed and reopened — which reads as
+    /// the setting being broken rather than as a refresh problem.
+    /// </summary>
+    public readonly struct LanguageChangedEvent
+    {
+        public readonly string Previous;
+        public readonly string Current;
+
+        public LanguageChangedEvent(string previous, string current)
+        {
+            Previous = previous;
+            Current = current;
+        }
+    }
+
+    /// <summary>
     /// Raised when the **player** changes difficulty, and never when the game merely
     /// discovers what the difficulty already is.
     ///
@@ -40,6 +59,17 @@ namespace Game.Core
 
         /// <summary>SPEC.md section 44. Applied to the static <see cref="Difficulty"/> on load.</summary>
         public DifficultyMode Difficulty = DifficultyMode.Normal;
+
+        /// <summary>
+        /// The language code the player chose, e.g. <c>en</c> (SPEC.md section 73).
+        ///
+        /// A global setting rather than per-save: it describes the person at the keyboard,
+        /// not the run. Two playthroughs do not get different languages, and a save
+        /// carried to another machine should read in that machine's chosen language
+        /// rather than overriding it — which is the opposite of how difficulty works, and
+        /// deliberately so.
+        /// </summary>
+        public string Language = Game.Core.Localization.Strings.DefaultLanguage;
 
         // ---------------------------------------------------- SPEC.md section 43
 
@@ -251,6 +281,7 @@ namespace Game.Core
         public void Apply()
         {
             Game.Core.Difficulty.Set(Current.Difficulty);
+            ApplyLanguage();
 
             // SPEC.md section 43's "audio volume controls". Pushed the same way
             // Difficulty is: AudioListener's volume is a global the emitting sources
@@ -258,6 +289,81 @@ namespace Game.Core
             AudioListener.volume = Mathf.Clamp01(Current.MasterVolume);
 
             ApplyDisplaySettings();
+        }
+
+        /// <summary>
+        /// Points <see cref="Game.Core.Localization.Strings"/> at the chosen language,
+        /// falling back to English when the build has no table for it.
+        ///
+        /// The fallback is not an error path: a save or a settings file carried from a
+        /// build that shipped more languages than this one names a language this build
+        /// does not have, and the right answer is English text rather than a refusal or a
+        /// screen of keys. The setting is left as the player chose it, so the language
+        /// reappears if they move back to a build that has it.
+        /// </summary>
+        public void ApplyLanguage()
+        {
+            var requested = string.IsNullOrWhiteSpace(Current.Language)
+                ? Game.Core.Localization.Strings.DefaultLanguage
+                : Current.Language;
+
+            if (!Game.Core.Localization.Strings.SetLanguage(requested))
+            {
+                GameLogger.LogFallback(LogCategory.UI,
+                    $"could not use language '{requested}'",
+                    "SettingsManager.ApplyLanguage",
+                    "this build has no string table for it",
+                    "English text is shown and the setting is left alone", this);
+            }
+        }
+
+        /// <summary>
+        /// Changes language and tells the game to redraw.
+        ///
+        /// Every screen reads its text in <c>OnEnable</c> or per frame, so a language
+        /// change has to announce itself or the panel the player is looking at keeps the
+        /// old words until it is closed and reopened — which reads as the setting not
+        /// working. <see cref="LanguageChangedEvent"/> is what the open UI listens to.
+        /// </summary>
+        public void SetLanguage(string languageCode)
+        {
+            var previous = Current.Language;
+
+            Current.Language = string.IsNullOrWhiteSpace(languageCode)
+                ? Game.Core.Localization.Strings.DefaultLanguage
+                : languageCode;
+
+            ApplyLanguage();
+            Save();
+
+            if (previous != Current.Language)
+            {
+                EventBus.Publish(new LanguageChangedEvent(previous, Current.Language));
+            }
+        }
+
+        /// <summary>
+        /// Every language this build can actually show, newest-found order, English first.
+        ///
+        /// Discovered by loading the tables out of Resources rather than from a list
+        /// written here, so adding a translation is adding one asset. The pseudo-locale
+        /// is included on purpose: it is how the text is checked, and hiding it would
+        /// mean the only way to see it is to edit a settings file by hand.
+        /// </summary>
+        public static System.Collections.Generic.List<Game.Core.Localization.StringTable> AvailableLanguages()
+        {
+            var tables = new System.Collections.Generic.List<Game.Core.Localization.StringTable>(
+                Resources.LoadAll<Game.Core.Localization.StringTable>("Localization"));
+
+            tables.RemoveAll(table => table == null || string.IsNullOrWhiteSpace(table.LanguageCode));
+            tables.Sort((a, b) =>
+            {
+                if (a.LanguageCode == Game.Core.Localization.Strings.DefaultLanguage) { return -1; }
+                if (b.LanguageCode == Game.Core.Localization.Strings.DefaultLanguage) { return 1; }
+                return string.Compare(a.LanguageName, b.LanguageName, System.StringComparison.Ordinal);
+            });
+
+            return tables;
         }
 
         /// <summary>

@@ -32,6 +32,9 @@ namespace Game.World
         [SerializeField] private string promptVerb = "Interact";
         [SerializeField] private string displayName = "";
 
+        [Tooltip("Optional key into the shared string table, e.g. \"interactable.amara\". Blank means this object's prompt is not localized and shows the text typed above. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
         [Tooltip("How close the player must be, measured from this object's position.")]
         [SerializeField] private float interactionRange = 2.5f;
 
@@ -47,7 +50,59 @@ namespace Game.World
         /// skill (TASK 043).
         /// </summary>
         public virtual float InteractionRange => interactionRange;
-        public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
+
+        /// <summary>
+        /// The key this object's prompt text is translated under, or empty when it is not
+        /// localized. Read by content validation, which warns about a scene label with no
+        /// key — that warning is the to-do list for finishing a translation.
+        /// </summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>
+        /// What the prompt calls this thing. Translated through the shared string table
+        /// when this object carries a key, and otherwise exactly the text the author
+        /// typed — which is what every object did before TASK 042's scene-label pass and
+        /// what any object without a key still does.
+        /// </summary>
+        public string DisplayName
+        {
+            get
+            {
+                var authored = string.IsNullOrEmpty(displayName) ? name : displayName;
+                return Game.Core.Localization.LocalizedContent.Text(localizationKey, "name", authored);
+            }
+        }
+
+        /// <summary>
+        /// The verb, translated. "Speak to", "Enter", "Recall".
+        ///
+        /// Resolved in two steps, because verbs repeat and names do not. A handful of
+        /// verbs cover every interactable in the game, so they live under shared keys —
+        /// <c>interaction.verb.speak_to</c> — and a translator sees each one once instead
+        /// of twenty times. An object may still override its own verb by putting a
+        /// <c>.verb</c> entry under its own key, which some languages genuinely need:
+        /// where the verb agrees with the noun, "enter" before a temple and before a door
+        /// are not the same word.
+        /// </summary>
+        public string PromptVerb
+        {
+            get
+            {
+                var own = Game.Core.Localization.LocalizedContent.Text(localizationKey, "verb", null);
+                if (!string.IsNullOrEmpty(own))
+                {
+                    return own;
+                }
+
+                return Game.Core.Localization.LocalizedContent.Shared(
+                    "interaction.verb", promptVerb);
+            }
+        }
+
+        /// <summary>The text an author typed, untranslated. For the Inspector and for validation.</summary>
+        public string AuthoredDisplayName => displayName;
+
+        public string AuthoredPromptVerb => promptVerb;
 
         /// <summary>Read by <c>ContentValidation</c> (TASK 042) to check gating flags are ones something sets.</summary>
         public IReadOnlyList<string> RequiredFlags => requiredFlags;
@@ -55,7 +110,7 @@ namespace Game.World
         public IReadOnlyList<string> BlockingFlags => blockingFlags;
 
         /// <summary>The line shown on the interaction prompt, e.g. "Speak to Queen Amara".</summary>
-        public virtual string Prompt => Strings.Format(StringKeys.InteractionPrompt, promptVerb, DisplayName);
+        public virtual string Prompt => Strings.Format(StringKeys.InteractionPrompt, PromptVerb, DisplayName);
 
         /// <summary>
         /// Whether the player may interact right now. Overrides should call
@@ -101,6 +156,9 @@ namespace Game.World
             requiredFlags = required;
             blockingFlags = blocking;
         }
+
+        /// <summary>Test and tooling seam: points this object's prompt text at a string-table key.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
 
         protected void SetFlag(string flag, bool value = true)
         {

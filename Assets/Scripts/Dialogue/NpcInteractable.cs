@@ -21,10 +21,39 @@ namespace Game.Dialogue
         [Tooltip("Turn to face the player while talking.")]
         [SerializeField] private bool faceSpeaker = true;
 
-        public string NpcName => string.IsNullOrEmpty(npcName) ? DisplayName : npcName;
+        /// <summary>
+        /// What this character is called, translated through the shared string table when
+        /// the object carries a key. A character's name is player-facing text authored in
+        /// the scene, so it needs the same treatment as everything else — and names do get
+        /// translated: a Devanagari build should not render "Queen Amara" in Latin script.
+        /// </summary>
+        public string NpcName
+        {
+            get
+            {
+                var authored = string.IsNullOrEmpty(npcName) ? AuthoredDisplayName : npcName;
+
+                if (string.IsNullOrEmpty(authored))
+                {
+                    return DisplayName;
+                }
+
+                return Game.Core.Localization.LocalizedContent.Text(LocalizationKey, "name", authored);
+            }
+        }
+
+        /// <summary>The name an author typed, untranslated. For logs and validation.</summary>
+        public string AuthoredNpcName => npcName;
         public DialogueGraph Dialogue => dialogue;
 
-        public override string Prompt => $"Speak to {NpcName}";
+        /// <summary>
+        /// Routed through the string table rather than interpolated (SPEC.md section 73).
+        /// This read <c>$"Speak to {NpcName}"</c> until TASK 042's scene-label pass, which
+        /// is player-facing English baked into the assembly and untranslatable.
+        /// </summary>
+        public override string Prompt =>
+            Game.Core.Localization.Strings.Format(
+                Game.Core.Localization.StringKeys.InteractionSpeakTo, NpcName);
 
         public override bool CanInteract
         {

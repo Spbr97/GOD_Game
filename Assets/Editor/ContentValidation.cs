@@ -333,6 +333,7 @@ namespace Game.EditorTools
 
                     EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
                     CheckOpenScene(issues, path, catalogue, scenesInBuild, exits);
+                    CheckSceneLabels(issues, path);
                 }
 
                 // Done after the loop: checking a door means opening the scene it points
@@ -710,6 +711,100 @@ namespace Game.EditorTools
         }
 
         // ------------------------------------------------------------------- scene rules
+
+        /// <summary>
+        /// Player-facing text authored into a scene (TASK 042's scene-label pass).
+        ///
+        /// Checks only the labels a player can actually read, which is a shorter list than
+        /// it looks. Of the fields that hold English in a scene, exactly three kinds reach
+        /// a screen: a brazier's display name (<c>FireBrazier</c> is the only prompt in the
+        /// game that shows <c>DisplayName</c>), a <c>SceneExit</c>'s display name (the only
+        /// interactable that still uses the base prompt), and a character's name.
+        ///
+        /// <c>LocationTrigger.locationName</c> is deliberately **not** checked: nothing
+        /// outside that component's own developer log reads it, so requiring a translation
+        /// would put a string in the table that no screen can ever show.
+        ///
+        /// A missing key is a warning rather than an error, for the same reason it is on
+        /// assets: the authored text still shows, so an untranslated label is a to-do and
+        /// not a break. The warning is what stops a new scene object quietly joining the
+        /// set of things nobody remembers to translate.
+        /// </summary>
+        private static void CheckSceneLabels(List<ContentIssue> issues, string path)
+        {
+            var english = Resources.Load<Game.Core.Localization.StringTable>("Localization/Strings_en");
+            if (english == null)
+            {
+                return;
+            }
+
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+
+            void CheckLabel(Interactable subject, string authored, string what)
+            {
+                if (string.IsNullOrWhiteSpace(authored))
+                {
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(subject.LocalizationKey))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Warning, "scene-label", Where(path, subject),
+                        $"shows \"{authored}\" to the player and has no localization key, so it cannot be "
+                        + $"translated ({what})", subject));
+                    return;
+                }
+
+                var key = Game.Core.Localization.LocalizedContent.KeyFor(subject.LocalizationKey, "name");
+
+                if (!english.Has(key))
+                {
+                    issues.Add(new ContentIssue(ContentSeverity.Warning, "scene-label", Where(path, subject),
+                        $"declares key '{subject.LocalizationKey}' but Strings_en has no '{key}'", subject));
+                }
+            }
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                // A brazier's name appears inside its Light prompt.
+                foreach (var brazier in root.GetComponentsInChildren<FireBrazier>(true))
+                {
+                    CheckLabel(brazier, brazier.AuthoredDisplayName, "a brazier's Light prompt");
+                }
+
+                // SceneExit is the only interactable left using the base prompt.
+                foreach (var exit in root.GetComponentsInChildren<SceneExit>(true))
+                {
+                    CheckLabel(exit, exit.AuthoredDisplayName, "a door's Enter/Leave prompt");
+                }
+
+                foreach (var npc in root.GetComponentsInChildren<Game.Dialogue.NpcInteractable>(true))
+                {
+                    CheckLabel(npc, npc.AuthoredNpcName, "a character's name");
+                }
+
+                // Every verb a prompt can show has to exist under its shared key. Keyed off
+                // the English text, so rewording a verb silently orphans the old entry.
+                foreach (var interactable in root.GetComponentsInChildren<Interactable>(true))
+                {
+                    var verb = interactable.AuthoredPromptVerb;
+                    if (string.IsNullOrWhiteSpace(verb))
+                    {
+                        continue;
+                    }
+
+                    var slug = Game.Core.Localization.LocalizedContent.Slug(verb);
+                    var verbKey = Game.Core.Localization.LocalizedContent.KeyFor("interaction.verb", slug);
+
+                    if (!english.Has(verbKey))
+                    {
+                        issues.Add(new ContentIssue(ContentSeverity.Warning, "scene-label",
+                            Where(path, interactable),
+                            $"uses the verb \"{verb}\", which has no '{verbKey}' in Strings_en", interactable));
+                    }
+                }
+            }
+        }
 
         private static void CheckOpenScene(List<ContentIssue> issues, string path, ContentCatalogue catalogue,
             HashSet<string> scenesInBuild, List<(string, string, string, string)> exits)

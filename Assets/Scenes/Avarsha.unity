@@ -1767,6 +1767,7 @@ MonoBehaviour:
   phase3SpeedMultiplier: 1.25
   phase3Tint: {r: 0.6, g: 0.1, b: 0.75, a: 1}
   reward: {fileID: 347160371}
+  flagsOnDefeat: []
   onEncounterStarted:
     m_PersistentCalls:
       m_Calls: []
@@ -1868,6 +1869,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 647928316}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &138238238
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2955,9 +2957,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: Ruin Approach
+  localizationKey: 
   objectiveId: 
   flagToSet: RUIN_AMBUSH_SPRUNG
   questToStart: Q002
+  arrivalSpawnId: 
   requiredFlags: []
   once: 1
   playerLayers:
@@ -3441,6 +3445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryPickup
   promptVerb: Recall
   displayName: the carving
+  localizationKey: 
   interactionRange: 3
   requiredFlags: []
   blockingFlags: []
@@ -4127,6 +4132,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryPickup
   promptVerb: Interact
   displayName: 
+  localizationKey: 
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -4709,6 +4715,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.World.SceneExit
   promptVerb: Enter
   displayName: the Temple of Agniya
+  localizationKey: interactable.sceneexit_agniyatemple
   interactionRange: 4
   requiredFlags: []
   blockingFlags: []
@@ -4769,8 +4776,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the right brazier
+  localizationKey: interactable.brazier_right
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -5056,9 +5064,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: Ruin Approach
+  localizationKey: 
   objectiveId: 
   flagToSet: RUIN_AMBUSH_SPRUNG
   questToStart: Q002
+  arrivalSpawnId: 
   requiredFlags: []
   once: 1
   playerLayers:
@@ -6270,6 +6280,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.World.ItemPickup
   promptVerb: Interact
   displayName: 
+  localizationKey: 
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -6984,6 +6995,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.NpcInteractable
   promptVerb: Speak to
   displayName: Mira
+  localizationKey: interactable.npc_mira
   interactionRange: 3.2
   requiredFlags: []
   blockingFlags: []
@@ -7531,6 +7543,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.NpcInteractable
   promptVerb: Speak to
   displayName: Queen Amara
+  localizationKey: interactable.npc_queenamara
   interactionRange: 3.2
   requiredFlags: []
   blockingFlags: []
@@ -8692,8 +8705,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryManager
   catalogue:
   - {fileID: 11400000, guid: 58e3360d85507f54fb571642c0315fae, type: 2}
-  emberStepIntegrityCost: 0.02
-  emberStepUsesPerForget: 3
   temporaryForgetSeconds: 20
 --- !u!114 &831043635
 MonoBehaviour:
@@ -9408,6 +9419,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.Save.SaveManager
   autoSaveOnCheckpoint: 1
+  autoSaveOnSceneTravel: 1
 --- !u!4 &914775682
 Transform:
   m_ObjectHideFlags: 0
@@ -9581,6 +9593,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 1862380795}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &925397648
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10674,6 +10687,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 9188988}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &1074323011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12110,8 +12124,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the centre brazier
+  localizationKey: interactable.brazier_center
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -12825,6 +12840,8 @@ MonoBehaviour:
   dodgeSpeed: 9
   invulnerabilityStart: 0.05
   invulnerabilityEnd: 0.26
+  emberStepIntegrityCost: 0.02
+  emberStepUsesPerForget: 3
 --- !u!114 &1316108370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13334,9 +13351,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: The Ruins Beyond the Temple District
+  localizationKey: 
   objectiveId: REACH_RUINS
   flagToSet: REACHED_RUINS
   questToStart: 
+  arrivalSpawnId: 
   requiredFlags: []
   once: 1
   playerLayers:
@@ -14422,6 +14441,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Dialogue.NpcInteractable
   promptVerb: Speak to
   displayName: Dev
+  localizationKey: interactable.npc_dev
   interactionRange: 3.2
   requiredFlags: []
   blockingFlags: []
@@ -15780,6 +15800,7 @@ MonoBehaviour:
   telegraphRenderers:
   - {fileID: 970938577}
   telegraphScalePulse: 1.12
+  unblockableScalePulse: 1.38
 --- !u!114 &1809574898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16224,9 +16245,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: Avarsha
+  localizationKey: 
   objectiveId: 
   flagToSet: ENTERED_AVARSHA
   questToStart: 
+  arrivalSpawnId: 
   requiredFlags: []
   once: 1
   playerLayers:
@@ -19082,8 +19105,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the left brazier
+  localizationKey: interactable.brazier_left
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []

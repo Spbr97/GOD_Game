@@ -53,6 +53,12 @@ namespace Game.Core.Localization
         public const string MenuSaveRow = "menu.save_row";
         public const string MenuSaveRowEmpty = "menu.save_row_empty";
         public const string MenuDifficulty = "menu.difficulty";
+
+        /// <summary>The language row in Settings. {0} is the language's own name for itself.</summary>
+        public const string MenuLanguage = "menu.language";
+
+        /// <summary>The button that cycles language. No placeholder.</summary>
+        public const string MenuChangeLanguage = "menu.change_language";
         public const string MenuResolution = "menu.resolution";
 
         // --------------------------------------------------------------------- remap
@@ -76,6 +82,21 @@ namespace Game.Core.Localization
         public const string InteractionTakeItem = "interaction.take_item";
         public const string InteractionTakeItemGeneric = "interaction.take_item_generic";
         public const string InteractionTollPay = "interaction.toll_pay";
+
+        /// <summary>Speaking to an NPC. {0} is the character's name.</summary>
+        public const string InteractionSpeakTo = "interaction.speak_to";
+
+        /// <summary>Recalling a memory. {0} is the memory's title.</summary>
+        public const string InteractionRecallMemory = "interaction.recall_memory";
+
+        /// <summary>Recalling a memory whose fragment is missing. No placeholder.</summary>
+        public const string InteractionRecallMemoryGeneric = "interaction.recall_memory_generic";
+
+        /// <summary>Lighting a brazier. {0} is what the brazier is called.</summary>
+        public const string InteractionLightBrazier = "interaction.light_brazier";
+
+        /// <summary>A brazier that is already lit. {0} is what it is called.</summary>
+        public const string InteractionBrazierAlreadyLit = "interaction.brazier_already_lit";
         public const string InteractionTollPaid = "interaction.toll_paid";
 
         // ---------------------------------------------------------------------- save

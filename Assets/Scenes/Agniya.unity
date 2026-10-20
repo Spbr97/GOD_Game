@@ -6038,8 +6038,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the brazier
+  localizationKey: interactable.brazier_3
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -6158,6 +6159,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Memory.MemoryPickup
   promptVerb: Interact
   displayName: 
+  localizationKey: 
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -8549,8 +8551,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the brazier
+  localizationKey: interactable.brazier_1
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -10216,6 +10219,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.World.SceneExit
   promptVerb: Leave
   displayName: the Temple of Agniya
+  localizationKey: interactable.sceneexit_toavarsha
   interactionRange: 4
   requiredFlags: []
   blockingFlags: []
@@ -10552,8 +10556,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the brazier
+  localizationKey: interactable.brazier_0
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -13053,6 +13058,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.World.MemoryToll
   promptVerb: Interact
   displayName: 
+  localizationKey: 
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []
@@ -13371,6 +13377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.LocationTrigger
   locationName: Agniya Temple
+  localizationKey: 
   objectiveId: REACH_AGNIYA_TEMPLE
   flagToSet: ENTERED_AGNIYA_TEMPLE
   questToStart: Q003
@@ -13771,8 +13778,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9aae4101c4380a498a318d5113203f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::Game.World.FireBrazier
-  promptVerb: Interact
-  displayName: 
+  promptVerb: Light
+  displayName: the brazier
+  localizationKey: interactable.brazier_2
   interactionRange: 2.5
   requiredFlags: []
   blockingFlags: []

@@ -157,6 +157,14 @@ ids become lower-case field suffixes, for example
 `quest.q001.objective.reach_ruins`. Empty descriptions stay in the asset and do not
 create blank table entries.
 
+**Scene objects too.** `Interactable` and `LocationTrigger` carry the same
+`localizationKey`. Only objects whose *own* label reaches a screen need one — today
+`FireBrazier` (its Light prompt shows the display name), `SceneExit` (the only
+interactable using the base prompt) and `NpcInteractable` (a character's name). Anything
+whose prompt is built from an asset it points at, such as an item pickup, needs no key:
+the asset already carries one. Interaction verbs are shared, keyed off the verb itself as
+`interaction.verb.speak_to`, so a translator sees each verb once rather than once per door.
+
 **Leaving a new asset's key blank is valid:** the asset
 shows the text typed into it. Adding a key before a translation exists is also valid —
 the author's text still shows, and the validator raises a warning naming the key a

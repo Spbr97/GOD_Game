@@ -17,6 +17,9 @@ namespace Game.World
         [Tooltip("Name used in logs.")]
         [SerializeField] private string locationName = "Location";
 
+        [Tooltip("Optional key into the shared string table, e.g. \"location.agniya_temple\". Blank means this name is not localized. See LocalizedContent.")]
+        [SerializeField] private string localizationKey;
+
         [Tooltip("Objective id reported on entry. Optional.")]
         [SerializeField] private string objectiveId;
 
@@ -47,7 +50,16 @@ namespace Game.World
         public string ArrivalSpawnId => arrivalSpawnId;
 
         public bool HasFired { get; private set; }
-        public string LocationName => locationName;
+        public string LocationName => Game.Core.Localization.LocalizedContent.Text(localizationKey, "name", locationName);
+
+        /// <summary>The key this name is translated under, or empty when it is not localized.</summary>
+        public string LocalizationKey => localizationKey;
+
+        /// <summary>The text an author typed, untranslated. For validation.</summary>
+        public string AuthoredLocationName => locationName;
+
+        /// <summary>Test and tooling seam.</summary>
+        public void ConfigureLocalizationKey(string key) => localizationKey = key;
 
         private void Awake()
         {
@@ -104,6 +116,9 @@ namespace Game.World
             }
 
             HasFired = true;
+            // Deliberately the authored name, not the translated one: a log is read by a
+            // developer, and grepping for a place should not depend on the player's
+            // language setting.
             GameLogger.Log(LogCategory.Quest, $"Player reached '{locationName}'.", this);
 
             if (!string.IsNullOrEmpty(flagToSet))

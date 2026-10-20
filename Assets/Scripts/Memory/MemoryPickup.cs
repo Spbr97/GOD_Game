@@ -37,7 +37,16 @@ namespace Game.Memory
         public MemoryFragment Memory => memory;
         public bool Collected { get; private set; }
 
-        public override string Prompt => memory != null ? $"Recall {memory.Title}" : "Recall memory";
+        /// <summary>
+        /// Routed through the string table rather than interpolated (SPEC.md section 73).
+        /// <c>memory.Title</c> is itself translated, because a MemoryFragment carries its
+        /// own localization key.
+        /// </summary>
+        public override string Prompt => memory != null
+            ? Game.Core.Localization.Strings.Format(
+                Game.Core.Localization.StringKeys.InteractionRecallMemory, memory.Title)
+            : Game.Core.Localization.Strings.Get(
+                Game.Core.Localization.StringKeys.InteractionRecallMemoryGeneric);
 
         public override bool CanInteract => !Collected && memory != null && base.CanInteract;
 

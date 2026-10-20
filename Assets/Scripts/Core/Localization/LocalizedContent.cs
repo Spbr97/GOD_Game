@@ -60,5 +60,62 @@ namespace Game.Core.Localization
         /// reimplementing the convention.
         /// </summary>
         public static string KeyFor(string keyPrefix, string field) => keyPrefix + "." + field;
+
+        /// <summary>
+        /// Translates a short, repeated piece of text by slugging the text itself into a
+        /// shared key: <c>interaction.verb</c> plus "Speak to" becomes
+        /// <c>interaction.verb.speak_to</c>.
+        ///
+        /// For the closed sets where every object would otherwise carry its own duplicate
+        /// entry. Interaction verbs are the case this exists for: a handful of them cover
+        /// every interactable in the game, and a translator should see "Enter" once rather
+        /// than once per door.
+        ///
+        /// Keyed off the English text on purpose, which has one consequence worth knowing:
+        /// **rewording the authored verb changes its key**, so the old entry goes stale and
+        /// the new one falls back to English until it is added. That is why content
+        /// validation reports a shared key with nothing behind it rather than leaving it to
+        /// be noticed in play.
+        /// </summary>
+        public static string Shared(string group, string authored)
+        {
+            if (string.IsNullOrEmpty(group) || string.IsNullOrWhiteSpace(authored))
+            {
+                return authored;
+            }
+
+            return Strings.Find(KeyFor(group, Slug(authored))) ?? authored;
+        }
+
+        /// <summary>
+        /// Lower-cases and underscores a piece of text so it can be part of a key.
+        /// Anything that is not a letter or a digit becomes an underscore, and runs of
+        /// them collapse, so "Speak to" and "Speak  to" cannot become two keys.
+        /// </summary>
+        public static string Slug(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            var builder = new System.Text.StringBuilder(text.Length);
+
+            for (var i = 0; i < text.Length; i++)
+            {
+                var character = text[i];
+
+                if (char.IsLetterOrDigit(character))
+                {
+                    builder.Append(char.ToLowerInvariant(character));
+                }
+                else if (builder.Length > 0 && builder[builder.Length - 1] != '_')
+                {
+                    builder.Append('_');
+                }
+            }
+
+            return builder.ToString().TrimEnd('_');
+        }
     }
 }

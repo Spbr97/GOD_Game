@@ -32,7 +32,19 @@ namespace Game.World
 
         public event Action Changed;
 
-        public override string Prompt => IsLit ? $"{DisplayName} is already lit" : $"Light {DisplayName}";
+        /// <summary>
+        /// Routed through the string table rather than interpolated (SPEC.md section 73).
+        ///
+        /// This one mattered twice over. The text was hard-coded English, and it is the
+        /// only prompt in the game that shows <see cref="Interactable.DisplayName"/> —
+        /// which falls back to the GameObject's name when no display name is authored. The
+        /// four braziers in Agniya had none, so the player read "Light Brazier_0".
+        /// </summary>
+        public override string Prompt => IsLit
+            ? Game.Core.Localization.Strings.Format(
+                Game.Core.Localization.StringKeys.InteractionBrazierAlreadyLit, DisplayName)
+            : Game.Core.Localization.Strings.Format(
+                Game.Core.Localization.StringKeys.InteractionLightBrazier, DisplayName);
         public override bool CanInteract => !IsLit && base.CanInteract;
 
         private void Awake()

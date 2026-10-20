@@ -21,10 +21,13 @@ namespace Game.Tests
     public class LocalizationTests
     {
         private StringTable english;
+        private UnityEditor.SceneManagement.SceneSetup[] previousScenes;
 
         [SetUp]
         public void LoadTable()
         {
+            previousScenes = UnityEditor.SceneManagement.EditorSceneManager.GetSceneManagerSetup();
+
             english = Resources.Load<StringTable>("Localization/Strings_en");
             Assert.IsNotNull(english,
                 "Assets/Resources/Localization/Strings_en.asset is missing. Without it every label in the game "
@@ -32,7 +35,69 @@ namespace Game.Tests
         }
 
         [TearDown]
-        public void Reset() => Strings.ResetForTests();
+        public void Reset()
+        {
+            Strings.ResetForTests();
+
+            // AllKeys opens the gameplay scenes to collect scene-authored keys. Batch-mode
+            // runs can start with no scene loaded at all, so restoring is conditional.
+            if (previousScenes == null) { return; }
+
+            foreach (var setup in previousScenes)
+            {
+                if (setup.isLoaded && setup.isActive)
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.RestoreSceneManagerSetup(previousScenes);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The keys the scenes ask for, derived the same way the runtime derives them
+        /// (TASK 042's scene-label pass).
+        ///
+        /// These are not <see cref="StringKeys"/> constants and cannot be: an object's key
+        /// is authored on the object, and a verb's key is slugged from the verb itself. So
+        /// the table's entries are reconciled against the scenes rather than against the
+        /// code, which is what keeps <see cref="TheTableHasNoUnusedEntry"/> honest instead
+        /// of forcing it to ignore a whole namespace.
+        /// </summary>
+        private static IEnumerable<string> SceneKeys()
+        {
+            foreach (var path in new[] { "Assets/Scenes/Avarsha.unity", "Assets/Scenes/Agniya.unity",
+                                         "Assets/Scenes/MainMenu.unity", "Assets/Scenes/Test.unity" })
+            {
+                var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
+                    path, UnityEditor.SceneManagement.OpenSceneMode.Single);
+
+                foreach (var root in scene.GetRootGameObjects())
+                {
+                    foreach (var interactable in root.GetComponentsInChildren<Game.World.Interactable>(true))
+                    {
+                        if (!string.IsNullOrWhiteSpace(interactable.LocalizationKey))
+                        {
+                            yield return LocalizedContent.KeyFor(interactable.LocalizationKey, "name");
+                        }
+
+                        var verb = interactable.AuthoredPromptVerb;
+                        if (!string.IsNullOrWhiteSpace(verb))
+                        {
+                            yield return LocalizedContent.KeyFor(
+                                "interaction.verb", LocalizedContent.Slug(verb));
+                        }
+                    }
+
+                    foreach (var trigger in root.GetComponentsInChildren<Game.World.LocationTrigger>(true))
+                    {
+                        if (!string.IsNullOrWhiteSpace(trigger.LocalizationKey))
+                        {
+                            yield return LocalizedContent.KeyFor(trigger.LocalizationKey, "name");
+                        }
+                    }
+                }
+            }
+        }
 
         private static IEnumerable<string> AllKeys()
         {
@@ -103,7 +168,7 @@ namespace Game.Tests
         [Test]
         public void EveryKeyTheCodeAsksForHasEnglishText()
         {
-            var missing = AllKeys().Where(key => !english.Has(key)).ToList();
+            var missing = AllKeys().Concat(SceneKeys()).Where(key => !english.Has(key)).ToList();
 
             Assert.IsEmpty(missing,
                 "These keys are used by the code and have no English text:\n  " + string.Join("\n  ", missing));
@@ -112,7 +177,7 @@ namespace Game.Tests
         [Test]
         public void TheTableHasNoUnusedEntry()
         {
-            var known = new HashSet<string>(AllKeys());
+            var known = new HashSet<string>(AllKeys().Concat(SceneKeys()));
             var orphans = english.Entries
                 .Where(entry => entry != null && !string.IsNullOrEmpty(entry.Key) && !known.Contains(entry.Key))
                 .Select(entry => entry.Key)

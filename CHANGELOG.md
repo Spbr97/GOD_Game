@@ -1,5 +1,58 @@
 # CHANGELOG
 
+## Unreleased — scene-label localization and a language picker
+
+Closes the last gap keeping TASK 042 open, and adds the player-facing control the
+localization work never had.
+
+### Added
+
+- **A language picker in Settings.** `GameSettings.Language`, persisted like the other
+  settings and applied on load; `SettingsManager.SetLanguage` publishes
+  `LanguageChangedEvent` so an open panel redraws rather than keeping its old words until
+  it is reopened. `AvailableLanguages()` discovers the installed tables from Resources, so
+  adding a translation is adding one asset. The button greys itself out when only one
+  language is installed — a live button that cannot go anywhere looks broken.
+- `localizationKey` on `Interactable` and `LocationTrigger`, resolved through
+  `LocalizedContent` as the content assets already are.
+- `LocalizedContent.Shared`, which slugs repeated text into a shared key —
+  `interaction.verb.speak_to`. A handful of verbs cover every interactable in the game, so
+  a translator sees "Enter" once instead of once per door, and an object can still
+  override its own verb where a language needs it to agree with the noun.
+- A `scene-label` validation rule, and `SceneLabelLocalizationTests`.
+
+### Fixed
+
+- **Braziers showed their GameObject names to the player.** `FireBrazier` is the only
+  prompt that shows `DisplayName`, which falls back to the GameObject's name, and none of
+  the seven braziers had one authored. Agniya's fire puzzle — on the critical path — read
+  **"Light Brazier_0"**. They are now "the brazier" and "the left/centre/right brazier".
+- **Three prompts were hard-coded English in C#**, which TASK 042's "code is done" claim
+  did not cover: `NpcInteractable`, `MemoryPickup` and `FireBrazier` all built their text
+  with string interpolation. `NoPromptIsBuiltByInterpolation` now fails the build if a
+  fourth appears.
+- `MainMenuController` interpolated `"Difficulty: {0}"` in English despite
+  `menu.difficulty` existing in the table.
+
+### Changed
+
+- `LocalizationTests` reconciles the table against the **scenes** as well as the code.
+  Scene keys are authored on objects and verb keys are slugged from the verb, so neither
+  can be a `StringKeys` constant; without this, `TheTableHasNoUnusedEntry` would have had
+  to ignore a whole namespace to stay green.
+- `locationName` is **not** localized, and the entry claiming it needed to be was wrong:
+  nothing outside `LocationTrigger`'s developer log reads it.
+
+### Verified
+
+- 309 EditMode + 196 PlayMode = **505 tests, all passing** (was 491).
+- Content validation: 0 errors, 1 expected warning.
+- The `scene-label` rule was probed by removing an English entry and confirming it fires,
+  rather than trusting a clean run. The first two probe attempts reported the rule vacuous
+  and were wrong both times — `ValidateScenes` reopens scenes from disk, and Unity serves a
+  cached table until `AssetDatabase.Refresh`. Worth recording, because a validation rule
+  that silently never fires is indistinguishable from content that is correct.
+
 ## Unreleased — 10 October 2026: controller movement
 
 - The shared Gameplay input asset now binds the gamepad left stick to movement and

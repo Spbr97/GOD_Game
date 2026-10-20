@@ -65,6 +65,11 @@ namespace Game.UI
         [Tooltip("Indexed by DifficultyMode: Story, Normal, Warrior, Mythic.")]
         [SerializeField] private Button[] settingsDifficultyButtons;
         [SerializeField] private Text settingsDifficultyLabel;
+
+        [Tooltip("Cycles to the next language this build has a table for. A cycle button rather than a dropdown because the rest of this panel is buttons, and because a build with one language should still show which one it is.")]
+        [SerializeField] private Button settingsLanguageButton;
+        [SerializeField] private Text settingsLanguageLabel;
+
         [SerializeField] private Button settingsBackButton;
 
         [Header("Accessibility (SPEC.md section 43)")]
@@ -130,6 +135,8 @@ namespace Game.UI
                 }
             }
 
+            settingsLanguageButton?.onClick.AddListener(CycleLanguage);
+
             if (settingsDifficultyButtons != null)
             {
                 for (var i = 0; i < settingsDifficultyButtons.Length; i++)
@@ -170,8 +177,18 @@ namespace Game.UI
 
         private void OnEnable()
         {
+            // Paired with OnDisable rather than subscribed in Awake: this component has no
+            // Awake teardown, so a subscription taken there would outlive the menu and
+            // redraw a destroyed panel the next time the language changed.
+            EventBus.Subscribe<LanguageChangedEvent>(OnLanguageChanged);
+
             OpenRoot();
             RefreshContinueButton();
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<LanguageChangedEvent>(OnLanguageChanged);
         }
 
         private void Start()
@@ -400,7 +417,72 @@ namespace Game.UI
             RefreshDisplayControls(settings);
 
             wiringSettingsControls = false;
-            SetText(settingsDifficultyLabel, $"Difficulty: {Difficulty.Current}");
+            SetText(settingsDifficultyLabel, Strings.Format(StringKeys.MenuDifficulty, Difficulty.Current));
+            SetText(settingsLanguageLabel, Strings.Format(StringKeys.MenuLanguage, CurrentLanguageName()));
+
+            if (settingsLanguageButton != null)
+            {
+                SetText(settingsLanguageButton.GetComponentInChildren<Text>(true),
+                    Strings.Get(StringKeys.MenuChangeLanguage));
+
+                // A build with one language installed cannot cycle anywhere. Leaving the
+                // button live would make it look broken; greying it keeps the row as a
+                // statement of which language is in force, which is the honest thing for
+                // an English-only release.
+                settingsLanguageButton.interactable = SettingsManager.AvailableLanguages().Count > 1;
+            }
+        }
+
+        /// <summary>
+        /// The chosen language's name in its own language, which is what a language picker
+        /// has to show: a player who has accidentally selected a language they cannot read
+        /// needs to recognise the one they want, and "Hindi" written in English is no help
+        /// to someone who only reads Devanagari.
+        /// </summary>
+        private static string CurrentLanguageName()
+        {
+            var active = Strings.Active;
+            return active != null && !string.IsNullOrWhiteSpace(active.LanguageName)
+                ? active.LanguageName
+                : Strings.DefaultLanguage;
+        }
+
+        /// <summary>
+        /// Moves to the next language this build has a table for, wrapping round.
+        ///
+        /// A cycle rather than a dropdown, to match the rest of this panel and because it
+        /// needs no list widget. With one language installed it is a no-op that still
+        /// shows which language is in force, which is the honest thing for a build that
+        /// ships English only.
+        /// </summary>
+        private void CycleLanguage()
+        {
+            if (wiringSettingsControls)
+            {
+                return;
+            }
+
+            var languages = SettingsManager.AvailableLanguages();
+            if (languages.Count == 0)
+            {
+                return;
+            }
+
+            var current = Strings.Active != null ? Strings.Active.LanguageCode : Strings.DefaultLanguage;
+            var index = languages.FindIndex(table => table.LanguageCode == current);
+            var next = languages[(index + 1 + languages.Count) % languages.Count];
+
+            SettingsManager.Instance?.SetLanguage(next.LanguageCode);
+        }
+
+        /// <summary>
+        /// Redraws the menu when the language changes. Every label here is read in
+        /// <see cref="RefreshSettingsPanel"/>, so without this the panel the player is
+        /// looking at keeps its old words and the setting reads as broken.
+        /// </summary>
+        private void OnLanguageChanged(LanguageChangedEvent changed)
+        {
+            RefreshSettingsPanel();
         }
 
         // --------------------------------------------------------------------- display

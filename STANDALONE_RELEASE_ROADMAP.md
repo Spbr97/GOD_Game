@@ -107,7 +107,14 @@ writing and usability work run throughout production.
   item and skill assets now have keys and English entries. Quest objective and
   reward text reads the table; the pseudo-locale and validator cover these fields.
   The three shipped dialogue graphs now use the same table for speaker names,
-  lines, variants and choices. Scene-authored labels remain, so the task stays open.
+  lines, variants and choices.
+  **Scene labels done (21 October 2026):** `Interactable` and `LocationTrigger` carry
+  localization keys, every scene label a player can read has a key and an English
+  entry, three prompts that were hard-coded English in C# now read the table, and a
+  language picker in Settings switches between the installed languages. A
+  `scene-label` validation rule keeps new scene objects from shipping untranslatable.
+  **Gate met.** The remaining localization work is a real translation, which is out of
+  1.0's scope (`PRODUCTION_BRIEF.md`: English only).
 
 ### Gate B - a production-quality first chapter
 

@@ -237,16 +237,62 @@ player, so the exact binary can be tested on another Windows account or PC.
 Until it starts and passes the manual Release playthrough, this candidate is
 not an approved release. No paid signing service is assumed.
 
-### Text typed into a scene is not localizable at all (still open after TASK 040)
+### CLOSED — Text typed into a scene is not localizable (21 October 2026)
 
-`promptVerb` and `displayName` on an `Interactable`, `locationName` on a
-`LocationTrigger`, the Main Menu's button labels, the pause menu's. These are authored
-per-object in the Inspector, so they are not in the code and not in a catalogue either.
-**Consequence:** a player switching to Hindi would get translated HUD readouts and
-English button labels. **Closing it:** the same mechanism as the assets above now exists
-— a scene field would hold a key rather than a sentence — but applying it means touching
-every prefab and scene object that carries a label, which is a separate mechanical pass
-and was not part of TASK 040.
+`Interactable` and `LocationTrigger` now carry a `localizationKey`, resolved through
+`LocalizedContent` exactly as the content assets are, and every scene label a player can
+read has a key and an English entry. A language picker in Settings switches between them.
+
+**Two things this pass found that the entry above had wrong, and they are the reason it
+took longer than "assign 30 keys":**
+
+1. **Three prompts were hard-coded English in C#, not scene data at all.**
+   `NpcInteractable` read `$"Speak to {NpcName}"`, `MemoryPickup` read
+   `$"Recall {memory.Title}"`, and `FireBrazier` read `$"Light {DisplayName}"`. TASK 042's
+   claim that every string a *script* shows a player was externalized did not cover
+   these. They now go through the table.
+
+2. **`locationName` was never player-facing.** The entry listed it as a gap; nothing
+   outside `LocationTrigger`'s own developer log reads it. The capability is on the
+   component for the day a map legend wants it, but no key is assigned and no entry
+   exists, because a string no screen can show is work a translator should not be given.
+
+**And one live presentation bug**, recorded separately below.
+
+### Found and fixed: braziers showed their GameObject names to the player
+
+`FireBrazier` is the only prompt in the game that shows
+`Interactable.DisplayName`, which falls back to the GameObject's name when none is
+authored — and **none of the seven braziers had one**. A player read
+**"Light Brazier_0"** on Agniya's fire puzzle, which is on the critical path, and
+"Light Brazier_Left" in Avarsha. They are now "the brazier" and "the left/centre/right
+brazier". `NoBrazierShowsItsGameObjectNameToThePlayer` asserts it for both scenes.
+
+This is the "critical-path placeholder presentation" TASK 044 was meant to replace, and
+it survived that task because nothing was looking for it.
+
+### Only the labels a player can read are localized, by design
+
+Five interactables got a key during this pass and then had it taken away again:
+`Pickup_EmberDraught`, two memory rewards, the Agniya toll and the ruins carving. Their
+prompts are built from the *asset* they point at — an item's display name, a memory's
+title — and those already carry their own keys. A key on the scene object would have
+pointed at a table entry nothing could ever show, and a translator would have spent time
+on "MemoryToll_Agniya".
+
+**Consequence worth knowing:** the set of scene objects that need a key is not "every
+object with a label", it is "every object whose own label reaches a screen" — today
+`FireBrazier`, `SceneExit` and `NpcInteractable`. The `scene-label` validation rule
+checks exactly those three, so adding a fourth kind of prompt means extending the rule.
+
+### The language picker offers the pseudo-locale
+
+`Strings_qps` appears in the picker beside English, on purpose: it is how the text gets
+checked, and hiding it would mean editing a settings file by hand to see it. **Why this
+may want changing before release:** a player who selects it gets accented, padded
+nonsense and has to find their way back. **Closing it:** either accept it as a developer
+affordance, or hide it behind the developer-tools define, which is a one-line change to
+`AvailableLanguages`.
 
 ### PARTLY CLOSED — No second language exists (closure pass, 28 September 2026)
 

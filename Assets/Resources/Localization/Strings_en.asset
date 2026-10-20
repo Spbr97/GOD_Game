@@ -454,3 +454,78 @@ MonoBehaviour:
   - Key: dialogue.dlg_mira.node.mira_send.text
     Value: 'Go and look. And Ishan - whatever you read there, say it out loud before you walk away from it. Things last longer when they are spoken.'
     Note: 'Dialogue DLG_MIRA/MIRA_SEND text.'
+  - Key: interaction.verb.interact
+    Value: Interact
+    Note: Interaction prompt verb. Shared by every object with no more specific verb.
+  - Key: interaction.verb.enter
+    Value: Enter
+    Note: Interaction prompt verb, for a way into somewhere.
+  - Key: interaction.verb.leave
+    Value: Leave
+    Note: Interaction prompt verb, for a way out.
+  - Key: interaction.verb.recall
+    Value: Recall
+    Note: Interaction prompt verb, for a memory.
+  - Key: interaction.verb.speak_to
+    Value: Speak to
+    Note: Interaction prompt verb, for a character.
+  - Key: interaction.verb.light
+    Value: Light
+    Note: Interaction prompt verb, for a brazier.
+  - Key: interaction.speak_to
+    Value: Speak to {0}
+    Note: Prompt on an NPC. {0} is the character name.
+  - Key: interaction.recall_memory
+    Value: Recall {0}
+    Note: Prompt on a memory fragment. {0} is the memory title.
+  - Key: interaction.recall_memory_generic
+    Value: Recall memory
+    Note: Prompt on a memory fragment whose asset is missing.
+  - Key: interaction.light_brazier
+    Value: Light {0}
+    Note: Prompt on an unlit brazier. {0} is what the brazier is called.
+  - Key: interaction.brazier_already_lit
+    Value: '{0} is already lit'
+    Note: Prompt on a brazier that is already lit. {0} is what it is called.
+  - Key: interactable.brazier_left.name
+    Value: the left brazier
+    Note: Avarsha's fire puzzle. Appears inside the Light prompt.
+  - Key: interactable.brazier_center.name
+    Value: the centre brazier
+    Note: Avarsha's fire puzzle.
+  - Key: interactable.brazier_right.name
+    Value: the right brazier
+    Note: Avarsha's fire puzzle.
+  - Key: interactable.brazier_0.name
+    Value: the brazier
+    Note: Agniya's fire puzzle. The four share a name; standing near one tells them apart.
+  - Key: interactable.brazier_1.name
+    Value: the brazier
+    Note: Agniya's fire puzzle.
+  - Key: interactable.brazier_2.name
+    Value: the brazier
+    Note: Agniya's fire puzzle.
+  - Key: interactable.brazier_3.name
+    Value: the brazier
+    Note: Agniya's fire puzzle.
+  - Key: interactable.sceneexit_agniyatemple.name
+    Value: the Temple of Agniya
+    Note: The temple door, seen from Avarsha. Appears inside the Enter prompt.
+  - Key: interactable.sceneexit_toavarsha.name
+    Value: the Temple of Agniya
+    Note: The same door from inside, inside the Leave prompt.
+  - Key: interactable.npc_queenamara.name
+    Value: Queen Amara
+    Note: Character name. Translate as a name, not a title plus a word.
+  - Key: interactable.npc_mira.name
+    Value: Mira
+    Note: Character name.
+  - Key: interactable.npc_dev.name
+    Value: Dev
+    Note: Character name. A personal name, not the English abbreviation of "developer".
+  - Key: menu.language
+    Value: 'Language: {0}'
+    Note: Settings row. {0} is the language's own name for itself, so it stays readable to someone who cannot read the current language.
+  - Key: menu.change_language
+    Value: Change
+    Note: Button beside the language row. Cycles to the next installed language.
