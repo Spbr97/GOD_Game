@@ -2,6 +2,21 @@
 
 ## Unreleased — scene-label localization and a language picker
 
+### Verified (21 October 2026)
+
+- **The Release player starts again**, from clean commit `73cd17e`, with developer tools
+  verified absent from its assembly and `build-info.txt` naming a clean commit with no
+  uncommitted-changes caveat for the first time. Confirmed repeatable by an independent
+  relaunch rather than taken on the build's own one-shot check.
+
+  Nothing was changed to achieve it: Smart App Control is still on and enforcing, and its
+  verdict is reputation-based — which is also why builds launched in September, stopped in
+  October, and launch now. Recorded as "resolved for now" rather than fixed, because the
+  next build may be refused and a different machine may refuse this one.
+
+  This meets TASK 039's "launch the output outside the Editor" clause and means the manual
+  pass for TASK 039, 043 and 044 can run on the Release player as those gates intended.
+
 ### Fixed (21 October 2026)
 
 - **The pseudo-locale no longer reaches a Release player.** `AvailableLanguages` filters

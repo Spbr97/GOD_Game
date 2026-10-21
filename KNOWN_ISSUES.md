@@ -243,7 +243,29 @@ wants exclusive access to a fresh player — a signing tool, an installer builde
 that moves rather than reads — will hit it. The root cause is the same one-way Windows
 setting as below.
 
-### [RELEASE BLOCKER] Latest unsigned Release player blocked by Windows Application Control
+### RESOLVED FOR NOW — the Release player starts again (21 October 2026)
+
+The Release build from clean commit `73cd17e` **started and stayed up**, passed its
+developer-code gate and packaged. Confirmed repeatable by an independent relaunch, not
+taken on the build's own one-shot check.
+
+**Nothing was changed to achieve this.** Smart App Control is still on and still
+enforcing; `VerifiedAndReputablePolicyState` reads `1` exactly as it did when the build
+was being blocked. Its verdict is reputation-based, so it changes without the binary
+changing — which is the same mechanism that explains why builds launched in September,
+stopped in October, and launch again now.
+
+**So this is "resolved for now" and not "fixed".** The next build may be refused, and a
+different machine may refuse this one. Treat a blocked launch as an environment result
+rather than a code failure; the wrapper already records it that way and still packages the
+player. The durable answer is a signed executable, which costs money and is TASK 057's
+decision.
+
+**What it unblocks:** TASK 039's "launch the output outside the Editor" clause is met, and
+the manual pass for TASK 039, 043 and 044 can now be run on the **Release** player as
+those gates intended, rather than on the Development player as a substitute.
+
+### [HISTORICAL] Unsigned Release players were blocked by Windows Application Control
 
 The 10 October 2026 Release build compiled and passed developer-code gating,
 but Windows refused to start its executable with "An Application Control policy

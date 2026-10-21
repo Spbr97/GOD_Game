@@ -135,6 +135,34 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 21 October 2026 — the Release player starts, from a clean commit
+
+Release variant from commit `73cd17e` with a **clean working tree**, so `build-info.txt`
+names the commit with no "uncommitted changes" caveat for the first time. 100 MB
+installed, 37.7 MB zipped, 35 build warnings.
+
+```
+OK   no developer-only smoke-test code in the Release assembly
+OK   the Release player starts and stays up (manual pass still required)
+OK   packaged TheGodWhoWasForgotten-0.1.0-windows-x64-release.zip (37.7 MB)
+     sha256 3AE4FFD5DC740066AF52821CA612E8BF8CF73488CE07FB285A9D8F912E76844A
+```
+
+**This is the first Release player to start on this machine since 10 October.** Nothing
+was done to Smart App Control, which is still on and enforcing — `VerifiedAndReputablePolicyState`
+is unchanged. Smart App Control's verdict is reputation-based, so it can change without
+the binary changing, which is exactly what appears to have happened.
+
+Confirmed repeatable rather than taken on one result: the player was relaunched
+independently of the build and stayed up past 18 seconds, writing a normal player log
+(Mono paths, Input System initialised, physics backend up).
+
+**What this does and does not settle.** It settles that the binary runs, which nobody
+knew — the three previous Release candidates were packaged unverified. It does not settle
+the manual pass, and it does not mean the problem is fixed: the same reputation check may
+refuse the next build, or refuse this one on a different machine. A signed executable is
+still the only durable answer, and that is TASK 057's call.
+
 ### 21 October 2026 — scene-label build, and a packaging lock worth knowing about
 
 Development variant from commit `7bc5172`. **The player built and passed every smoke

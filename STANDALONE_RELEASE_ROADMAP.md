@@ -70,6 +70,15 @@ writing and usability work run throughout production.
   generated players out of Git. **Gate:** a zipped, locally reproducible
   Windows build and a written smoke-test record. Unity supports scripted
   [Windows player builds](https://docs.unity3d.com/6000.0/Documentation/Manual/build-command-line.html).
+  **Status 21 October 2026:** the build is scripted and reproducible, runs from a clean
+  checkout, keeps players out of Git, and the Release player now **starts outside the
+  Editor** from clean commit `73cd17e` with developer tools verified absent from its
+  assembly. `build-info.txt` names a clean commit with no uncommitted-changes caveat
+  for the first time. **What remains is the `TEST_PLAN.md` M0 manual pass** -- Main Menu
+  to New Game to Avarsha to save to quit to Continue, by a person. Smart App Control
+  blocked Release startup from 10 to 20 October and no longer does; see
+  `KNOWN_ISSUES.md`, because its verdict is reputation-based and may refuse a later
+  build without warning.
 - [x] **TASK 040 - Lock the production brief and story decisions.** Confirm the
   full-game scope, campaign order, ending paths, reference PC, English-first
   release language and target download channel. Resolve the four author
