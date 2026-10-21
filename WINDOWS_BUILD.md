@@ -135,6 +135,44 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 21 October 2026 — scene-label build, and a packaging lock worth knowing about
+
+Development variant from commit `7bc5172`. **The player built and passed every smoke
+test**, including the three TASK 044 checks and the cross-process save reload:
+
+```
+PASS entering the temple started its quest
+PASS and closed the quest's first objective
+PASS Ember Step is still locked before the boss is beaten
+PASS entering the temple autosaved on the way in
+...
+RESULT: PASS - launch to reloaded save completed in the Windows player.
+OK   save loaded successfully in a second player process
+```
+
+**Then packaging failed**, and the cause is worth recording because it is a property of
+this machine rather than of the build. `Compress-Archive` opens each source file denying
+share-delete. Windows Defender holds a handle on a freshly built unsigned executable, and
+with **Smart App Control enforcing** it holds that handle indefinitely rather than for a
+moment: three attempts over five minutes all failed, and a further five minutes of polling
+never saw the lock clear.
+
+Diagnosed by testing share modes rather than by guessing — shared read and shared
+read/write both succeeded, share-delete was refused, and a plain file copy worked. So the
+file was readable all along and only `Compress-Archive`'s sharing demand was the problem.
+
+`New-Package` now uses `System.IO.Compression.ZipFile.CreateFromDirectory`, which opens
+with `FileShare.Read`. It packaged the same still-locked directory first time, and the
+fixed function was re-run against that directory to confirm it rather than assumed.
+
+| Artifact | SHA-256 |
+|---|---|
+| `TheGodWhoWasForgotten-0.1.0-windows-x64-development.zip` (70.4 MB) | `3E552E8FDB8EF2EAF19BA647F3BC9DC9339F55BC893A9D1ABE8B72C5D11888A2` |
+
+The player itself is at `Build/Windows/Development` and is ready for the `TEST_PLAN.md`
+M0 pass. `build-info.txt` records commit `7bc5172` with uncommitted changes, because the
+packaging fix was made after the build.
+
 ### 10 October 2026 — controller binding repair, commit `706ece2`
 
 `.\Tools\build-windows.ps1 -Variant Both` exited 0 using Unity Personal

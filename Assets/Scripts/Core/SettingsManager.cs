@@ -356,6 +356,17 @@ namespace Game.Core
                 Resources.LoadAll<Game.Core.Localization.StringTable>("Localization"));
 
             tables.RemoveAll(table => table == null || string.IsNullOrWhiteSpace(table.LanguageCode));
+
+            // The pseudo-locale is a test instrument, not a language. It is how long text
+            // and non-ASCII glyphs get checked, so it has to be reachable in the Editor
+            // and in a Development player -- but a player who picks it in a Release build
+            // gets accented, padded nonsense and has to navigate back out of a menu they
+            // can no longer read. Gated on the same define as the rest of the developer
+            // tools, so it cannot reach a release by being forgotten.
+#if !UNITY_EDITOR && !GAME_DEVELOPER_TOOLS
+            tables.RemoveAll(table =>
+                table.LanguageCode == Game.Core.Localization.StringTable.PseudoLanguageCode);
+#endif
             tables.Sort((a, b) =>
             {
                 if (a.LanguageCode == Game.Core.Localization.Strings.DefaultLanguage) { return -1; }

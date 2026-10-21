@@ -227,6 +227,22 @@ The repeatable import and authoring steps are in `CONTENT_PIPELINE.md`. What
 remains is scene-authored labels and a complete second language with font and
 layout verification. English remains the only supported language.
 
+### Smart App Control also locks a fresh build against packaging
+
+Diagnosed 21 October 2026, and a second consequence of the entry below. `MsMpEng`
+(Defender) keeps a handle on a freshly built unsigned executable; with Smart App Control
+enforcing, that handle does not clear — ten minutes of polling never saw it released.
+
+`Compress-Archive` opens source files denying share-delete, so packaging failed three
+times against a lock that was never going to lift, on a build whose every smoke test had
+passed. Fixed by packaging with `System.IO.Compression.ZipFile`, which opens with
+`FileShare.Read` and succeeded against the same locked directory.
+
+**Worth knowing rather than fixed:** the lock itself is still there. Anything else that
+wants exclusive access to a fresh player — a signing tool, an installer builder, a copy
+that moves rather than reads — will hit it. The root cause is the same one-way Windows
+setting as below.
+
 ### [RELEASE BLOCKER] Latest unsigned Release player blocked by Windows Application Control
 
 The 10 October 2026 Release build compiled and passed developer-code gating,
@@ -236,6 +252,24 @@ machine. The wrapper now records the launch failure and still packages the
 player, so the exact binary can be tested on another Windows account or PC.
 Until it starts and passes the manual Release playthrough, this candidate is
 not an approved release. No paid signing service is assumed.
+
+**Mechanism confirmed 21 October 2026.** The policy is **Smart App Control**, read from
+`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` where `VerifiedAndReputablePolicyState`
+is `1` (on and enforcing), with `Win32_DeviceGuard` reporting user-mode code integrity
+enforced. That explains why earlier unsigned builds launched and later ones do not: Smart
+App Control's verdict is reputation-based and changes without the binary changing.
+
+**It matters that this is Smart App Control specifically, because it is a one-way door:**
+it can be turned off, and it cannot be turned back on without resetting Windows. That is
+the owner's decision and nobody else's. Three roadmap gates wait behind it — TASK 039's
+"launch the output", TASK 043's manual feel pass and TASK 044's manual pass.
+
+**The way round it that costs nothing:** the **Development** player launches on this
+machine and has passed every automated check. `TEST_PLAN.md` M0 is almost entirely travel,
+saves and combat feel, which are identical in both variants, and the one thing only a
+Release player can prove — that developer tools are absent — is already verified on every
+build by the wrapper's binary gate. Running M0 on the Development player clears the
+substance of all three gates without touching the setting.
 
 ### CLOSED — Text typed into a scene is not localizable (21 October 2026)
 
@@ -285,14 +319,18 @@ object with a label", it is "every object whose own label reaches a screen" — 
 `FireBrazier`, `SceneExit` and `NpcInteractable`. The `scene-label` validation rule
 checks exactly those three, so adding a fourth kind of prompt means extending the rule.
 
-### The language picker offers the pseudo-locale
+### CLOSED — The language picker offered the pseudo-locale to players (21 October 2026)
 
-`Strings_qps` appears in the picker beside English, on purpose: it is how the text gets
-checked, and hiding it would mean editing a settings file by hand to see it. **Why this
-may want changing before release:** a player who selects it gets accented, padded
-nonsense and has to find their way back. **Closing it:** either accept it as a developer
-affordance, or hide it behind the developer-tools define, which is a one-line change to
-`AvailableLanguages`.
+`Strings_qps` is now filtered out of `AvailableLanguages` unless `UNITY_EDITOR` or
+`GAME_DEVELOPER_TOOLS` is defined — the same gate as the rest of the developer tools, so
+it cannot reach a release by being forgotten. It stays reachable in the Editor and in a
+Development player, which is where long text and non-ASCII glyphs actually get checked.
+
+`ThePseudoLocaleIsGatedOutOfAReleasePlayer` asserts the directive is present and filters
+by `StringTable.PseudoLanguageCode` rather than a literal. It checks the **source** and
+says why: this test runs in the Editor, where the symbol is defined, so no runtime check
+here could distinguish a gated build from an ungated one. What it can catch is the way
+the gate would really be lost — someone tidying the directive away.
 
 ### PARTLY CLOSED — No second language exists (closure pass, 28 September 2026)
 

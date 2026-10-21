@@ -257,9 +257,35 @@ namespace Game.Tests
             Assert.IsNotEmpty(languages);
             Assert.AreEqual(Strings.DefaultLanguage, languages[0].LanguageCode,
                 "English should sort first, because it is the fallback and the authored language");
-            Assert.IsTrue(languages.Any(table => table.LanguageCode == "qps"),
-                "the pseudo-locale is deliberately offered: it is how the text gets checked, and hiding "
-                + "it would mean editing a settings file by hand to see it");
+            Assert.IsTrue(languages.Any(table => table.LanguageCode == StringTable.PseudoLanguageCode),
+                "the pseudo-locale must be reachable here: the Editor and a Development player are where "
+                + "long text and non-ASCII glyphs get checked, and hiding it would mean editing a settings "
+                + "file by hand to see it");
+        }
+
+        /// <summary>
+        /// The other half of that: it must **not** reach a Release player. A player who
+        /// picks the pseudo-locale gets accented, padded nonsense and then has to navigate
+        /// back out of a menu they can no longer read.
+        ///
+        /// Asserted against the source rather than by building, because the gate is an
+        /// <c>#if</c> and this test runs in the Editor where the symbol is defined — so no
+        /// runtime check here could tell a gated build from an ungated one. What this can
+        /// prove is that the gate is present and spelled correctly, which is the way it
+        /// would actually be lost: by someone tidying the directive away.
+        /// </summary>
+        [Test]
+        public void ThePseudoLocaleIsGatedOutOfAReleasePlayer()
+        {
+            var source = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(Application.dataPath, "Scripts/Core/SettingsManager.cs"));
+
+            Assert.IsTrue(source.Contains("#if !UNITY_EDITOR && !GAME_DEVELOPER_TOOLS"),
+                "AvailableLanguages no longer gates the pseudo-locale, so a Release player would offer it "
+                + "to players as though it were a language.");
+            Assert.IsTrue(source.Contains("StringTable.PseudoLanguageCode"),
+                "the gate should filter by the named constant, not by a literal that can drift from the "
+                + "generator and the tests");
         }
 
         [Test]

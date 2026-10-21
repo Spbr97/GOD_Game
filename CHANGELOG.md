@@ -2,6 +2,19 @@
 
 ## Unreleased — scene-label localization and a language picker
 
+### Fixed (21 October 2026)
+
+- **The pseudo-locale no longer reaches a Release player.** `AvailableLanguages` filters
+  `Strings_qps` unless `UNITY_EDITOR` or `GAME_DEVELOPER_TOOLS` is defined — the same gate
+  as the rest of the developer tools, so it cannot ship by being forgotten. It stays
+  reachable where long text and non-ASCII glyphs actually get checked.
+- **Packaging no longer fails against a Defender lock.** `Compress-Archive` opens source
+  files denying share-delete; Defender holds a handle on a freshly built unsigned
+  executable, and with Smart App Control enforcing it does not let go — three attempts over
+  five minutes failed on a build whose every smoke test had passed. `New-Package` now uses
+  `System.IO.Compression.ZipFile`, which opens with `FileShare.Read`, and packaged the same
+  locked directory first time. Verified by re-running the fixed function against it.
+
 Closes the last gap keeping TASK 042 open, and adds the player-facing control the
 localization work never had.
 

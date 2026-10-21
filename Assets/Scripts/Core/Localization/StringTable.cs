@@ -47,6 +47,13 @@ namespace Game.Core.Localization
 
         private Dictionary<string, string> lookup;
 
+        /// <summary>
+        /// The pseudo-locale's code. Named here rather than spelled out at each use so the
+        /// generator, the picker's filter and the tests cannot disagree about which table
+        /// is the test instrument.
+        /// </summary>
+        public const string PseudoLanguageCode = "qps";
+
         public string LanguageCode => languageCode;
 
         public string LanguageName => languageName;

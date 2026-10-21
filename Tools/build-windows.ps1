@@ -430,14 +430,27 @@ function New-Package([string] $PlayerDirectory, [string] $VariantName, [string] 
     $zip = Join-Path $BuildRoot "TheGodWhoWasForgotten-$Version-windows-x64-$($VariantName.ToLower()).zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
 
-    # A retry rather than one attempt: a virus scanner or an indexer touching a
-    # freshly written 176 MB player is ordinary on Windows, and losing a good build to
-    # it would be silly. Errors are made terminating first so the catch sees them --
-    # Compress-Archive reports a locked file non-terminating.
+    # Packaged with System.IO.Compression rather than Compress-Archive, which is not a
+    # style preference -- it is the difference between this step working and not.
+    #
+    # Compress-Archive opens each source file denying share-delete. Windows Defender
+    # keeps a handle on a freshly built unsigned executable, and on a machine with Smart
+    # App Control enforcing it keeps that handle indefinitely rather than for a moment:
+    # the player built and passed every smoke test on 21 October 2026 and packaging then
+    # failed three times over five minutes against a lock that never cleared. ZipFile
+    # opens with FileShare.Read, which that handle permits, and packaged the same
+    # directory first time.
+    #
+    # The retry is kept for the transient case an indexer still causes, but it is no
+    # longer what this step depends on.
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
     $attempts = 3
     for ($attempt = 1; $attempt -le $attempts; $attempt++) {
         try {
-            Compress-Archive -Path (Join-Path $PlayerDirectory '*') -DestinationPath $zip -ErrorAction Stop
+            [System.IO.Compression.ZipFile]::CreateFromDirectory(
+                $PlayerDirectory, $zip,
+                [System.IO.Compression.CompressionLevel]::Optimal, $false)
             break
         }
         catch {
