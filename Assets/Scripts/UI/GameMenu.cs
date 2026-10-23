@@ -253,12 +253,16 @@ namespace Game.UI
             }
         }
 
-        /// <inheritdoc cref="SettingsPanel.BuildForPreview"/>
-        public void BuildForPreview()
-        {
-            EnsureBuilt();
-            ShowRoot();
-        }
+        /// <summary>
+        /// Builds the menu without running the game, so <c>UiCapture</c> can render it.
+        ///
+        /// Deliberately does **not** call <see cref="ShowRoot"/>, unlike every other path
+        /// into this menu: the capture tool decides which panel it is photographing, and a
+        /// preview that helpfully returned to the root would make the four sub-panels
+        /// impossible to photograph at all. Construction already leaves the root showing,
+        /// which is the right default for a preview of the menu as a whole.
+        /// </summary>
+        public void BuildForPreview() => EnsureBuilt();
 
         /// <summary>Test and tooling seam.</summary>
         public void Configure(PauseMenu owner, InputActionAsset actions)

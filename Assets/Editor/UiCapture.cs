@@ -98,7 +98,21 @@ namespace Game.EditorTools
             {
                 EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
+                // Two passes, because half these screens do not exist until something
+                // builds them: a panel named here may be a child the pause menu creates in
+                // code, which cannot be shown before the thing that makes it has run.
+                var pending = new List<string>();
                 foreach (var panelName in showPanels ?? Array.Empty<string>())
+                {
+                    if (!ShowOnly(panelName, log))
+                    {
+                        pending.Add(panelName);
+                    }
+                }
+
+                BuildRuntimePanels(log);
+
+                foreach (var panelName in pending)
                 {
                     if (!ShowOnly(panelName, log))
                     {
@@ -106,7 +120,14 @@ namespace Game.EditorTools
                     }
                 }
 
-                BuildRuntimePanels(log);
+                // Again, because a panel that was just revealed may itself be one that
+                // builds on enable — the in-game Settings screen is built by the pause menu
+                // and then builds its own rows, which is two levels of "not there yet".
+                // EnsureBuilt makes the repeat free for anything already built.
+                if (pending.Count > 0)
+                {
+                    BuildRuntimePanels(log);
+                }
 
                 var canvas = FindCanvas();
                 if (canvas == null)

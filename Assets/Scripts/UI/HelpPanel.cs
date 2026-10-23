@@ -36,7 +36,7 @@ namespace Game.UI
         [Tooltip("Where the screen is built. Defaults to this object's own RectTransform.")]
         [SerializeField] private RectTransform container;
 
-        [SerializeField] private float panelWidth = 820f;
+        [SerializeField] private float panelWidth = 1180f;
         [SerializeField] private bool drawBackground = true;
 
         /// <summary>Raised when the player presses Back.</summary>
@@ -213,9 +213,13 @@ namespace Game.UI
                     Strings.Get(StringKeys.HelpActionPrefix + actionName.ToLowerInvariant()),
                     BindingsFor(action));
 
-                var size = label.gameObject.AddComponent<LayoutElement>();
-                size.minHeight = UiTheme.RowHeight - 4f;
-                size.preferredHeight = UiTheme.RowHeight - 4f;
+                // No fixed height. A row is as tall as its text, because the text is not a
+                // fixed length: "Guard, and parry on a well-timed press" wraps to two lines
+                // in English and will wrap differently in every other language. Pinning the
+                // height made the long rows overlap the ones beneath them — the same defect
+                // this task was opened to fix, reintroduced two screens along.
+                var fitter = label.gameObject.AddComponent<ContentSizeFitter>();
+                fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             }
         }
 

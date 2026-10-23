@@ -223,7 +223,10 @@ namespace Game.EditorTools
             var version = UiBuilder.Label(footer, null, UiTheme.TextRole.Small, TextAnchor.LowerRight);
             // Written by a component at runtime, not baked in here. Text saved into a
             // scene belongs to no key and no language, which is the gap this task closed.
-            version.gameObject.AddComponent<VersionLabel>();
+            // Applied once here as well as at runtime, so the Editor and the capture tool
+            // show the real line rather than an empty corner — the same reason the builder
+            // lets LocalizedLabel write its English through at build time.
+            version.gameObject.AddComponent<VersionLabel>().Apply();
             UiBuilder.Stretch(version.rectTransform);
             version.rectTransform.offsetMin = new Vector2(0f, UiTheme.PanelPadding);
             version.rectTransform.offsetMax = new Vector2(-UiTheme.PanelPadding, 0f);
