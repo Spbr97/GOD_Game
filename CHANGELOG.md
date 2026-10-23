@@ -2,6 +2,39 @@
 
 ## Unreleased — the UI pass (TASK 054)
 
+### A baseline pass over the finished UI (24 October 2026)
+
+With the screens built, they were put through the conditions a layout actually breaks
+under — largest text size, a translation longer than English, and a gamepad — rather than
+looked at once in English at the default size. `UI_BASELINE_REVIEW.md` has the full list,
+numbered for the owner to accept or correct. Four of the six fixed findings were high
+severity, and none of them could be seen by reading code.
+
+- **Text scaling never worked, in either scene.** `UIScaleApplier` set
+  `CanvasScaler.scaleFactor`, which Unity reads only in `ConstantPixelSize` mode; both
+  canvases are `ScaleWithScreenSize`, where the scaler overwrites it. Asking for 1.5× left
+  `canvas.scaleFactor` at 0.4000813, unchanged. The setting had been listed as delivered
+  since TASK 017: the slider moved, the value saved, and the screen never changed.
+- **The Main Menu had no `UIScaleApplier` at all** — and until this task the Main Menu was
+  the only place the text-size slider existed. The setting lived on the one canvas that
+  could not apply it, and the two that could were being handed a value their scaler
+  ignored.
+- **At 1.5× text, Settings grew past the screen and the Back button went with it.** Visible
+  only once the first fix made the setting do anything. Tall panels are now pinned to the
+  screen's height with a scrolling middle, so the title and Back survive any scale.
+- **Seven controls were unreachable with a gamepad** — the Settings screen's entire
+  right-hand column, which is to say every accessibility option. Unity's automatic
+  navigation does not bridge two columns. Found by walking the navigation graph and
+  comparing what it reaches against what exists; now wired explicitly, and a test fails if
+  anything is ever stranded again.
+- **Focus could move to a row scrolled out of sight**, which on a gamepad is
+  indistinguishable from the list having died. `ScrollToSelection` follows the selection,
+  on the remap list too.
+
+The pseudo-locale was rendered for the first time since it was built: every caption,
+difficulty name and On/Off reads in it, accented glyphs render, and nothing clips — which
+is the localization work in TASK 042 and TASK 054 demonstrated rather than asserted.
+
 ### Two defects nobody could see (24 October 2026)
 
 The UI had never been rendered. Every judgement about it had been made by reading C# and

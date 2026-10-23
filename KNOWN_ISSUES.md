@@ -5,6 +5,37 @@ was left, and what closing it involves.
 
 ## TASK 054 — UI, accessibility and text readiness (in progress, 24 October 2026)
 
+### CLOSED — Text scaling never did anything (SPEC.md section 43, open since TASK 017)
+
+`UIScaleApplier` set `CanvasScaler.scaleFactor`, which Unity reads only in
+`ConstantPixelSize` mode, and both canvases are `ScaleWithScreenSize`. Separately, the Main
+Menu — the only screen that offered the setting — had no `UIScaleApplier` on it at all.
+Measured at 1.5×, `canvas.scaleFactor` stayed at 0.4000813 in both scenes.
+
+**Worth remembering why it survived four tasks:** every check asked whether the value was
+stored, and storing it was the half that worked. A setting is an effect, not a field;
+`AskingForBiggerTextMakesTheCanvasScaleBigger` now asserts the effect.
+
+### CLOSED — Gamepad navigation onto dynamically built rows (open since TASK 010)
+
+Now measurable, and it had a cost: Unity's automatic navigation did not cross the Settings
+screen's two columns, stranding seven controls — every accessibility option among them —
+with no sequence of direction presses that reached them. Navigation between built columns
+is explicit, focus follows a scrolling list, and a test walks the graph.
+
+The journal's and the remap list's own rows are covered by `ScrollToSelection` but still
+rely on automatic navigation between rows; they are a single column, which is the case
+automatic navigation handles well. If a second column ever appears there, wire it.
+
+### These screens have been rendered, not played
+
+`UI_BASELINE_REVIEW.md` is a first pass over the finished UI, done by rendering every
+screen at the largest text size and in the pseudo-locale and by walking the navigation
+graph. It found six defects, four of them high severity, and it also records six things it
+**could not** answer — chief among them that nothing in it was played. Findings F7 to F12
+there are open for the owner to accept, reject or correct, and the document ends with what
+`TEST_PLAN.md` M0 should check first and why.
+
 The menus were rebuilt from code and six older entries below are now closed. What this
 pass did **not** fix, and what it introduced:
 

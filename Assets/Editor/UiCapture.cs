@@ -46,6 +46,8 @@ namespace Game.EditorTools
         public static string CaptureDeferred(string scenePath, string outputPath, int width, int height,
             params string[] showPanels)
         {
+            var language = Language;
+            var textScale = TextScale;
             var logPath = outputPath + ".log";
             if (File.Exists(logPath))
             {
@@ -60,6 +62,11 @@ namespace Game.EditorTools
                 string result;
                 try
                 {
+                    // Captured when the call was made, not when the tick fires: a sweep
+                    // queues several of these and the static would otherwise hold whatever
+                    // the last caller set.
+                    Language = language;
+                    TextScale = textScale;
                     result = Capture(scenePath, outputPath, width, height, showPanels);
                 }
                 catch (Exception error)
@@ -88,6 +95,18 @@ namespace Game.EditorTools
         /// deactivated, which is how a menu's panels are mutually exclusive at runtime.
         /// Empty means "capture the scene as it is on disk".
         /// </param>
+        /// <summary>
+        /// The language to render in, and the text size to render at, for the next capture.
+        ///
+        /// A baseline pass needs both: a layout only breaks under conditions the author did
+        /// not type into it, and the two that break a menu are a translation longer than
+        /// English and a player who has turned the text up. The pseudo-locale exists to
+        /// supply the first and had never been looked at.
+        /// </summary>
+        public static string Language = "en";
+
+        public static float TextScale = 1f;
+
         public static string Capture(string scenePath, string outputPath, int width, int height,
             params string[] showPanels)
         {
@@ -97,6 +116,12 @@ namespace Game.EditorTools
             try
             {
                 EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+
+                // Before anything builds, not after. A panel writes its values — the
+                // difficulty name, "On"/"Off", the language's own name — while it is being
+                // constructed, so a language set afterwards leaves those in English and the
+                // capture quietly understates how much of the screen is translated.
+                Game.Core.Localization.Strings.SetLanguage(Language);
 
                 // Two passes, because half these screens do not exist until something
                 // builds them: a panel named here may be a child the pause menu creates in
@@ -134,6 +159,8 @@ namespace Game.EditorTools
                 {
                     return $"FAILED: no Canvas in {scenePath}";
                 }
+
+                ApplyConditions(canvas, log);
 
                 var file = Render(canvas, outputPath, width, height, log);
                 return $"OK {file}\n{string.Join("\n", log)}";
@@ -246,6 +273,36 @@ namespace Game.EditorTools
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Puts the canvas into the language and text size being tested, then rebuilds the
+        /// labels so they are re-read. Both are reverted when the scene is reopened.
+        /// </summary>
+        private static void ApplyConditions(Canvas canvas, List<string> log)
+        {
+            Game.Core.Localization.Strings.SetLanguage(Language);
+            log.Add($"language {Language}, text scale {TextScale:0.00}");
+
+            var applier = canvas.GetComponent<Game.UI.UIScaleApplier>();
+            if (applier != null)
+            {
+                applier.Apply(TextScale);
+                log.Add($"effective scale {applier.EffectiveScale:0.00}");
+            }
+            else if (TextScale != 1f)
+            {
+                log.Add("WARN this canvas has no UIScaleApplier, so text size does nothing on it");
+            }
+
+            // Every label reads its key on enable, which has not happened here.
+            foreach (var label in Resources.FindObjectsOfTypeAll<Game.UI.LocalizedLabel>())
+            {
+                if (label.gameObject.scene.IsValid())
+                {
+                    label.Apply();
+                }
+            }
         }
 
         private static Canvas FindCanvas()

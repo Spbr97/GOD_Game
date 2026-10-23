@@ -124,15 +124,22 @@ namespace Game.UI
         private void Build()
         {
             var host = container != null ? container : (RectTransform)transform;
-            var panel = UiBuilder.Panel(host, "SettingsContent", panelWidth, drawBackground);
+
+            // Fitted rather than sized-to-content: at the largest text size this screen is
+            // taller than the screen, and the part that fell off the bottom was the Back
+            // button. An accessibility option that strands the player on the accessibility
+            // screen is worse than one that does nothing.
+            var panel = UiBuilder.FittedPanel(host, "SettingsContent", panelWidth);
 
             UiBuilder.Label(panel, StringKeys.MenuLabelSettingsTitle, UiTheme.TextRole.Title);
+
+            var scrollContent = UiBuilder.Scroll(panel, "SettingsScroll", 600f);
 
             // Two columns rather than one list. At a readable size the full set of rows is
             // taller than a 1080 screen, and the two ways to fit it in one column were a
             // scroll view a gamepad does not follow focus into, or smaller text on the
             // screen that holds the accessibility options.
-            var columns = UiBuilder.Columns(panel, 2);
+            var columns = UiBuilder.Columns(scrollContent, 2);
             var left = columns[0];
             var right = columns[1];
 
@@ -166,6 +173,10 @@ namespace Game.UI
 
             UiBuilder.Spacer(panel, UiTheme.Spacing * 2f);
             backButton = UiBuilder.Button(panel, StringKeys.MenuLabelBack);
+
+            // Explicit, because Unity's automatic navigation left the whole right-hand
+            // column unreachable — every accessibility option among them.
+            UiBuilder.WireColumnNavigation(columns, backButton);
 
             volume.onValueChanged.AddListener(OnVolumeChanged);
             sensitivity.onValueChanged.AddListener(OnSensitivityChanged);

@@ -126,6 +126,16 @@ namespace Game.EditorTools
                 return;
             }
 
+            // The Main Menu is where the text-size slider has lived since TASK 017, and
+            // its canvas was the one canvas in the game with nothing to apply it — the two
+            // gameplay canvases had the component and the setting they were given did
+            // nothing, so the feature was broken at both ends and looked present at both.
+            if (canvas.GetComponent<Game.UI.UIScaleApplier>() == null)
+            {
+                canvas.gameObject.AddComponent<Game.UI.UIScaleApplier>();
+                log.Add("     " + MainMenuScene + ": added the missing UIScaleApplier");
+            }
+
             var removed = ClearOwnedPanels(canvas.transform, OwnedMainMenuPanels);
 
             // A background of its own, rather than relying on the camera's clear colour.

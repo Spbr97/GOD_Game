@@ -238,6 +238,14 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   `LocalizedLabel`, and every screen has been rendered and inspected with the new
   `UiCapture` tool — which found a pause title drawn over its own buttons and a
   slider covering two controls. Six older KNOWN_ISSUES entries closed with it.
+  **Baseline review (24 October 2026):** every screen was then rendered at the
+  largest text size and in the pseudo-locale, and its navigation graph walked.
+  Six defects found, four high severity and all invisible to code review: text
+  scaling had never worked in either scene, the Main Menu had no
+  `UIScaleApplier`, Settings overflowed the screen at 1.5x and took the Back
+  button with it, and seven controls — every accessibility option — could not be
+  reached with a gamepad. All fixed and asserted. `UI_BASELINE_REVIEW.md` lists
+  them, plus six open questions for the owner and what M0 should check first.
   **Still open:** TASK 053 owns the art, and this task's gate — a first-time
   tester playing without instructions, in Release — is the manual pass.
 - [ ] **TASK 055 - Windows performance and stability.** Profile the actual

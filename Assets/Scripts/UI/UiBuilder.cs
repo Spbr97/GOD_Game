@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -96,6 +97,46 @@ namespace Game.UI
             var fitter = rect.gameObject.AddComponent<ContentSizeFitter>();
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            return rect;
+        }
+
+        /// <summary>
+        /// A panel that fills the screen's height instead of sizing to its contents, so a
+        /// flexible child inside it absorbs whatever is left over.
+        ///
+        /// **Why a screen needs this.** <see cref="Panel"/> grows to fit, which is right
+        /// for a short screen and wrong for a long one: at the largest text size the
+        /// Settings panel grew past the top and bottom of a 1080 screen and took the Back
+        /// button with it, so a player who turned the text up could not leave the screen
+        /// they had turned it up on. Found by rendering it at 1.5x rather than by reasoning
+        /// about it.
+        ///
+        /// Because the canvas scaler shrinks the reference resolution as text grows, a
+        /// panel pinned to the screen's height is pinned to the *right* height at every
+        /// scale, with no arithmetic about font sizes anywhere.
+        /// </summary>
+        public static RectTransform FittedPanel(Transform parent, string name, float width,
+            float verticalMargin = 24f)
+        {
+            var rect = NewRect(parent, name);
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(width, -verticalMargin * 2f);
+            rect.anchoredPosition = Vector2.zero;
+
+            rect.gameObject.AddComponent<Image>().color = UiTheme.Panel;
+
+            var layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(
+                (int)UiTheme.PanelPadding, (int)UiTheme.PanelPadding,
+                (int)UiTheme.PanelPadding, (int)UiTheme.PanelPadding);
+            layout.spacing = UiTheme.Spacing;
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
             return rect;
         }
 
@@ -414,14 +455,21 @@ namespace Game.UI
         {
             var viewport = NewRect(parent, name);
             var size = viewport.gameObject.AddComponent<LayoutElement>();
-            size.minHeight = height;
+            size.minHeight = 0f;
             size.preferredHeight = height;
+
+            // Takes whatever the fixed parts of the panel leave, which is what keeps the
+            // Back button on screen when the text is turned up.
             size.flexibleHeight = 1f;
 
             var scroll = viewport.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false;
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 24f;
+
+            // Otherwise navigation moves focus to a row that is scrolled out of sight and
+            // the list looks dead to anyone on a gamepad.
+            viewport.gameObject.AddComponent<ScrollToSelection>();
 
             var mask = NewRect(viewport, "Viewport");
             Stretch(mask);
@@ -435,9 +483,108 @@ namespace Game.UI
             content.pivot = new Vector2(0.5f, 1f);
             content.sizeDelta = new Vector2(0f, 0f);
 
+            // The content grows downwards as rows are added; without a fitter the mask
+            // would clip everything past the viewport's own height and never scroll.
+            var contentFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var contentLayout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            contentLayout.childControlWidth = true;
+            contentLayout.childControlHeight = true;
+            contentLayout.childForceExpandWidth = true;
+            contentLayout.childForceExpandHeight = false;
+
             scroll.viewport = mask;
             scroll.content = content;
             return content;
+        }
+
+        /// <summary>
+        /// Wires explicit up/down/left/right between the controls of several columns, plus
+        /// a footer button that both columns can reach.
+        ///
+        /// **Unity's automatic navigation is not enough here, and it fails silently.** It
+        /// picks the nearest candidate in the pressed direction by projecting rectangle
+        /// edges, which works down a single list and does not reliably cross from one
+        /// column to another: on the Settings screen it left the entire Accessibility and
+        /// Display column — seven controls, including every accessibility option — with no
+        /// sequence of presses that reached them. A player on a gamepad could not change
+        /// subtitle background, camera shake, screen effects or aim assist at all.
+        ///
+        /// Nothing about that is visible to someone building the screen with a mouse, which
+        /// is why KNOWN_ISSUES.md has carried "gamepad navigation onto dynamically built
+        /// rows is unwired" since TASK 010 without anyone being able to say what it cost.
+        ///
+        /// Explicit links are deterministic: down goes to the next control in the column,
+        /// right goes to the column beside it, and the ends wrap to the footer so there is
+        /// always a way out of the screen.
+        /// </summary>
+        public static void WireColumnNavigation(RectTransform[] columns, Selectable footer = null)
+        {
+            if (columns == null || columns.Length == 0)
+            {
+                return;
+            }
+
+            var lists = new List<List<Selectable>>();
+            foreach (var column in columns)
+            {
+                var found = new List<Selectable>();
+                if (column != null)
+                {
+                    foreach (var selectable in column.GetComponentsInChildren<Selectable>(true))
+                    {
+                        found.Add(selectable);
+                    }
+                }
+
+                lists.Add(found);
+            }
+
+            for (var c = 0; c < lists.Count; c++)
+            {
+                var column = lists[c];
+                for (var i = 0; i < column.Count; i++)
+                {
+                    var navigation = new Navigation { mode = Navigation.Mode.Explicit };
+
+                    navigation.selectOnUp = i > 0 ? column[i - 1] : footer;
+                    navigation.selectOnDown = i < column.Count - 1 ? column[i + 1] : footer;
+                    navigation.selectOnLeft = Neighbour(lists, c - 1, i);
+                    navigation.selectOnRight = Neighbour(lists, c + 1, i);
+
+                    column[i].navigation = navigation;
+                }
+            }
+
+            if (footer == null)
+            {
+                return;
+            }
+
+            var first = lists[0].Count > 0 ? lists[0][0] : null;
+            var last = lists[0].Count > 0 ? lists[0][lists[0].Count - 1] : null;
+            footer.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = last,
+                selectOnDown = first
+            };
+        }
+
+        /// <summary>
+        /// The control beside this one in a neighbouring column. A shorter column is
+        /// entered at its last control rather than nowhere, so moving sideways from the
+        /// bottom of a long column never does nothing.
+        /// </summary>
+        private static Selectable Neighbour(List<List<Selectable>> columns, int column, int index)
+        {
+            if (column < 0 || column >= columns.Count || columns[column].Count == 0)
+            {
+                return null;
+            }
+
+            return columns[column][Mathf.Min(index, columns[column].Count - 1)];
         }
 
         /// <summary>Makes a rect fill its parent.</summary>

@@ -148,6 +148,129 @@ namespace Game.Tests
             }
         }
 
+        /// <summary>
+        /// **Everything on a panel can be reached without a mouse.**
+        ///
+        /// Unity works out navigation from geometry, so this passes or fails on the layout
+        /// rather than on anyone having wired it — which is the point: a control that no
+        /// amount of pressing Down will ever highlight is invisible to a player on a
+        /// gamepad, and perfectly visible to whoever built the screen with a mouse in their
+        /// hand. KNOWN_ISSUES.md has carried a version of this worry since TASK 010 with
+        /// nothing able to answer it.
+        ///
+        /// Walks the graph from the first control, following every direction, and asks
+        /// whether the set it reaches is the set that exists.
+        /// </summary>
+        [Test]
+        public void EveryControlOnTheSettingsPanelCanBeReachedByNavigatingToIt()
+        {
+            var host = NewCanvas(out var canvas);
+
+            try
+            {
+                var panelObject = new GameObject("Settings", typeof(RectTransform));
+                panelObject.transform.SetParent(host, false);
+                UiBuilder.Stretch((RectTransform)panelObject.transform);
+
+                var settings = panelObject.AddComponent<SettingsPanel>();
+                settings.Configure((RectTransform)panelObject.transform, background: true, display: true);
+                settings.BuildForPreview();
+
+                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)panelObject.transform);
+
+                var all = new HashSet<Selectable>();
+                foreach (var selectable in panelObject.GetComponentsInChildren<Selectable>(true))
+                {
+                    if (selectable.IsInteractable())
+                    {
+                        all.Add(selectable);
+                    }
+                }
+
+                Assert.Greater(all.Count, 8, "the probe panel built almost no controls");
+
+                var start = settings.BackButton;
+                Assert.IsNotNull(start, "the panel has no Back button to start from");
+
+                var reached = new HashSet<Selectable> { start };
+                var queue = new Queue<Selectable>();
+                queue.Enqueue(start);
+
+                while (queue.Count > 0)
+                {
+                    var from = queue.Dequeue();
+                    foreach (var next in new[]
+                             {
+                                 from.FindSelectableOnDown(), from.FindSelectableOnUp(),
+                                 from.FindSelectableOnLeft(), from.FindSelectableOnRight()
+                             })
+                    {
+                        if (next != null && all.Contains(next) && reached.Add(next))
+                        {
+                            queue.Enqueue(next);
+                        }
+                    }
+                }
+
+                var stranded = all.Where(selectable => !reached.Contains(selectable))
+                    .Select(selectable => Path(selectable.transform))
+                    .ToList();
+
+                Assert.IsEmpty(stranded,
+                    "No sequence of direction presses reaches these controls, so a player on a "
+                    + "gamepad cannot use them at all:\n  " + string.Join("\n  ", stranded));
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvas);
+            }
+        }
+
+        /// <summary>
+        /// **The text size setting changes the size of the text.**
+        ///
+        /// It did not, from TASK 017 until TASK 054: <see cref="UIScaleApplier"/> set
+        /// <c>CanvasScaler.scaleFactor</c>, which Unity ignores in ScaleWithScreenSize mode
+        /// — and both canvases in this game are in that mode. The slider moved, the value
+        /// was saved, every test that asked whether it had been stored passed, and the
+        /// screen never changed. A setting is not stored state; it is an effect.
+        /// </summary>
+        [Test]
+        public void AskingForBiggerTextMakesTheCanvasScaleBigger()
+        {
+            var canvasObject = new GameObject("ScaleProbe", typeof(RectTransform), typeof(Canvas),
+                typeof(CanvasScaler), typeof(UIScaleApplier));
+
+            try
+            {
+                var scaler = canvasObject.GetComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+
+                var applier = canvasObject.GetComponent<UIScaleApplier>();
+
+                applier.Apply(1f);
+                Assert.AreEqual(1f, applier.EffectiveScale, 0.01f, "1.0 should be the authored size");
+
+                applier.Apply(1.5f);
+                Assert.AreEqual(1.5f, applier.EffectiveScale, 0.01f,
+                    "asking for 1.5x text did not make the canvas 1.5x");
+
+                // Measured from the authored size each time, never compounded: applying
+                // 1.5 twice must not give 2.25.
+                applier.Apply(1.5f);
+                Assert.AreEqual(1.5f, applier.EffectiveScale, 0.01f, "the scale compounded on itself");
+
+                applier.Apply(0.75f);
+                Assert.AreEqual(0.75f, applier.EffectiveScale, 0.01f, "the smallest size did not apply");
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvasObject);
+            }
+        }
+
         // ---------------------------------------------------------------------- text
 
         /// <summary>

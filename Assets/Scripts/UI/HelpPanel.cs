@@ -118,23 +118,29 @@ namespace Game.UI
             built = true;
 
             var host = container != null ? container : (RectTransform)transform;
-            var panel = UiBuilder.Panel(host, "HelpContent", panelWidth, drawBackground);
+            var panel = UiBuilder.FittedPanel(host, "HelpContent", panelWidth);
 
             UiBuilder.Label(panel, StringKeys.MenuLabelHelpTitle, UiTheme.TextRole.Title);
-            UiBuilder.Paragraph(panel, StringKeys.HelpIntro);
-            UiBuilder.Paragraph(panel, StringKeys.HelpBindingNote, UiTheme.TextRole.Muted);
+
+            // Everything but the title and the Back button scrolls, for the same reason as
+            // the Settings screen: a control list is as long as the game has controls, and
+            // a player reading it at the largest text size must still be able to leave.
+            var scrollContent = UiBuilder.Scroll(panel, "HelpScroll", 600f);
+
+            UiBuilder.Paragraph(scrollContent, StringKeys.HelpIntro);
+            UiBuilder.Paragraph(scrollContent, StringKeys.HelpBindingNote, UiTheme.TextRole.Muted);
 
             // Two columns. In one, the control list plus three lines of advice runs past
             // the bottom of a 1080 screen, which cut off both the title and the Back button
             // — a help screen you cannot leave being a particularly unhelpful one.
-            var columns = UiBuilder.Columns(panel, 2);
+            var columns = UiBuilder.Columns(scrollContent, 2);
             bindingsColumn = columns[0];
             screensColumn = columns[1];
 
-            UiBuilder.Spacer(panel, UiTheme.Spacing);
-            UiBuilder.Paragraph(panel, StringKeys.HelpTipStamina, UiTheme.TextRole.Muted);
-            UiBuilder.Paragraph(panel, StringKeys.HelpTipMemory, UiTheme.TextRole.Muted);
-            UiBuilder.Paragraph(panel, StringKeys.HelpTipSaving, UiTheme.TextRole.Muted);
+            UiBuilder.Spacer(scrollContent, UiTheme.Spacing);
+            UiBuilder.Paragraph(scrollContent, StringKeys.HelpTipStamina, UiTheme.TextRole.Muted);
+            UiBuilder.Paragraph(scrollContent, StringKeys.HelpTipMemory, UiTheme.TextRole.Muted);
+            UiBuilder.Paragraph(scrollContent, StringKeys.HelpTipSaving, UiTheme.TextRole.Muted);
 
             UiBuilder.Spacer(panel, UiTheme.Spacing * 2f);
             backButton = UiBuilder.Button(panel, StringKeys.MenuLabelBack);
