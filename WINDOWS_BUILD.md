@@ -135,6 +135,57 @@ Everything past start-up in a Release player is the manual pass.
 
 ## Recorded runs
 
+### 24 October 2026 — the rebuilt menus pass the walkthrough
+
+Development variant, built after TASK 054 replaced the Main Menu wholesale, rebuilt the
+pause panel in both gameplay scenes, rewired `MainMenuController` and added a ToggleHud
+input action. **This is the run that matters for that work**: the smoke test enters the
+game through `MainMenuController`, so every step below goes through the menu that was
+rebuilt rather than past it.
+
+```
+PASS 1.  reach the Main Menu
+PASS 2.  New Game loads the starting scene
+PASS 3.  'Avarsha' is active with a player in it
+PASS 4.  a manual save is written
+PASS 5.  the temple door leads to 'Agniya'
+PASS 6.  'Agniya' is active with a player in it
+PASS     entering the temple started its quest
+PASS     and closed the quest's first objective
+PASS     Ember Step is still locked before the boss is beaten
+PASS     entering the temple autosaved on the way in
+PASS 7.  the way out leads back to 'Avarsha'
+PASS 8.  'Avarsha' is active again with a player in it
+PASS     progression is intact after the round trip
+PASS 9.  a save can be written after the round trip
+PASS 10. return to the Main Menu
+PASS 11. the Main Menu is active again
+PASS 12. Continue loads the saved scene
+PASS 13. the saved game is playable again
+
+RESULT: PASS - launch to reloaded save completed in the Windows player.
+OK   save loaded successfully in a second player process
+```
+
+The second process is a cold start: the player quit, relaunched, and loaded the save the
+first process had written — which is how a player's second session works and the one thing
+an in-Editor test cannot imitate.
+
+Launched normally as well, outside the test harness: it came up at the Main Menu and was
+still running after 25 seconds.
+
+| Artifact | SHA-256 |
+|---|---|
+| `TheGodWhoWasForgotten-0.1.0-windows-x64-development.zip` (70.4 MB) | `F3B75707AAEC83E2E75C484A8CD5BD2ABA278D0BE1457C457363FA33430E498E` |
+
+The Defender handle described below reappeared — "still locked after 30 s" — and packaging
+succeeded anyway, because `New-Package` no longer needs share-delete. The lock is a
+property of this machine, not of the build.
+
+**What it does not say.** A passing smoke test says the game runs and the loop holds
+together. It says nothing about whether the game is good to play, and nothing about the
+Release variant, which has not been rebuilt since `73cd17e`.
+
 ### 21 October 2026 — the Release player starts, from a clean commit
 
 Release variant from commit `73cd17e` with a **clean working tree**, so `build-info.txt`

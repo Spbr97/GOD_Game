@@ -2,6 +2,18 @@
 
 ## Unreleased — the UI pass (TASK 054)
 
+### Verified in a built player (24 October 2026)
+
+The rebuilt menus were put in front of the smoke test rather than trusted. A Development
+player built after the whole UI pass walked **Main Menu → New Game → Avarsha → the temple
+door → Agniya → quest started and its first objective closed → autosave → back out →
+Main Menu → Continue**, then quit, relaunched as a separate process and loaded the save the
+first one wrote. Every step passed, and every step goes through `MainMenuController`, which
+this task rewired.
+
+Launched normally as well: up at the Main Menu and still running after 25 seconds.
+`WINDOWS_BUILD.md` has the full list and the artifact hash.
+
 ### A baseline pass over the finished UI (24 October 2026)
 
 With the screens built, they were put through the conditions a layout actually breaks
