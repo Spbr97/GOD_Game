@@ -47,12 +47,6 @@ namespace Game.UI
         private InputAction journalAction;
         private readonly List<GameObject> spawnedRows = new();
 
-        // Lazy rather than a field initializer: Resources.GetBuiltinResource refuses to
-        // run during a MonoBehaviour's construction, which a static field initializer
-        // counts as the moment anything adds the first JournalUI to a GameObject.
-        private static Font cachedFont;
-        private static Font BuiltinFont => cachedFont != null ? cachedFont : (cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
-
         public bool IsOpen { get; private set; }
 
         private void Awake()
@@ -178,7 +172,7 @@ namespace Game.UI
             var quests = QuestManager.Instance;
             if (quests == null)
             {
-                AddRow(questsContent, 0, "No quest log exists in this scene.", Color.grey);
+                ShowUnavailable(questsContent, "quest log");
                 return;
             }
 
@@ -196,7 +190,7 @@ namespace Game.UI
 
             if (row == 0)
             {
-                AddRow(questsContent, row, "No quests yet.", Color.grey);
+                AddRow(questsContent, row, Strings.Get(StringKeys.JournalNoQuests), UiTheme.TextMuted);
             }
         }
 
@@ -204,9 +198,9 @@ namespace Game.UI
         {
             var statusColour = progress.Status switch
             {
-                QuestStatus.Completed => new Color(0.5f, 0.9f, 0.5f),
-                QuestStatus.Failed => new Color(0.9f, 0.4f, 0.4f),
-                _ => Color.white
+                QuestStatus.Completed => UiTheme.Positive,
+                QuestStatus.Failed => UiTheme.Negative,
+                _ => UiTheme.TextPrimary
             };
 
             row = AddRow(questsContent, row,
@@ -234,7 +228,7 @@ namespace Game.UI
 
                     row = AddRow(questsContent, row,
                         $"    {mark}{progress.Definition.ObjectiveDescription(objective)}{countText}",
-                        complete ? new Color(0.6f, 0.6f, 0.6f) : Color.white);
+                        complete ? UiTheme.TextMuted : UiTheme.TextPrimary);
                 }
             }
 
@@ -255,17 +249,17 @@ namespace Game.UI
             var memories = MemoryManager.Instance;
             if (memories == null)
             {
-                AddRow(memoriesContent, 0, "No memory archive exists in this scene.", Color.grey);
+                ShowUnavailable(memoriesContent, "memory archive");
                 return;
             }
 
             var row = AddRow(memoriesContent, 0,
                 Strings.Format(StringKeys.JournalMemoryIntegrity, (memories.Integrity * 100f).ToString("0")),
-                Color.white, bold: true);
+                UiTheme.TextPrimary, bold: true);
 
             if (memories.DiscoveredCount == 0)
             {
-                AddRow(memoriesContent, row, "No memories discovered yet.", Color.grey);
+                AddRow(memoriesContent, row, Strings.Get(StringKeys.JournalNoMemories), UiTheme.TextMuted);
                 return;
             }
 
@@ -275,7 +269,7 @@ namespace Game.UI
                 row = AddRow(memoriesContent, row,
                     Strings.Format(StringKeys.JournalMemoryRow, memory.Title, memory.Category, state),
                     TintFor(state), bold: true);
-                row = AddRow(memoriesContent, row, $"    {memory.Description}", Color.grey);
+                row = AddRow(memoriesContent, row, $"    {memory.Description}", UiTheme.TextMuted);
 
                 if (!memory.IsProtected)
                 {
@@ -286,13 +280,35 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// A screen whose system is not in the scene. The player gets one short sentence
+        /// and the reason goes to the log: a sentence about scene wiring is not something
+        /// to hand a translator, and it is not something a player can act on either.
+        /// </summary>
+        private void ShowUnavailable(RectTransform parent, string missing)
+        {
+            // A warning, not an error. In a shipped scene this is a wiring fault, and
+            // SceneIntegrityTests already fails the build for it — but a test arena
+            // deliberately builds half a scene, and a screen that degrades to one honest
+            // sentence is working as designed, not failing.
+            GameLogger.LogWarning(LogCategory.UI,
+                $"No {missing} exists in this scene; the screen has nothing to show.", this);
+            AddRow(parent, 0, Strings.Get(StringKeys.UiUnavailable), UiTheme.TextMuted);
+        }
+
         private int AddCorruptButton(RectTransform parent, int row, MemoryFragment memory)
         {
             var rect = RowRect(parent, row, 160f, 22f);
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = new Color(0.35f, 0.1f, 0.1f, 0.9f);
+            image.color = Color.white;
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+            // Corrupting a memory spends integrity and cannot be undone, so the button
+            // reads as the destructive thing it is rather than as another list row.
+            UiTheme.Apply(button);
+            var destructive = button.colors;
+            destructive.normalColor = new Color(0.35f, 0.12f, 0.12f, 0.95f);
+            button.colors = destructive;
             button.onClick.AddListener(() => CorruptMemory(memory));
 
             var labelGo = new GameObject("Label", typeof(RectTransform));
@@ -303,10 +319,8 @@ namespace Game.UI
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
             var label = labelGo.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = 16;
+            UiTheme.Apply(label, UiTheme.TextRole.Small);
             label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
             label.text = Strings.Get(StringKeys.JournalCorrupt);
             label.raycastTarget = false;
 
@@ -324,11 +338,11 @@ namespace Game.UI
         {
             return state switch
             {
-                MemoryState.Corrupted => new Color(0.75f, 0.35f, 0.85f),
-                MemoryState.Forgotten => new Color(0.55f, 0.55f, 0.55f),
-                MemoryState.FalseMemory => new Color(0.85f, 0.55f, 0.2f),
-                MemoryState.Restored => new Color(0.5f, 0.85f, 0.95f),
-                _ => new Color(0.95f, 0.85f, 0.5f)
+                MemoryState.Corrupted => UiTheme.MemoryCorrupted,
+                MemoryState.Forgotten => UiTheme.MemoryForgotten,
+                MemoryState.FalseMemory => UiTheme.Caution,
+                MemoryState.Restored => UiTheme.MemoryRestored,
+                _ => UiTheme.Heading
             };
         }
 
@@ -338,10 +352,10 @@ namespace Game.UI
         {
             var rect = RowRect(parent, row, -1f, rowHeight);
             var label = rect.gameObject.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = bold ? 20 : 18;
-            label.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+            UiTheme.Apply(label, bold ? UiTheme.TextRole.Heading : UiTheme.TextRole.Body);
             label.alignment = TextAnchor.MiddleLeft;
+            // After the role, because a row's colour carries its own meaning (a failed
+            // quest, a forgotten memory) that the role knows nothing about.
             label.color = colour;
             label.text = text;
             label.raycastTarget = false;

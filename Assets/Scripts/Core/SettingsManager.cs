@@ -50,6 +50,25 @@ namespace Game.Core
         }
     }
 
+    /// <summary>
+    /// Raised when the player changes UI text size, so canvases already on screen rescale.
+    ///
+    /// <see cref="Game.UI.UIScaleApplier"/> used to apply the setting once on enable, which
+    /// was enough while settings existed only in the Main Menu — every gameplay canvas was
+    /// created after the change. Now that the Settings panel opens from Pause, the canvas
+    /// the player is looking at is already enabled, and a text-size control that does
+    /// nothing until the next scene load is one the player reports as broken.
+    /// </summary>
+    public readonly struct TextScaleChangedEvent
+    {
+        public readonly float Scale;
+
+        public TextScaleChangedEvent(float scale)
+        {
+            Scale = scale;
+        }
+    }
+
     [Serializable]
     public class GameSettings
     {
@@ -92,6 +111,15 @@ namespace Game.Core
 
         /// <summary>Widens <see cref="Game.Combat.LockOnController"/>'s acquisition cone when true.</summary>
         public bool AimAssistEnabled = true;
+
+        /// <summary>
+        /// Whether the HUD is drawn (SPEC.md section 42: "HUD must be hideable").
+        ///
+        /// Persisted rather than reset per scene, because a player who turns the HUD off —
+        /// for a screenshot, for immersion, or because a permanent overlay is a problem for
+        /// them — wants it off, not off until the next door they walk through.
+        /// </summary>
+        public bool HudVisible = true;
 
         // ------------------------------------- SPEC.md section 54, edge cases 20 and 24
 

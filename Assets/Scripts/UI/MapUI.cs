@@ -56,12 +56,6 @@ namespace Game.UI
         private InputAction mapAction;
         private readonly List<GameObject> markers = new();
 
-        // Same lazy-font trick as JournalUI: Resources.GetBuiltinResource refuses to
-        // run during a MonoBehaviour's construction, which a static field initializer
-        // counts as.
-        private static Font cachedFont;
-        private static Font BuiltinFont => cachedFont != null ? cachedFont : (cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
-
         public bool IsOpen { get; private set; }
 
         /// <summary>How many markers the last draw produced. Read by tests.</summary>
@@ -188,7 +182,7 @@ namespace Game.UI
 
             if (entries.Count == 0)
             {
-                AddLabel(new Vector2(0f, 0f), "Nothing on this map yet.", Color.grey);
+                AddLabel(new Vector2(0f, 0f), Strings.Get(StringKeys.MapEmpty), UiTheme.TextMuted);
                 return;
             }
 
@@ -233,7 +227,7 @@ namespace Game.UI
             if (player != null)
             {
                 playerTransform = player.transform;
-                entries.Add(new MapEntry(player.transform.position, "P", "You", new Color(0.4f, 0.9f, 1f), isPlayer: true));
+                entries.Add(new MapEntry(player.transform.position, "P", "You", UiTheme.Accent, isPlayer: true));
             }
 
             foreach (var checkpoint in FindObjectsByType<Checkpoint>(FindObjectsSortMode.None))
@@ -243,17 +237,17 @@ namespace Game.UI
                     checkpoint.RespawnPosition,
                     "C",
                     reached ? Strings.Format(StringKeys.MapCheckpointReached, checkpoint.CheckpointId) : checkpoint.CheckpointId,
-                    reached ? new Color(0.5f, 0.95f, 0.6f) : new Color(0.55f, 0.55f, 0.55f)));
+                    reached ? UiTheme.Positive : UiTheme.MemoryForgotten));
             }
 
             foreach (var npc in FindObjectsByType<NpcInteractable>(FindObjectsSortMode.None))
             {
-                entries.Add(new MapEntry(npc.transform.position, "N", npc.NpcName, new Color(0.95f, 0.85f, 0.5f)));
+                entries.Add(new MapEntry(npc.transform.position, "N", npc.NpcName, UiTheme.Heading));
             }
 
             foreach (var target in FindObjectsByType<QuestTarget>(FindObjectsSortMode.None))
             {
-                entries.Add(new MapEntry(target.transform.position, "O", target.name, new Color(1f, 0.6f, 0.25f)));
+                entries.Add(new MapEntry(target.transform.position, "O", target.name, UiTheme.Caution));
             }
 
             // Only memories the player has actually found. Drawing the undiscovered
@@ -268,7 +262,7 @@ namespace Game.UI
                     continue;
                 }
 
-                entries.Add(new MapEntry(pickup.transform.position, "M", fragment.Title, new Color(0.75f, 0.6f, 0.95f)));
+                entries.Add(new MapEntry(pickup.transform.position, "M", fragment.Title, UiTheme.MemoryCorrupted));
             }
 
             foreach (var boss in FindObjectsByType<BossController>(FindObjectsSortMode.None))
@@ -277,7 +271,7 @@ namespace Game.UI
                     boss.transform.position,
                     "B",
                     boss.Defeated ? Strings.Format(StringKeys.MapBossDefeated, boss.DisplayName) : boss.DisplayName,
-                    boss.Defeated ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.95f, 0.35f, 0.35f)));
+                    boss.Defeated ? UiTheme.MemoryForgotten : UiTheme.Negative));
             }
 
             return entries;
@@ -362,7 +356,7 @@ namespace Game.UI
             letterRect.offsetMax = Vector2.zero;
 
             var letter = letterGo.AddComponent<Text>();
-            letter.font = BuiltinFont;
+            letter.font = UiTheme.Font;
             letter.fontSize = Mathf.RoundToInt(size * 0.8f);
             letter.fontStyle = FontStyle.Bold;
             letter.alignment = TextAnchor.MiddleCenter;
@@ -386,8 +380,8 @@ namespace Game.UI
             rect.sizeDelta = new Vector2(180f, 18f);
 
             var label = go.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = 13;
+            label.font = UiTheme.Font;
+            label.fontSize = UiTheme.FontSizeSmall - 2;
             label.alignment = TextAnchor.MiddleLeft;
             label.color = colour;
             label.text = text;
@@ -418,7 +412,7 @@ namespace Game.UI
             rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(flat.y, flat.x) * Mathf.Rad2Deg);
 
             var image = go.AddComponent<Image>();
-            image.color = new Color(0.4f, 0.9f, 1f);
+            image.color = UiTheme.Accent;
             image.raycastTarget = false;
 
             markers.Add(go);

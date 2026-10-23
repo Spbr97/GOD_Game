@@ -36,10 +36,6 @@ namespace Game.UI
             "Interact", "Guard", "LockOn", "Ability", "Journal", "Progression", "Skip"
         };
 
-        // See JournalUI.BuiltinFont for why this is lazy rather than a field initializer.
-        private static Font cachedFont;
-        private static Font BuiltinFont => cachedFont != null ? cachedFont : (cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
-
         private readonly List<GameObject> spawnedRows = new();
         private InputActionRebindingExtensions.RebindingOperation activeRebind;
 
@@ -151,11 +147,11 @@ namespace Game.UI
         {
             var rect = RowRect(content, row, -1f, rowHeight);
             var label = rect.gameObject.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = 20;
+            label.font = UiTheme.Font;
+            label.fontSize = UiTheme.FontSizeHeading;
             label.fontStyle = FontStyle.Bold;
             label.alignment = TextAnchor.MiddleLeft;
-            label.color = new Color(0.95f, 0.82f, 0.45f);
+            label.color = UiTheme.Heading;
             label.text = SplitCamelCase(actionName);
             label.raycastTarget = false;
 
@@ -175,10 +171,10 @@ namespace Game.UI
             labelRect.offsetMin = new Vector2(20f, 0f);
             labelRect.offsetMax = new Vector2(-160f, 0f);
             var label = labelGo.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = 16;
+            label.font = UiTheme.Font;
+            label.fontSize = UiTheme.FontSizeBody;
             label.alignment = TextAnchor.MiddleLeft;
-            label.color = Color.white;
+            label.color = UiTheme.TextPrimary;
             label.text = action.GetBindingDisplayString(bindingIndex);
             label.raycastTarget = false;
 
@@ -191,9 +187,9 @@ namespace Game.UI
             buttonRect.anchoredPosition = new Vector2(-10f, 0f);
             buttonRect.sizeDelta = new Vector2(140f, 24f);
             var buttonImage = buttonGo.AddComponent<Image>();
-            buttonImage.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
             var button = buttonGo.AddComponent<Button>();
             button.targetGraphic = buttonImage;
+            UiTheme.Apply(button);
             button.onClick.AddListener(() => StartRebind(action, bindingIndex, label));
 
             var buttonLabelGo = new GameObject("Label", typeof(RectTransform));
@@ -204,10 +200,10 @@ namespace Game.UI
             buttonLabelRect.offsetMin = Vector2.zero;
             buttonLabelRect.offsetMax = Vector2.zero;
             var buttonLabel = buttonLabelGo.AddComponent<Text>();
-            buttonLabel.font = BuiltinFont;
-            buttonLabel.fontSize = 14;
+            buttonLabel.font = UiTheme.Font;
+            buttonLabel.fontSize = UiTheme.FontSizeSmall;
             buttonLabel.alignment = TextAnchor.MiddleCenter;
-            buttonLabel.color = Color.white;
+            buttonLabel.color = UiTheme.TextPrimary;
             buttonLabel.text = Strings.Get(StringKeys.RemapButton);
             buttonLabel.raycastTarget = false;
 

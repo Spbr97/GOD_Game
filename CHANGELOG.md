@@ -1,6 +1,80 @@
 # CHANGELOG
 
-## Unreleased — scene-label localization and a language picker
+## Unreleased — the UI pass (TASK 054)
+
+### Two defects nobody could see (24 October 2026)
+
+The UI had never been rendered. Every judgement about it had been made by reading C# and
+scene YAML, and KNOWN_ISSUES.md had carried "Scene-view UI placement was not visually
+verified" since TASK 007. So the first thing built was `UiCapture`, which renders a
+screen to a PNG without entering play mode. The first two screenshots found this:
+
+- **The pause menu drew the word PAUSED on top of its own Resume and Save buttons**, over
+  an undimmed world, so a paused game and a running one looked much the same.
+- **A slider's fill had escaped its track** into a green rectangle covering the Normal
+  difficulty button and the whole Text Scale row. Both controls were unreachable, in a
+  build that had been packaged as a release candidate three times.
+
+Both came from hand-written `anchoredPosition` values, and both are invisible in code, in
+YAML, and to a test that asks whether a reference is wired.
+
+### Changed
+
+- **The menus are built from code.** `UiBuilder` lays everything out with layout groups,
+  which cannot overlap their own children, so that class of defect is gone rather than
+  those two instances of it. `UiAuthoring` is a checked-in, re-runnable editor tool that
+  rebuilds all three scenes' menus and rewires the references — the replacement
+  KNOWN_ISSUES.md asked for when it recorded that the menus came from a one-off script
+  nobody kept.
+- **One Settings screen instead of one per place it is needed.** `SettingsPanel` builds
+  itself wherever it is mounted, so the Main Menu and the pause menu show the same screen.
+  About 250 lines of duplicated settings handling left `MainMenuController` with it.
+- **Resolution, quality, difficulty and language are step-through buttons, not dropdowns.**
+  A dropdown opens a floating list a gamepad has to be taught to navigate and that can open
+  off the bottom of the screen. The language picker already worked this way; the rest of the
+  screen now matches it.
+- **One palette.** `UiTheme` replaces four copies of the built-in font lookup and about
+  forty scattered colour literals, several of which were meant to be the same colour.
+
+### Added
+
+- **Settings, Controls and How to Play are reachable from Pause.** KNOWN_ISSUES.md has
+  recorded since TASK 017 that a player who wanted to invert the camera had to quit to the
+  Main Menu — and text size is exactly the setting someone discovers they need while
+  reading subtitles, not before.
+- **A How to Play screen, generated from the live `InputActionAsset`.** It has to be
+  generated: the game lets the player rebind, so a typed list is wrong the moment they do,
+  and wrong by telling them to press a key that no longer does anything. It carries three
+  sentences that are not controls — stamina is shared between attacking, dodging and
+  sprinting; divine abilities are paid for in memory; and when the game saves.
+- **The HUD can be hidden.** SPEC.md section 42 has asked for this since TASK 007, where it
+  was implemented as a public method with no caller. Bound to a new ToggleHud action
+  (`H` / D-pad left), persisted in settings, and it says how to get the HUD back on the way
+  out — the hint being the one label deliberately outside the HUD root.
+- **`LocalizedLabel`.** TASK 042 externalized every string a *script* shows, and every check
+  written for it passed, because every check looked at scripts. The menus' own words were
+  typed into `MainMenu.unity` and belonged to no key, so the language picker switched a
+  handful of labels and left the whole menu in English. 65 captions now come from the table,
+  and the reconciliation test harvests scene labels so the gap cannot reopen quietly.
+- **The four difficulties say what they mean**, one line each, on the screen where they are
+  chosen. Four unexplained words were a guess, and the guess that goes wrong is the one that
+  makes someone stop playing.
+- **A skill that cannot be unlocked says why** — "needs 2 more skill points" or "needs Astra
+  Focus first", which are different problems — and the points total says where points come
+  from. Both were recorded under TASK 016 as deferred polish.
+- **The pause menu warns about an unsaved run.** TASK 040 decided a mid-run difficulty
+  change marks the run as differing from its save, and `HasUnsavedRunChanges` has recorded
+  it ever since, but nothing ever asked. A flag no screen reads protects nobody.
+- **The version and a "not the finished game" notice** sit in the Main Menu's corner, where
+  a tester looks when reporting a bug.
+
+### Verified
+
+310 EditMode and 196 PlayMode tests passing. Every menu screen rendered and inspected as a
+PNG rather than reasoned about. **Not yet verified in a built player** — TASK 054's gate is
+a first-time tester playing without instructions, which is the manual pass.
+
+## Earlier — scene-label localization and a language picker
 
 ### Verified (21 October 2026)
 

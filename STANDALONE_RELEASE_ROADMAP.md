@@ -232,6 +232,14 @@ temple when the existing puzzle, quest and boss frameworks can express it.
   binds left-stick movement and sprint, and gives Map its own D-pad direction.
   The authored bindings pass two EditMode checks; a physical controller still
   needs the manual Release pass.
+  **UI pass (24 October 2026):** the menus are rebuilt from code
+  (`UiBuilder`/`UiAuthoring`), Settings, Controls and How to Play are reachable
+  from Pause, the HUD is hideable, menu captions are localized through
+  `LocalizedLabel`, and every screen has been rendered and inspected with the new
+  `UiCapture` tool — which found a pause title drawn over its own buttons and a
+  slider covering two controls. Six older KNOWN_ISSUES entries closed with it.
+  **Still open:** TASK 053 owns the art, and this task's gate — a first-time
+  tester playing without instructions, in Release — is the manual pass.
 - [ ] **TASK 055 - Windows performance and stability.** Profile the actual
   player on the agreed reference PC and fallback hardware. Apply scene
   loading/unloading, LOD, pooling, texture and particle budgets, AI update

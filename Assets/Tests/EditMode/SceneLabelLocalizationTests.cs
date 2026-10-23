@@ -304,10 +304,20 @@ namespace Game.Tests
 
             var serialized = new UnityEditor.SerializedObject(menu);
 
-            Assert.IsNotNull(serialized.FindProperty("settingsLanguageButton").objectReferenceValue,
-                "Nothing can switch language: Strings.SetLanguage exists and no control calls it.");
-            Assert.IsNotNull(serialized.FindProperty("settingsLanguageLabel").objectReferenceValue,
-                "The picker has no label, so a player cannot see which language is in force.");
+            // The picker moved in TASK 054. It was a pair of references on this controller,
+            // which is why it existed in the Main Menu and nowhere else; it is now one of
+            // the rows SettingsPanel builds, and the panel is mounted by the pause menu as
+            // well. So what this asserts is that the menu can reach the panel at all —
+            // without it, Strings.SetLanguage is once again a method with no caller.
+            var panel = serialized.FindProperty("settings").objectReferenceValue as Game.UI.SettingsPanel;
+            Assert.IsNotNull(panel,
+                "The Main Menu has no SettingsPanel, so nothing can switch language: "
+                + "Strings.SetLanguage exists and no control calls it.");
+
+            var built = panel.GetComponentsInChildren<UnityEngine.UI.Button>(true);
+            Assert.IsEmpty(built,
+                "SettingsPanel's controls are built at runtime; finding authored ones means "
+                + "a hand-laid copy has come back and will drift from the built one.");
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Game.Core;
 using Game.Save;
 using UnityEngine;
@@ -10,7 +9,8 @@ namespace Game.UI
 {
     /// <summary>
     /// The Main Menu and everything reachable from it without a running game (SPEC.md
-    /// section 42): New Game, Continue, Save/Load, Settings, Controls, Credits.
+    /// section 42): New Game, Continue, Save/Load, Settings, Controls, How to Play,
+    /// Credits.
     ///
     /// Lives in its own scene, listed first in Build Settings. New Game and Load both
     /// hand off to <see cref="GameSceneManager"/> to load a gameplay scene; Load also
@@ -18,6 +18,14 @@ namespace Game.UI
     /// that wakes up in that scene applies the save once everything in it exists. This
     /// menu never touches gameplay systems directly — it does not know Combat, AI or
     /// Quests exist — because a save's data, not this controller, is what a level reads.
+    ///
+    /// **It no longer owns the Settings screen.** Until TASK 054 this class carried every
+    /// settings control as a serialized field and every handler as a method, which is why
+    /// settings were unreachable from a running game: the screen was a thing in
+    /// <c>MainMenu.unity</c>, not a thing the game had. <see cref="SettingsPanel"/>,
+    /// <see cref="RemapUI"/> and <see cref="HelpPanel"/> now build themselves wherever they
+    /// are mounted, and this menu hosts the same three components the pause menu does.
+    /// Roughly 250 lines of duplicated settings handling left this file with them.
     /// </summary>
     public class MainMenuController : MonoBehaviour
     {
@@ -30,6 +38,7 @@ namespace Game.UI
         [SerializeField] private GameObject loadPanel;
         [SerializeField] private GameObject settingsPanel;
         [SerializeField] private GameObject controlsPanel;
+        [SerializeField] private GameObject helpPanel;
         [SerializeField] private GameObject creditsPanel;
 
         [Header("Root buttons")]
@@ -38,6 +47,7 @@ namespace Game.UI
         [SerializeField] private Button loadButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button controlsButton;
+        [SerializeField] private Button helpButton;
         [SerializeField] private Button creditsButton;
         [SerializeField] private Button quitButton;
 
@@ -58,40 +68,16 @@ namespace Game.UI
         [SerializeField] private SlotRow[] slotRows;
         [SerializeField] private Button loadBackButton;
 
-        [Header("Settings")]
-        [SerializeField] private Slider volumeSlider;
-        [SerializeField] private Slider sensitivitySlider;
-        [SerializeField] private Toggle invertYToggle;
-        [Tooltip("Indexed by DifficultyMode: Story, Normal, Warrior, Mythic.")]
-        [SerializeField] private Button[] settingsDifficultyButtons;
-        [SerializeField] private Text settingsDifficultyLabel;
+        [Header("Shared screens")]
+        [Tooltip("Builds and owns the Settings controls. The same component the pause menu mounts.")]
+        [SerializeField] private SettingsPanel settings;
 
-        [Tooltip("Cycles to the next language this build has a table for. A cycle button rather than a dropdown because the rest of this panel is buttons, and because a build with one language should still show which one it is.")]
-        [SerializeField] private Button settingsLanguageButton;
-        [SerializeField] private Text settingsLanguageLabel;
-
-        [SerializeField] private Button settingsBackButton;
-
-        [Header("Accessibility (SPEC.md section 43)")]
-        [SerializeField] private Slider textScaleSlider;
-        [SerializeField] private Toggle subtitleBackgroundToggle;
-        [SerializeField] private Toggle cameraShakeToggle;
-        [SerializeField] private Toggle screenEffectsToggle;
-        [SerializeField] private Toggle aimAssistToggle;
-
-        [Header("Display (SPEC.md section 54, edge cases 20 and 24)")]
-        [SerializeField] private Dropdown resolutionDropdown;
-        [SerializeField] private Dropdown qualityDropdown;
-        [SerializeField] private Toggle fullscreenToggle;
-
-        [Header("Controls")]
         [SerializeField] private RemapUI remapUI;
+        [SerializeField] private HelpPanel help;
 
         [Header("Static screens")]
         [SerializeField] private Button controlsBackButton;
         [SerializeField] private Button creditsBackButton;
-
-        private bool wiringSettingsControls;
 
         private void Awake()
         {
@@ -117,14 +103,24 @@ namespace Game.UI
             loadButton?.onClick.AddListener(OpenLoad);
             settingsButton?.onClick.AddListener(OpenSettings);
             controlsButton?.onClick.AddListener(OpenControls);
+            helpButton?.onClick.AddListener(OpenHelp);
             creditsButton?.onClick.AddListener(OpenCredits);
             quitButton?.onClick.AddListener(Quit);
 
             newGameBackButton?.onClick.AddListener(OpenRoot);
             loadBackButton?.onClick.AddListener(OpenRoot);
-            settingsBackButton?.onClick.AddListener(OpenRoot);
             controlsBackButton?.onClick.AddListener(OpenRoot);
             creditsBackButton?.onClick.AddListener(OpenRoot);
+
+            if (settings != null)
+            {
+                settings.BackRequested += OpenRoot;
+            }
+
+            if (help != null)
+            {
+                help.BackRequested += OpenRoot;
+            }
 
             if (difficultyButtons != null)
             {
@@ -132,17 +128,6 @@ namespace Game.UI
                 {
                     var mode = (DifficultyMode)i;
                     difficultyButtons[i]?.onClick.AddListener(() => StartNewGame(mode));
-                }
-            }
-
-            settingsLanguageButton?.onClick.AddListener(CycleLanguage);
-
-            if (settingsDifficultyButtons != null)
-            {
-                for (var i = 0; i < settingsDifficultyButtons.Length; i++)
-                {
-                    var mode = (DifficultyMode)i;
-                    settingsDifficultyButtons[i]?.onClick.AddListener(() => SetDifficulty(mode));
                 }
             }
 
@@ -159,36 +144,12 @@ namespace Game.UI
                     row.LoadRowButton.onClick.AddListener(() => LoadSlot(slot));
                 }
             }
-
-            volumeSlider?.onValueChanged.AddListener(OnVolumeChanged);
-            sensitivitySlider?.onValueChanged.AddListener(OnSensitivityChanged);
-            invertYToggle?.onValueChanged.AddListener(OnInvertYChanged);
-
-            resolutionDropdown?.onValueChanged.AddListener(OnResolutionChanged);
-            qualityDropdown?.onValueChanged.AddListener(OnQualityChanged);
-            fullscreenToggle?.onValueChanged.AddListener(OnFullscreenChanged);
-
-            textScaleSlider?.onValueChanged.AddListener(OnTextScaleChanged);
-            subtitleBackgroundToggle?.onValueChanged.AddListener(OnSubtitleBackgroundChanged);
-            cameraShakeToggle?.onValueChanged.AddListener(OnCameraShakeChanged);
-            screenEffectsToggle?.onValueChanged.AddListener(OnScreenEffectsChanged);
-            aimAssistToggle?.onValueChanged.AddListener(OnAimAssistChanged);
         }
 
         private void OnEnable()
         {
-            // Paired with OnDisable rather than subscribed in Awake: this component has no
-            // Awake teardown, so a subscription taken there would outlive the menu and
-            // redraw a destroyed panel the next time the language changed.
-            EventBus.Subscribe<LanguageChangedEvent>(OnLanguageChanged);
-
             OpenRoot();
             RefreshContinueButton();
-        }
-
-        private void OnDisable()
-        {
-            EventBus.Unsubscribe<LanguageChangedEvent>(OnLanguageChanged);
         }
 
         private void Start()
@@ -202,17 +163,24 @@ namespace Game.UI
 
         private void OpenRoot() => ShowPanel(rootPanel);
         private void OpenNewGame() => ShowPanel(newGamePanel);
+        private void OpenCredits() => ShowPanel(creditsPanel);
+
         private void OpenControls()
         {
             ShowPanel(controlsPanel);
             remapUI?.Refresh();
         }
-        private void OpenCredits() => ShowPanel(creditsPanel);
+
+        private void OpenHelp()
+        {
+            ShowPanel(helpPanel);
+            help?.RefreshBindings();
+        }
 
         private void OpenSettings()
         {
-            RefreshSettingsPanel();
             ShowPanel(settingsPanel);
+            settings?.Refresh();
         }
 
         private void OpenLoad()
@@ -228,6 +196,7 @@ namespace Game.UI
             SetActiveIfAssigned(loadPanel, panel == loadPanel);
             SetActiveIfAssigned(settingsPanel, panel == settingsPanel);
             SetActiveIfAssigned(controlsPanel, panel == controlsPanel);
+            SetActiveIfAssigned(helpPanel, panel == helpPanel);
             SetActiveIfAssigned(creditsPanel, panel == creditsPanel);
 
             // A controller cannot navigate a newly opened screen if focus still
@@ -392,308 +361,6 @@ namespace Game.UI
                     row.LoadRowButton.interactable = outcome.Loaded;
                 }
             }
-        }
-
-        // -------------------------------------------------------------------- settings
-
-        private void RefreshSettingsPanel()
-        {
-            var settings = SettingsManager.Instance?.Current;
-            wiringSettingsControls = true;
-
-            if (settings != null)
-            {
-                if (volumeSlider != null) volumeSlider.SetValueWithoutNotify(settings.MasterVolume);
-                if (sensitivitySlider != null) sensitivitySlider.SetValueWithoutNotify(settings.MouseSensitivity);
-                if (invertYToggle != null) invertYToggle.SetIsOnWithoutNotify(settings.InvertY);
-
-                if (textScaleSlider != null) textScaleSlider.SetValueWithoutNotify(settings.TextScale);
-                if (subtitleBackgroundToggle != null) subtitleBackgroundToggle.SetIsOnWithoutNotify(settings.SubtitleBackground);
-                if (cameraShakeToggle != null) cameraShakeToggle.SetIsOnWithoutNotify(settings.CameraShakeEnabled);
-                if (screenEffectsToggle != null) screenEffectsToggle.SetIsOnWithoutNotify(settings.ScreenEffectsEnabled);
-                if (aimAssistToggle != null) aimAssistToggle.SetIsOnWithoutNotify(settings.AimAssistEnabled);
-            }
-
-            RefreshDisplayControls(settings);
-
-            wiringSettingsControls = false;
-            SetText(settingsDifficultyLabel, Strings.Format(StringKeys.MenuDifficulty, Difficulty.Current));
-            SetText(settingsLanguageLabel, Strings.Format(StringKeys.MenuLanguage, CurrentLanguageName()));
-
-            if (settingsLanguageButton != null)
-            {
-                SetText(settingsLanguageButton.GetComponentInChildren<Text>(true),
-                    Strings.Get(StringKeys.MenuChangeLanguage));
-
-                // A build with one language installed cannot cycle anywhere. Leaving the
-                // button live would make it look broken; greying it keeps the row as a
-                // statement of which language is in force, which is the honest thing for
-                // an English-only release.
-                settingsLanguageButton.interactable = SettingsManager.AvailableLanguages().Count > 1;
-            }
-        }
-
-        /// <summary>
-        /// The chosen language's name in its own language, which is what a language picker
-        /// has to show: a player who has accidentally selected a language they cannot read
-        /// needs to recognise the one they want, and "Hindi" written in English is no help
-        /// to someone who only reads Devanagari.
-        /// </summary>
-        private static string CurrentLanguageName()
-        {
-            var active = Strings.Active;
-            return active != null && !string.IsNullOrWhiteSpace(active.LanguageName)
-                ? active.LanguageName
-                : Strings.DefaultLanguage;
-        }
-
-        /// <summary>
-        /// Moves to the next language this build has a table for, wrapping round.
-        ///
-        /// A cycle rather than a dropdown, to match the rest of this panel and because it
-        /// needs no list widget. With one language installed it is a no-op that still
-        /// shows which language is in force, which is the honest thing for a build that
-        /// ships English only.
-        /// </summary>
-        private void CycleLanguage()
-        {
-            if (wiringSettingsControls)
-            {
-                return;
-            }
-
-            var languages = SettingsManager.AvailableLanguages();
-            if (languages.Count == 0)
-            {
-                return;
-            }
-
-            var current = Strings.Active != null ? Strings.Active.LanguageCode : Strings.DefaultLanguage;
-            var index = languages.FindIndex(table => table.LanguageCode == current);
-            var next = languages[(index + 1 + languages.Count) % languages.Count];
-
-            SettingsManager.Instance?.SetLanguage(next.LanguageCode);
-        }
-
-        /// <summary>
-        /// Redraws the menu when the language changes. Every label here is read in
-        /// <see cref="RefreshSettingsPanel"/>, so without this the panel the player is
-        /// looking at keeps its old words and the setting reads as broken.
-        /// </summary>
-        private void OnLanguageChanged(LanguageChangedEvent changed)
-        {
-            RefreshSettingsPanel();
-        }
-
-        // --------------------------------------------------------------------- display
-
-        /// <summary>
-        /// The resolutions this screen actually supports, newest-first and
-        /// de-duplicated. Rebuilt each time the panel opens rather than cached,
-        /// because the list changes when a monitor is plugged in or the player drags
-        /// the window to a different one.
-        /// </summary>
-        private readonly List<Resolution> offeredResolutions = new();
-
-        private void RefreshDisplayControls(GameSettings settings)
-        {
-            if (fullscreenToggle != null && settings != null)
-            {
-                fullscreenToggle.SetIsOnWithoutNotify(settings.Fullscreen);
-            }
-
-            if (qualityDropdown != null)
-            {
-                qualityDropdown.ClearOptions();
-                qualityDropdown.AddOptions(new List<string>(QualitySettings.names));
-
-                var level = settings != null && settings.QualityLevel >= 0
-                    ? settings.QualityLevel
-                    : QualitySettings.GetQualityLevel();
-                qualityDropdown.SetValueWithoutNotify(Mathf.Clamp(level, 0, Mathf.Max(0, QualitySettings.names.Length - 1)));
-                qualityDropdown.RefreshShownValue();
-            }
-
-            if (resolutionDropdown == null)
-            {
-                return;
-            }
-
-            offeredResolutions.Clear();
-            var labels = new List<string>();
-            var selected = 0;
-
-            foreach (var resolution in Screen.resolutions)
-            {
-                var label = Strings.Format(StringKeys.MenuResolution, resolution.width, resolution.height);
-                if (labels.Contains(label))
-                {
-                    // Screen.resolutions lists the same size once per refresh rate.
-                    // The player is choosing a size, not a refresh rate.
-                    continue;
-                }
-
-                if (settings != null && settings.HasResolution
-                    && resolution.width == settings.ResolutionWidth
-                    && resolution.height == settings.ResolutionHeight)
-                {
-                    selected = labels.Count;
-                }
-                else if ((settings == null || !settings.HasResolution)
-                         && resolution.width == Screen.width && resolution.height == Screen.height)
-                {
-                    selected = labels.Count;
-                }
-
-                offeredResolutions.Add(resolution);
-                labels.Add(label);
-            }
-
-            resolutionDropdown.ClearOptions();
-            resolutionDropdown.AddOptions(labels);
-            resolutionDropdown.SetValueWithoutNotify(selected);
-            resolutionDropdown.RefreshShownValue();
-        }
-
-        private void OnResolutionChanged(int index)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null
-                || index < 0 || index >= offeredResolutions.Count)
-            {
-                return;
-            }
-
-            var chosen = offeredResolutions[index];
-            SettingsManager.Instance.SetDisplay(
-                chosen.width,
-                chosen.height,
-                SettingsManager.Instance.Current.Fullscreen,
-                SettingsManager.Instance.Current.QualityLevel);
-        }
-
-        private void OnQualityChanged(int index)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            var current = SettingsManager.Instance.Current;
-            SettingsManager.Instance.SetDisplay(current.ResolutionWidth, current.ResolutionHeight, current.Fullscreen, index);
-        }
-
-        private void OnFullscreenChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            var current = SettingsManager.Instance.Current;
-            SettingsManager.Instance.SetDisplay(current.ResolutionWidth, current.ResolutionHeight, value, current.QualityLevel);
-        }
-
-        private void SetDifficulty(DifficultyMode mode)
-        {
-            if (SettingsManager.Instance != null)
-            {
-                SettingsManager.Instance.SetDifficulty(mode);
-            }
-            else
-            {
-                Difficulty.Set(mode);
-            }
-
-            SetText(settingsDifficultyLabel, $"Difficulty: {Difficulty.Current}");
-        }
-
-        private void OnVolumeChanged(float value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.MasterVolume = value;
-            SettingsManager.Instance.Apply();
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnSensitivityChanged(float value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.MouseSensitivity = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnInvertYChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.InvertY = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnTextScaleChanged(float value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.TextScale = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnSubtitleBackgroundChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.SubtitleBackground = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnCameraShakeChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.CameraShakeEnabled = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnScreenEffectsChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.ScreenEffectsEnabled = value;
-            SettingsManager.Instance.Save();
-        }
-
-        private void OnAimAssistChanged(bool value)
-        {
-            if (wiringSettingsControls || SettingsManager.Instance == null)
-            {
-                return;
-            }
-
-            SettingsManager.Instance.Current.AimAssistEnabled = value;
-            SettingsManager.Instance.Save();
         }
 
         private static void SetText(Text label, string text)

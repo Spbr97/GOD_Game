@@ -95,6 +95,19 @@ namespace Game.Tests
                             yield return LocalizedContent.KeyFor(trigger.LocalizationKey, "name");
                         }
                     }
+
+                    // Menu captions (TASK 054). These are StringKeys constants today, so
+                    // AllKeys already covers them — harvesting them anyway is what makes the
+                    // rule true of a label someone adds by hand tomorrow, which is exactly
+                    // how the menus came to be full of untranslatable English in the first
+                    // place.
+                    foreach (var label in root.GetComponentsInChildren<Game.UI.LocalizedLabel>(true))
+                    {
+                        if (!string.IsNullOrWhiteSpace(label.Key))
+                        {
+                            yield return label.Key;
+                        }
+                    }
                 }
             }
         }
@@ -106,7 +119,25 @@ namespace Game.Tests
                 .Where(field => field.IsLiteral && field.FieldType == typeof(string))
                 .Select(field => (string)field.GetRawConstantValue()))
             {
-                yield return key;
+                // A constant ending in a dot is a prefix, not a key: the real keys are
+                // built from it at the call site. Expanded below rather than skipped, so
+                // the table still has to carry every one of them.
+                if (!key.EndsWith("."))
+                {
+                    yield return key;
+                }
+            }
+
+            foreach (Game.Core.DifficultyMode mode in System.Enum.GetValues(typeof(Game.Core.DifficultyMode)))
+            {
+                var slug = StringKeys.MenuDifficultyPrefix + mode.ToString().ToLowerInvariant();
+                yield return slug;
+                yield return slug + ".description";
+            }
+
+            foreach (var action in Game.UI.HelpPanel.ListedActions)
+            {
+                yield return StringKeys.HelpActionPrefix + action.ToLowerInvariant();
             }
 
             var catalogue = ContentCatalogue.Load();

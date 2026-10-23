@@ -54,6 +54,12 @@ MonoBehaviour:
   - Key: journal.corrupt
     Value: Corrupt
     Note: Shown against a corrupted memory.
+  - Key: journal.no_quests
+    Value: No quests yet.
+    Note: Quest log, empty. The player has accepted nothing.
+  - Key: journal.no_memories
+    Value: No memories discovered yet.
+    Note: Memory archive, empty.
   - Key: progression.skill_points
     Value: 'Skill Points: {0}'
     Note: 
@@ -72,6 +78,21 @@ MonoBehaviour:
   - Key: progression.unlock_button
     Value: Unlock
     Note: Button label.
+  - Key: progression.no_items
+    Value: Nothing carried yet.
+    Note: Inventory, empty.
+  - Key: progression.branch_empty
+    Value: (none)
+    Note: A skill branch with no skills in it. Indented under the branch name.
+  - Key: progression.points_source
+    Value: Skill points come from finishing quests and defeating bosses.
+    Note: Explains where the number above it came from. Shown under the points total.
+  - Key: progression.need_points
+    Value: Needs {0} more skill point(s).
+    Note: Why a skill cannot be unlocked. {0} is the shortfall, always 1 or more.
+  - Key: progression.need_prerequisite
+    Value: Needs {0} first.
+    Note: Why a skill cannot be unlocked. {0} is the prerequisite skill's name.
   - Key: quest.objective_complete
     Value: Complete
     Note: Objective state in the tracker.
@@ -91,9 +112,6 @@ MonoBehaviour:
 
       (empty)'
     Note: '{0} is the slot name.'
-  - Key: menu.difficulty
-    Value: 'Difficulty: {0}'
-    Note: '{0} is the difficulty name.'
   - Key: menu.resolution
     Value: '{0} x {1}'
     Note: '{0} width, {1} height, in pixels.'
@@ -109,6 +127,9 @@ MonoBehaviour:
   - Key: map.boss_defeated
     Value: '{0} (defeated)'
     Note: '{0} is the boss''s name.'
+  - Key: map.empty
+    Value: Nothing on this map yet.
+    Note: The map has no markers to draw.
   - Key: memory.recovered
     Value: Memory recovered - {0}
     Note: '{0} is the memory''s title.'
@@ -154,6 +175,9 @@ MonoBehaviour:
   - Key: dialogue.unavailable
     Value: '[Dialogue unavailable]'
     Note: Shown when a conversation has no available line.
+  - Key: ui.unavailable
+    Value: Unavailable.
+    Note: Shown in place of a screen whose system is missing from the scene. A player should never see it; the cause is logged.
   - Key: item.astra_blade.name
     Value: 'Astra Blade'
     Note: 'Item display name (ASTRA_BLADE).'
@@ -523,9 +547,252 @@ MonoBehaviour:
   - Key: interactable.npc_dev.name
     Value: Dev
     Note: Character name. A personal name, not the English abbreviation of "developer".
-  - Key: menu.language
-    Value: 'Language: {0}'
-    Note: Settings row. {0} is the language's own name for itself, so it stays readable to someone who cannot read the current language.
-  - Key: menu.change_language
+  - Key: menu.section.audio
+    Value: Audio and input
+    Note: Settings section heading.
+  - Key: menu.section.gameplay
+    Value: Gameplay
+    Note: Settings section heading.
+  - Key: menu.section.accessibility
+    Value: Accessibility
+    Note: Settings section heading.
+  - Key: menu.section.display
+    Value: Display
+    Note: Settings section heading.
+  - Key: menu.label.master_volume
+    Value: Master volume
+    Note: Settings row caption.
+  - Key: menu.label.look_sensitivity
+    Value: Look sensitivity
+    Note: Settings row caption. Mouse and right stick.
+  - Key: menu.label.invert_y
+    Value: Invert look Y
+    Note: Settings row caption.
+  - Key: menu.label.difficulty
+    Value: Difficulty
+    Note: Settings row caption.
+  - Key: menu.label.language
+    Value: Language
+    Note: Settings row caption.
+  - Key: menu.label.text_size
+    Value: Text size
+    Note: Settings row caption. Scales all UI text, subtitles included.
+  - Key: menu.label.subtitle_background
+    Value: Subtitle background
+    Note: Settings row caption.
+  - Key: menu.label.camera_shake
+    Value: Camera shake
+    Note: Settings row caption.
+  - Key: menu.label.screen_effects
+    Value: Screen effects
+    Note: Settings row caption. The damage flash.
+  - Key: menu.label.aim_assist
+    Value: Aim assist
+    Note: Settings row caption. Widens lock-on acquisition.
+  - Key: menu.label.resolution
+    Value: Resolution
+    Note: Settings row caption.
+  - Key: menu.label.quality
+    Value: Graphics quality
+    Note: Settings row caption.
+  - Key: menu.label.fullscreen
+    Value: Fullscreen
+    Note: Settings row caption.
+  - Key: menu.label.change
     Value: Change
-    Note: Button beside the language row. Cycles to the next installed language.
+    Note: Button that steps a setting to its next value.
+  - Key: menu.label.on
+    Value: On
+    Note: The state of a checkbox, shown as a word beside it.
+  - Key: menu.label.off
+    Value: Off
+    Note: The state of a checkbox, shown as a word beside it.
+  - Key: menu.label.back
+    Value: Back
+    Note: Returns to the previous screen.
+  - Key: menu.label.settings
+    Value: Settings
+    Note: Button opening the settings screen.
+  - Key: menu.label.controls
+    Value: Controls
+    Note: Button opening the remapping screen.
+  - Key: menu.label.help
+    Value: How to Play
+    Note: Button opening the help screen.
+  - Key: menu.label.resume
+    Value: Resume
+    Note: 'Pause menu: carries on with the game.'
+  - Key: menu.label.save
+    Value: Save
+    Note: 'Pause menu: writes a manual save.'
+  - Key: menu.label.main_menu
+    Value: Quit to Main Menu
+    Note: 'Pause menu: abandons the run and returns to the title.'
+  - Key: menu.label.paused
+    Value: Paused
+    Note: Pause menu title.
+  - Key: menu.label.settings_title
+    Value: Settings
+    Note: Settings screen title.
+  - Key: menu.label.controls_title
+    Value: Controls
+    Note: Controls screen title.
+  - Key: menu.label.help_title
+    Value: How to Play
+    Note: Help screen title.
+  - Key: menu.unsaved_warning
+    Value: This run has changes that are not saved. Quitting now loses them.
+    Note: Shown on the pause menu when the run differs from the file on disk.
+  - Key: menu.difficulty.story
+    Value: Story
+    Note: 'Difficulty name. Keep short: it is a button caption.'
+  - Key: menu.difficulty.story.description
+    Value: For the story. Enemies hit softly and give ground.
+    Note: One line under the Story button.
+  - Key: menu.difficulty.normal
+    Value: Normal
+    Note: Difficulty name.
+  - Key: menu.difficulty.normal.description
+    Value: The game as it was designed. Start here.
+    Note: One line under the Normal button.
+  - Key: menu.difficulty.warrior
+    Value: Warrior
+    Note: Difficulty name.
+  - Key: menu.difficulty.warrior.description
+    Value: Enemies hit hard and press the attack. Blocking and timing matter.
+    Note: One line under the Warrior button.
+  - Key: menu.difficulty.mythic
+    Value: Mythic
+    Note: Difficulty name.
+  - Key: menu.difficulty.mythic.description
+    Value: Punishing. Expect to learn every encounter by losing it first.
+    Note: One line under the Mythic button.
+  - Key: help.intro
+    Value: You are a god nobody remembers. Find what was taken from you.
+    Note: The first line of the help screen.
+  - Key: help.binding_note
+    Value: These controls follow any changes you make on the Controls screen.
+    Note: Help screen, under the intro. Explains that the list is live, not a printed sheet.
+  - Key: help.section.moving
+    Value: Moving
+    Note: Help screen section heading.
+  - Key: help.section.fighting
+    Value: Fighting
+    Note: Help screen section heading.
+  - Key: help.section.screens
+    Value: Screens
+    Note: Help screen section heading.
+  - Key: help.binding_row
+    Value: '{0}  -  {1}'
+    Note: One control. {0} is what it does, {1} the key or button bound to it.
+  - Key: help.tip.stamina
+    Value: Attacking, dodging and sprinting all spend stamina. Run out mid-fight and you cannot defend.
+    Note: Help screen advice a new player cannot infer from the controls.
+  - Key: help.tip.memory
+    Value: Divine abilities are paid for with memory. What you spend, you forget.
+    Note: Help screen advice.
+  - Key: help.tip.saving
+    Value: The game saves when you reach a checkpoint and when you enter a temple. You can also save from this menu.
+    Note: Help screen advice.
+  - Key: hud.toggle_hint
+    Value: HUD hidden. Press {0} to bring it back.
+    Note: Shown briefly when the player hides the HUD. {0} is the bound key.
+  - Key: help.action.move
+    Value: Move
+    Note: What a control does, on the help screen.
+  - Key: help.action.look
+    Value: Look around
+    Note: What a control does.
+  - Key: help.action.jump
+    Value: Jump
+    Note: What a control does.
+  - Key: help.action.sprint
+    Value: Sprint
+    Note: What a control does.
+  - Key: help.action.dodge
+    Value: Dodge roll
+    Note: What a control does.
+  - Key: help.action.lightattack
+    Value: Light attack
+    Note: What a control does.
+  - Key: help.action.heavyattack
+    Value: Heavy attack
+    Note: What a control does.
+  - Key: help.action.guard
+    Value: Guard, and parry on a well-timed press
+    Note: What a control does.
+  - Key: help.action.lockon
+    Value: Lock on to an enemy
+    Note: What a control does.
+  - Key: help.action.ability
+    Value: Use divine ability
+    Note: What a control does.
+  - Key: help.action.interact
+    Value: Interact, talk, pick up
+    Note: What a control does.
+  - Key: help.action.journal
+    Value: 'Journal: quests and memories'
+    Note: What a control does.
+  - Key: help.action.map
+    Value: Map
+    Note: What a control does.
+  - Key: help.action.progression
+    Value: Inventory and skills
+    Note: What a control does.
+  - Key: help.action.pause
+    Value: Pause menu
+    Note: What a control does.
+  - Key: help.action.skip
+    Value: Skip a cutscene or a line
+    Note: What a control does.
+  - Key: help.action.togglehud
+    Value: Hide or show the HUD
+    Note: What a control does.
+  - Key: menu.label.title
+    Value: The God Who Was Forgotten
+    Note: The game title on the Main Menu.
+  - Key: menu.label.new_game
+    Value: New Game
+    Note: Main Menu button.
+  - Key: menu.label.new_game_title
+    Value: Choose Your Path
+    Note: Title of the difficulty-choice screen.
+  - Key: menu.label.continue
+    Value: Continue
+    Note: Main Menu button. Loads the most recent save.
+  - Key: menu.label.load
+    Value: Save / Load
+    Note: Main Menu button.
+  - Key: menu.label.load_title
+    Value: Save / Load
+    Note: Title of the save slot screen.
+  - Key: menu.label.credits
+    Value: Credits
+    Note: Main Menu button.
+  - Key: menu.label.credits_title
+    Value: Credits
+    Note: Credits screen title.
+  - Key: menu.label.quit
+    Value: Quit
+    Note: Main Menu button. Closes the game.
+  - Key: menu.label.reset_bindings
+    Value: Reset to Defaults
+    Note: Controls screen. Undoes every rebind.
+  - Key: menu.version
+    Value: Version {0}
+    Note: Shown in the Main Menu corner. {0} is the build version.
+  - Key: menu.build_notice
+    Value: Act I vertical slice. Not the finished game.
+    Note: Shown in the Main Menu corner, under the version.
+  - Key: credits.made
+    Value: Made by Spbr97.
+    Note: Credits screen.
+  - Key: credits.engine
+    Value: Built with Unity 6 and the Universal Render Pipeline.
+    Note: Credits screen.
+  - Key: credits.assets
+    Value: Models, audio and effects in this build are placeholders built from Unity primitives. Every external asset and its licence is listed in ASSET_LICENSES.md beside the game.
+    Note: Credits screen. Says plainly what is placeholder and where the rights ledger is.
+  - Key: credits.thanks
+    Value: Thank you for playing something unfinished.
+    Note: Credits screen, last line.

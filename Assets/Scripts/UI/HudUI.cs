@@ -2,6 +2,7 @@ using Game.AI;
 using Game.Combat;
 using Game.Core;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Game.Core.Localization;
 
@@ -20,11 +21,16 @@ namespace Game.UI
     ///
     /// Every bar carries a text label, so no state is communicated by colour alone
     /// (SPEC.md section 43). <see cref="SetVisible"/> is the "HUD must be hideable"
-    /// requirement; nothing binds it to an input yet.
+    /// requirement: bound to the ToggleHud action and persisted in settings since TASK
+    /// 054. Before that it was a public method with no caller anywhere in the game, which
+    /// satisfies a specification only in the sense that the code exists.
     /// </summary>
     public class HudUI : MonoBehaviour
     {
         [SerializeField] private GameObject hudRoot;
+
+        [Tooltip("Carries the ToggleHud action (SPEC.md section 42's hideable HUD).")]
+        [SerializeField] private InputActionAsset inputActions;
 
         [Header("Bars")]
         [SerializeField] private RectTransform healthFill;
@@ -41,6 +47,12 @@ namespace Game.UI
         [Tooltip("How long a combo name stays on screen.")]
         [SerializeField] private float comboLingerSeconds = 1.2f;
 
+        [Header("Hideable HUD (SPEC.md section 42)")]
+        [Tooltip("Says how to bring the HUD back. Sits outside hudRoot, which has just been switched off.")]
+        [SerializeField] private Text hiddenHint;
+
+        [SerializeField] private float hintSeconds = 4f;
+
         [Header("Boss (SPEC.md section 18)")]
         [Tooltip("Parent of the boss bar, hidden until a boss encounter starts.")]
         [SerializeField] private GameObject bossHealthRoot;
@@ -54,11 +66,14 @@ namespace Game.UI
         private HealthComponent bossHealth;
         private float comboHideAt;
         private bool visible = true;
+        private InputAction toggleAction;
+        private float hintHideAt;
 
         public bool IsVisible => visible;
 
         private void OnEnable()
         {
+            BindToggle();
             EventBus.Subscribe<LockOnChangedEvent>(OnLockOnChanged);
             EventBus.Subscribe<ComboPerformedEvent>(OnComboPerformed);
             EventBus.Subscribe<ParryEvent>(OnParry);
@@ -71,10 +86,21 @@ namespace Game.UI
             SetText(lockOnLabel, string.Empty);
             SetText(comboLabel, string.Empty);
             SetBossVisible(false);
+
+            // The player's stored choice, applied without the hint: someone who turned the
+            // HUD off last session knows it is off.
+            SetVisible(SettingsManager.Instance == null || SettingsManager.Instance.Current.HudVisible);
         }
 
         private void OnDisable()
         {
+            if (toggleAction != null)
+            {
+                toggleAction.performed -= OnTogglePressed;
+                toggleAction.Disable();
+                toggleAction = null;
+            }
+
             EventBus.Unsubscribe<LockOnChangedEvent>(OnLockOnChanged);
             EventBus.Unsubscribe<ComboPerformedEvent>(OnComboPerformed);
             EventBus.Unsubscribe<ParryEvent>(OnParry);
@@ -87,6 +113,15 @@ namespace Game.UI
 
         private void Update()
         {
+            if (hintHideAt > 0f && Time.unscaledTime >= hintHideAt)
+            {
+                hintHideAt = 0f;
+                if (hiddenHint != null)
+                {
+                    hiddenHint.gameObject.SetActive(false);
+                }
+            }
+
             if (!visible)
             {
                 return;
@@ -130,6 +165,71 @@ namespace Game.UI
             }
         }
 
+        private void BindToggle()
+        {
+            if (inputActions == null)
+            {
+                // Not an error: a test arena builds a HudUI with no input asset, and a HUD
+                // that cannot be hidden is still a working HUD.
+                return;
+            }
+
+            toggleAction = inputActions.FindActionMap("Gameplay")?.FindAction("ToggleHud");
+            if (toggleAction == null)
+            {
+                GameLogger.LogWarning(LogCategory.UI,
+                    "No ToggleHud action in the Gameplay map; the HUD cannot be hidden.", this);
+                return;
+            }
+
+            toggleAction.performed += OnTogglePressed;
+            toggleAction.Enable();
+        }
+
+        private void OnTogglePressed(InputAction.CallbackContext context) => ToggleVisible();
+
+        /// <summary>
+        /// Flips the HUD and remembers the choice. Public so a test can drive it without a
+        /// simulated keypress.
+        /// </summary>
+        public void ToggleVisible()
+        {
+            SetVisible(!visible);
+
+            if (SettingsManager.Instance != null)
+            {
+                SettingsManager.Instance.Current.HudVisible = visible;
+                SettingsManager.Instance.Save();
+            }
+
+            if (!visible)
+            {
+                ShowReturnHint();
+            }
+        }
+
+        /// <summary>
+        /// Says how to get the HUD back, on the way out.
+        ///
+        /// Without it, hiding the HUD by accident leaves a player with no health bar, no
+        /// stamina bar, and nothing on screen saying what happened or how to undo it — and
+        /// the key is next to the one that opens the journal. The hint is the one label
+        /// that is deliberately not under <c>hudRoot</c>, because everything in there has
+        /// just been switched off.
+        /// </summary>
+        private void ShowReturnHint()
+        {
+            if (hiddenHint == null)
+            {
+                return;
+            }
+
+            var binding = toggleAction != null ? toggleAction.GetBindingDisplayString() : "?";
+            hiddenHint.text = Strings.Format(StringKeys.HudToggleHint, binding);
+            hiddenHint.gameObject.SetActive(true);
+            hintHideAt = Time.unscaledTime + hintSeconds;
+        }
+
         /// <summary>Hides or shows the whole HUD (SPEC.md section 42: HUD must be hideable).</summary>
         public void SetVisible(bool show)
         {
@@ -137,6 +237,11 @@ namespace Game.UI
             if (hudRoot != null)
             {
                 hudRoot.SetActive(show);
+            }
+
+            if (show && hiddenHint != null)
+            {
+                hiddenHint.gameObject.SetActive(false);
             }
         }
 
@@ -241,6 +346,16 @@ namespace Game.UI
             var max = fill.anchorMax;
             max.x = Mathf.Clamp01(fraction);
             fill.anchorMax = max;
+        }
+
+        /// <summary>Test and tooling seam.</summary>
+        public void Configure(InputActionAsset actions, Text hint = null)
+        {
+            inputActions = actions;
+            if (hint != null)
+            {
+                hiddenHint = hint;
+            }
         }
 
         private static void SetText(Text label, string text)

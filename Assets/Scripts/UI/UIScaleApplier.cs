@@ -10,9 +10,11 @@ namespace Game.UI
     /// uniformly rather than every individual <c>Text</c> component's font size, so
     /// one setting affects the whole screen consistently, icons included.
     ///
-    /// Settings only ever change in the Main Menu today (no gameplay scene offers a
-    /// Settings screen yet — see KNOWN_ISSUES.md), so applying once on enable is
-    /// enough; there is no live value to re-poll while a gameplay Canvas is loaded.
+    /// Applied on enable and again on <see cref="TextScaleChangedEvent"/>. The event half
+    /// was added with the in-game Settings panel (TASK 054): until then every settings
+    /// change happened in the Main Menu, so every gameplay canvas was created after it and
+    /// enable alone was enough. Now the canvas being rescaled is the one the player is
+    /// looking at while they move the slider.
     /// </summary>
     [RequireComponent(typeof(CanvasScaler))]
     public class UIScaleApplier : MonoBehaviour
@@ -28,7 +30,18 @@ namespace Game.UI
 
         private void OnEnable()
         {
+            EventBus.Subscribe<TextScaleChangedEvent>(OnTextScaleChanged);
             Apply();
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<TextScaleChangedEvent>(OnTextScaleChanged);
+        }
+
+        private void OnTextScaleChanged(TextScaleChangedEvent changed)
+        {
+            scaler.scaleFactor = baseScaleFactor * Mathf.Max(0.1f, changed.Scale);
         }
 
         private void Apply()

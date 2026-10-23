@@ -3,6 +3,103 @@
 Open limitations, carried forward until closed. Each entry says what is wrong, why it
 was left, and what closing it involves.
 
+## TASK 054 — UI, accessibility and text readiness (in progress, 24 October 2026)
+
+The menus were rebuilt from code and six older entries below are now closed. What this
+pass did **not** fix, and what it introduced:
+
+### The screens have been rendered, not played
+
+Every menu was captured as a PNG and inspected, which is new — nothing had ever looked at
+them before. It is still the Editor's render of a canvas at one size, not the built player
+at the player's resolution, and it cannot catch anything that only happens once the game
+is running: focus order under a real gamepad, a panel opening over a live scene, text at a
+scale the player chose. **Closing it:** the `TEST_PLAN.md` M0 pass, which TASK 054's gate
+asks for anyway.
+
+### A preview shows every checkbox ticked
+
+`UiCapture` renders a toggle with its checkmark visible whatever its value, because
+`Toggle.UpdateVisuals` runs from `OnEnable` and the Editor does not call it outside play
+mode. The word beside each toggle is correct, so a screenshot is still readable — but do
+not read the green squares. This is a property of the tool, not of the game.
+
+### Stepping to a resolution can take many presses
+
+Resolution and quality are step-through buttons rather than dropdowns, which is right for
+a gamepad and for a panel with no list widget, but a machine offering twenty resolutions
+makes the last one nineteen presses away. **Closing it:** either a built dropdown with
+explicit gamepad navigation, or a left/right pair, which is the cheaper fix.
+
+### Gamepad navigation between runtime-built rows is still unwired
+
+Carried forward from TASK 010 and TASK 017 unchanged. Every panel selects a first control
+on open, and the built menus navigate correctly because their rows are real `Selectable`s
+in a layout group — but the remap list and the journal's rows still have no explicit
+`Selectable.navigation` between them.
+
+### The Display section is deliberately missing from the in-game Settings
+
+Changing resolution under a live game re-creates the screen, and SPEC.md section 54's edge
+case 24 already treats that as disruptive. Resolution, quality and fullscreen stay on the
+Main Menu. This is a decision, not an omission, but a player who looks for them mid-run
+will not find them and nothing on the screen says why.
+
+### The panels are flat tints
+
+Nothing here loads a sprite: no frames, no textures, no transitions, no sound on a button
+press. That is TASK 053's work and it should not start before the art direction exists,
+because styling a menu before then means doing it twice. What this pass owed was layout,
+legibility and reach, and a flat panel that is laid out correctly is a better starting
+point for art than a textured one that is not.
+
+### The in-game menu is built on the first pause
+
+`GameMenu` constructs four panels' worth of controls, including the remap list, the first
+time the player pauses — a frame's work, paid while the game is already stopped rather
+than at every scene load. If it ever becomes visible, the fix is to build it during the
+load screen.
+
+### The credits name one person and no assets
+
+`ASSET_LICENSES.md` still reads "none yet — placeholder primitives only", so the credits
+say so plainly and point at the ledger. The moment a real asset arrives, both have to
+change together.
+
+### CLOSED — Menu UI is built by a one-off editor script (TASK 008)
+
+Replaced wholesale, as that entry asked. `Assets/Editor/UiAuthoring.cs` is checked in,
+idempotent and re-runnable: the menu's layout is now a thing in version control that can be
+reviewed in a diff. It **is** the layout — a widget nudged by hand in the Inspector is gone
+the next time it runs, which is the intended trade.
+
+### CLOSED — Settings and remapping are only reachable from the Main Menu (TASK 017)
+
+The pause menu has Settings, Controls and How to Play, mounting the same components the
+Main Menu does rather than a second copy of them.
+
+### CLOSED — Scene-view UI placement was not visually verified (TASK 007)
+
+`Assets/Editor/UiCapture.cs` renders any screen to a PNG without entering play mode. It
+found the two defects at the top of this task's entry on its first two runs.
+
+### CLOSED — "HUD must be hideable" is a method rather than a feature (TASK 007)
+
+Bound to the ToggleHud action, persisted, and it tells the player how to undo it.
+
+### CLOSED — No UI feedback for "why can't I unlock this" (TASK 016)
+
+The skill tree says which of the two reasons applies before showing the button that cannot
+be pressed.
+
+### CLOSED — Skill points have no visible source in the UI (TASK 016)
+
+A line under the total says quests and bosses grant them.
+
+### CLOSED — Nothing read the unsaved-run flag (TASK 040)
+
+The pause menu says so, on the screen the player quits from.
+
 ## TASK 044 — Finish Avarsha and Agniya (in progress, 29 September 2026)
 
 The temple now has a quest and Ember Step is its reward. What that leaves:

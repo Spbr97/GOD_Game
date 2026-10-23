@@ -41,10 +41,6 @@ namespace Game.UI
         private InputAction progressionAction;
         private readonly List<GameObject> spawnedRows = new();
 
-        // See JournalUI.BuiltinFont for why this is lazy rather than a field initializer.
-        private static Font cachedFont;
-        private static Font BuiltinFont => cachedFont != null ? cachedFont : (cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
-
         public bool IsOpen { get; private set; }
 
         private void Awake()
@@ -187,7 +183,7 @@ namespace Game.UI
             var inventory = InventoryManager.Instance;
             if (inventory == null)
             {
-                AddRow(inventoryContent, 0, "No inventory exists in this scene.", Color.grey);
+                ShowUnavailable(inventoryContent, "inventory");
                 return;
             }
 
@@ -208,20 +204,20 @@ namespace Game.UI
 
                     if (!wroteHeader)
                     {
-                        row = AddRow(inventoryContent, row, category.ToString(), Color.white, bold: true);
+                        row = AddRow(inventoryContent, row, category.ToString(), UiTheme.Heading, bold: true);
                         wroteHeader = true;
                     }
 
                     var count = inventory.GetCount(item);
                     var countText = item.Stackable && count != 1 ? Strings.Format(StringKeys.ProgressionItemCount, count) : string.Empty;
-                    row = AddRow(inventoryContent, row, $"    {item.DisplayName}{countText}", Color.white);
+                    row = AddRow(inventoryContent, row, $"    {item.DisplayName}{countText}", UiTheme.TextPrimary);
                     any = true;
                 }
             }
 
             if (!any)
             {
-                AddRow(inventoryContent, row, "Nothing carried yet.", Color.grey);
+                AddRow(inventoryContent, row, Strings.Get(StringKeys.ProgressionNoItems), UiTheme.TextMuted);
             }
         }
 
@@ -239,16 +235,23 @@ namespace Game.UI
             var skills = SkillTreeManager.Instance;
             if (skills == null)
             {
-                AddRow(skillsContent, 0, "No skill tree exists in this scene.", Color.grey);
+                ShowUnavailable(skillsContent, "skill tree");
                 return;
             }
 
             var row = AddRow(skillsContent, 0, Strings.Format(StringKeys.ProgressionSkillPoints, skills.AvailablePoints),
-                Color.white, bold: true);
+                UiTheme.TextPrimary, bold: true);
+
+            // Where the number came from. A player looking at "Skill Points: 0" has no way
+            // to know that quests and bosses are what grant them, and a number with no
+            // visible source reads as a system that is not working rather than as one
+            // waiting to be earned (KNOWN_ISSUES.md, TASK 016).
+            row = AddRow(skillsContent, row, Strings.Get(StringKeys.ProgressionPointsSource), UiTheme.TextMuted);
+            row++;
 
             foreach (SkillBranch branch in System.Enum.GetValues(typeof(SkillBranch)))
             {
-                row = AddRow(skillsContent, row, branch.ToString(), Color.white, bold: true);
+                row = AddRow(skillsContent, row, branch.ToString(), UiTheme.Heading, bold: true);
                 var wroteAny = false;
 
                 foreach (var skillId in BranchSkillIds(skills, branch))
@@ -259,7 +262,8 @@ namespace Game.UI
 
                 if (!wroteAny)
                 {
-                    row = AddRow(skillsContent, row, "    (none)", Color.grey);
+                    row = AddRow(skillsContent, row,
+                        "    " + Strings.Get(StringKeys.ProgressionBranchEmpty), UiTheme.TextMuted);
                 }
 
                 row++;
@@ -291,26 +295,89 @@ namespace Game.UI
             var status = unlocked
                 ? Strings.Get(StringKeys.ProgressionUnlocked)
                 : Strings.Format(StringKeys.ProgressionCost, skill.Cost);
-            var colour = unlocked ? new Color(0.5f, 0.9f, 0.5f) : (canUnlock ? Color.white : Color.grey);
+            var colour = unlocked ? UiTheme.Positive : (canUnlock ? UiTheme.TextPrimary : UiTheme.TextMuted);
 
             row = AddRow(skillsContent, row, Strings.Format(StringKeys.ProgressionSkillRow, skill.DisplayName, status), colour);
-            row = AddRow(skillsContent, row, $"        {skill.Description}", Color.grey);
+            row = AddRow(skillsContent, row, $"        {skill.Description}", UiTheme.TextMuted);
 
             if (!unlocked)
             {
+                // Why not, before the button that cannot be pressed. A greyed-out Unlock
+                // on its own says "no" without saying whether the answer is "not yet" or
+                // "not enough", and those are two different things for a player deciding
+                // what to do next (KNOWN_ISSUES.md, TASK 016).
+                var reason = UnlockBlockedReason(skills, skill);
+                if (reason != null)
+                {
+                    row = AddRow(skillsContent, row, "        " + reason, UiTheme.Caution);
+                }
+
                 row = AddUnlockButton(skillsContent, row, skill, canUnlock);
             }
 
             return row;
         }
 
+        /// <summary>
+        /// Why this skill cannot be unlocked, or null when it can be.
+        ///
+        /// Both answers are a "no" and they are not the same no: "needs two more points"
+        /// is a reason to go and play, and "needs Astra Focus first" is a reason to look
+        /// further up the branch. A single greyed-out button says neither, which is the
+        /// gap KNOWN_ISSUES.md recorded under TASK 016.
+        ///
+        /// Points are reported before the prerequisite when both are missing. A player who
+        /// cannot afford a skill they are also not eligible for is further away than the
+        /// prerequisite alone suggests, and the cheaper fact to act on is the count.
+        /// </summary>
+        private static string UnlockBlockedReason(SkillTreeManager skills, SkillDefinition skill)
+        {
+            if (skills == null || skill == null || skills.CanUnlock(skill.SkillId))
+            {
+                return null;
+            }
+
+            var shortfall = skill.Cost - skills.AvailablePoints;
+            if (shortfall > 0)
+            {
+                return Strings.Format(StringKeys.ProgressionNeedPoints, shortfall);
+            }
+
+            if (!string.IsNullOrEmpty(skill.PrerequisiteId) && !skills.IsUnlocked(skill.PrerequisiteId))
+            {
+                var prerequisite = skills.Find(skill.PrerequisiteId);
+                return Strings.Format(StringKeys.ProgressionNeedPrerequisite,
+                    prerequisite != null ? prerequisite.DisplayName : skill.PrerequisiteId);
+            }
+
+            // CanUnlock said no for a reason this method does not know about. Saying
+            // nothing is better than inventing a reason the player would then act on.
+            return null;
+        }
+
+        /// <summary>
+        /// A screen whose system is not in the scene. The player gets one short sentence
+        /// and the reason goes to the log: a sentence about scene wiring is not something
+        /// to hand a translator, and not something a player can act on either.
+        /// </summary>
+        private void ShowUnavailable(RectTransform parent, string missing)
+        {
+            // A warning, not an error. In a shipped scene this is a wiring fault, and
+            // SceneIntegrityTests already fails the build for it — but a test arena
+            // deliberately builds half a scene, and a screen that degrades to one honest
+            // sentence is working as designed, not failing.
+            GameLogger.LogWarning(LogCategory.UI,
+                $"No {missing} exists in this scene; the screen has nothing to show.", this);
+            AddRow(parent, 0, Strings.Get(StringKeys.UiUnavailable), UiTheme.TextMuted);
+        }
+
         private int AddUnlockButton(RectTransform parent, int row, SkillDefinition skill, bool canUnlock)
         {
             var rect = RowRect(parent, row, 120f, 22f);
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = canUnlock ? new Color(0.15f, 0.35f, 0.15f, 0.9f) : new Color(0.2f, 0.2f, 0.2f, 0.6f);
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+            UiTheme.Apply(button, confirm: true);
             button.interactable = canUnlock;
             button.onClick.AddListener(() => UnlockSkill(skill.SkillId));
 
@@ -322,10 +389,8 @@ namespace Game.UI
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
             var label = labelGo.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = 15;
+            UiTheme.Apply(label, UiTheme.TextRole.Small);
             label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
             label.text = Strings.Get(StringKeys.ProgressionUnlockButton);
             label.raycastTarget = false;
 
@@ -345,10 +410,10 @@ namespace Game.UI
         {
             var rect = RowRect(parent, row, -1f, rowHeight);
             var label = rect.gameObject.AddComponent<Text>();
-            label.font = BuiltinFont;
-            label.fontSize = bold ? 20 : 18;
-            label.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+            UiTheme.Apply(label, bold ? UiTheme.TextRole.Heading : UiTheme.TextRole.Body);
             label.alignment = TextAnchor.MiddleLeft;
+            // After the role: a row's colour says whether the thing is owned, affordable
+            // or out of reach, which the role knows nothing about.
             label.color = colour;
             label.text = text;
             label.raycastTarget = false;
