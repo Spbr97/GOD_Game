@@ -257,6 +257,47 @@ namespace Game.UI
         public void ContinueForSmokeTest() => Continue();
 #endif
 
+#if UNITY_EDITOR || GAME_DEVELOPER_TOOLS
+        /// <summary>Which screen to show. Named MenuScreen so it does not collide with UnityEngine.Screen.</summary>
+        public enum MenuScreen
+        {
+            Root,
+            NewGame,
+            Load,
+            Settings,
+            Controls,
+            Help,
+            Credits
+        }
+
+        /// <summary>
+        /// Opens a screen from outside, so <c>StandaloneSmokeTest</c> can photograph each
+        /// one **in the built player** rather than in the Editor.
+        ///
+        /// That distinction is the whole reason this exists. The editor capture tool can
+        /// show what a canvas looks like at a size somebody chose; it cannot show the real
+        /// resolution list this machine offers, a save row written from a real file, or a
+        /// checkbox whose tick is drawn by a Toggle that has actually run. Those were three
+        /// open questions in UI_BASELINE_REVIEW.md that did not need an owner's opinion —
+        /// they needed a screenshot of the running game, which nothing could take.
+        ///
+        /// Compiled out of a Release player with the harness that calls it.
+        /// </summary>
+        public void ShowScreenForSmokeTest(MenuScreen screen)
+        {
+            switch (screen)
+            {
+                case MenuScreen.NewGame: OpenNewGame(); break;
+                case MenuScreen.Load: OpenLoad(); break;
+                case MenuScreen.Settings: OpenSettings(); break;
+                case MenuScreen.Controls: OpenControls(); break;
+                case MenuScreen.Help: OpenHelp(); break;
+                case MenuScreen.Credits: OpenCredits(); break;
+                default: OpenRoot(); break;
+            }
+        }
+#endif
+
         private void StartNewGame(DifficultyMode mode)
         {
             if (SettingsManager.Instance != null)

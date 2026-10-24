@@ -109,6 +109,11 @@ namespace Game.Core.Localization
         public const string MenuLabelOn = "menu.label.on";
         public const string MenuLabelOff = "menu.label.off";
         public const string MenuLabelBack = "menu.label.back";
+        public const string MenuLabelPrevious = "menu.label.previous";
+        public const string MenuLabelNext = "menu.label.next";
+
+        /// <summary>Why the in-game Settings screen has no Display section. No placeholder.</summary>
+        public const string MenuDisplayInMenuOnly = "menu.display_in_menu_only";
         public const string MenuLabelSettings = "menu.label.settings";
         public const string MenuLabelControls = "menu.label.controls";
         public const string MenuLabelHelp = "menu.label.help";

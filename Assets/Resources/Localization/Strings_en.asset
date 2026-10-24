@@ -796,3 +796,12 @@ MonoBehaviour:
   - Key: credits.thanks
     Value: Thank you for playing something unfinished.
     Note: Credits screen, last line.
+  - Key: menu.label.previous
+    Value: '<'
+    Note: 'Steps a setting to its previous value. A single character: it sits beside the value.'
+  - Key: menu.label.next
+    Value: '>'
+    Note: Steps a setting to its next value.
+  - Key: menu.display_in_menu_only
+    Value: Resolution and graphics quality are on the Main Menu. Changing them restarts the display, which is disruptive mid-game.
+    Note: Shown in place of the Display section while a game is loaded.

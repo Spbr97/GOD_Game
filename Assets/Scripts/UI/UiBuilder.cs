@@ -447,6 +447,30 @@ namespace Game.UI
         }
 
         /// <summary>
+        /// A value with a step-back and a step-forward button either side of it.
+        ///
+        /// Used where the list is long. A single forward-only button is fine for four
+        /// difficulties and silly for twenty resolutions: overshoot the one you wanted and
+        /// the only way back is nineteen more presses. Two buttons cost one more control
+        /// and remove that entirely.
+        ///
+        /// Still buttons rather than a dropdown, for the reason given on
+        /// <see cref="Cycler"/>: a floating list has to be taught to a gamepad and can open
+        /// off the bottom of the screen.
+        /// </summary>
+        public static void Stepper(Transform parent, out Text value, out Button back, out Button forward)
+        {
+            back = Button(parent, Game.Core.Localization.StringKeys.MenuLabelPrevious, width: 60f);
+
+            value = Label(parent, null, UiTheme.TextRole.Body, TextAnchor.MiddleCenter);
+            var valueSize = value.gameObject.AddComponent<LayoutElement>();
+            valueSize.preferredWidth = 190f;
+            valueSize.flexibleWidth = 1f;
+
+            forward = Button(parent, Game.Core.Localization.StringKeys.MenuLabelNext, width: 60f);
+        }
+
+        /// <summary>
         /// A scrolling viewport, for the two screens whose contents are as long as the
         /// player's progress: the remap list and the journal. Returns the content rect to
         /// fill, which grows downwards as rows are added.

@@ -161,14 +161,33 @@ namespace Game.UI
             screenEffects = UiBuilder.Toggle(Row(right, StringKeys.MenuLabelScreenEffects), out screenEffectsState);
             aimAssist = UiBuilder.Toggle(Row(right, StringKeys.MenuLabelAimAssist), out aimAssistState);
 
-            Button resolutionButton = null;
-            Button qualityButton = null;
+            Button resolutionBack = null;
+            Button resolutionForward = null;
+            Button qualityBack = null;
+            Button qualityForward = null;
+
             if (includeDisplay)
             {
                 UiBuilder.SectionHeader(right, StringKeys.MenuSectionDisplay);
-                resolutionButton = UiBuilder.Cycler(Row(right, StringKeys.MenuLabelResolution), out resolutionValue);
-                qualityButton = UiBuilder.Cycler(Row(right, StringKeys.MenuLabelQuality), out qualityValue);
+
+                // Steppers, not one-way cyclers: this machine offers enough resolutions
+                // that overshooting the one you wanted would otherwise mean going all the
+                // way round again.
+                UiBuilder.Stepper(Row(right, StringKeys.MenuLabelResolution),
+                    out resolutionValue, out resolutionBack, out resolutionForward);
+                UiBuilder.Stepper(Row(right, StringKeys.MenuLabelQuality),
+                    out qualityValue, out qualityBack, out qualityForward);
                 fullscreen = UiBuilder.Toggle(Row(right, StringKeys.MenuLabelFullscreen), out fullscreenState);
+            }
+            else
+            {
+                // Said out loud, because a player who came here looking for resolution and
+                // found no Display section has no way to tell a deliberate omission from a
+                // broken screen. Changing resolution re-creates the screen under a running
+                // game (SPEC.md section 54, edge case 24), so it stays on the Main Menu.
+                UiBuilder.SectionHeader(right, StringKeys.MenuSectionDisplay);
+                var note = UiBuilder.Paragraph(right, StringKeys.MenuDisplayInMenuOnly, UiTheme.TextRole.Muted);
+                note.alignment = TextAnchor.UpperLeft;
             }
 
             UiBuilder.Spacer(panel, UiTheme.Spacing * 2f);
@@ -188,8 +207,10 @@ namespace Game.UI
             cameraShake.onValueChanged.AddListener(OnCameraShakeChanged);
             screenEffects.onValueChanged.AddListener(OnScreenEffectsChanged);
             aimAssist.onValueChanged.AddListener(OnAimAssistChanged);
-            resolutionButton?.onClick.AddListener(CycleResolution);
-            qualityButton?.onClick.AddListener(CycleQuality);
+            resolutionBack?.onClick.AddListener(() => StepResolution(-1));
+            resolutionForward?.onClick.AddListener(() => StepResolution(1));
+            qualityBack?.onClick.AddListener(() => StepQuality(-1));
+            qualityForward?.onClick.AddListener(() => StepQuality(1));
             fullscreen?.onValueChanged.AddListener(OnFullscreenChanged);
             backButton.onClick.AddListener(() => BackRequested?.Invoke());
         }
@@ -458,7 +479,7 @@ namespace Game.UI
             SettingsManager.Instance?.SetLanguage(next.LanguageCode);
         }
 
-        private void CycleResolution()
+        private void StepResolution(int direction)
         {
             if (wiring || SettingsManager.Instance == null || offeredResolutions.Count == 0)
             {
@@ -470,22 +491,25 @@ namespace Game.UI
             var height = current.HasResolution ? current.ResolutionHeight : Screen.height;
 
             var index = offeredResolutions.FindIndex(r => r.width == width && r.height == height);
-            var chosen = offeredResolutions[(index + 1 + offeredResolutions.Count) % offeredResolutions.Count];
+            var chosen = offeredResolutions[
+                ((index + direction) % offeredResolutions.Count + offeredResolutions.Count)
+                % offeredResolutions.Count];
 
             SettingsManager.Instance.SetDisplay(chosen.width, chosen.height, current.Fullscreen, current.QualityLevel);
             resolutionValue.text = Strings.Format(StringKeys.MenuResolution, chosen.width, chosen.height);
         }
 
-        private void CycleQuality()
+        private void StepQuality(int direction)
         {
             if (wiring || SettingsManager.Instance == null || QualitySettings.names.Length == 0)
             {
                 return;
             }
 
+            var levels = QualitySettings.names.Length;
             var current = SettingsManager.Instance.Current;
             var level = current.QualityLevel >= 0 ? current.QualityLevel : QualitySettings.GetQualityLevel();
-            var next = (level + 1) % QualitySettings.names.Length;
+            var next = ((level + direction) % levels + levels) % levels;
 
             SettingsManager.Instance.SetDisplay(current.ResolutionWidth, current.ResolutionHeight,
                 current.Fullscreen, next);

@@ -55,6 +55,80 @@ $BuildRoot   = Join-Path $RepoRoot 'Build\Windows'
 $LogRoot     = Join-Path $BuildRoot '_logs'
 $Executable  = 'TheGodWhoWasForgotten.exe'
 
+function Invoke-Git {
+    <#
+    .SYNOPSIS
+        Runs git and returns its stdout, swallowing anything it writes to stderr.
+
+    .DESCRIPTION
+        Two Windows PowerShell 5.1 problems meet here, and together they turn a
+        harmless git warning into what looks like a build failure.
+
+        First, this script sets $ErrorActionPreference = 'Stop'. Under that setting
+        5.1 wraps every line a native executable writes to stderr in an ErrorRecord
+        and raises NativeCommandError -- even when the exe succeeded and even with
+        2>$null on the call, which is why the previous form still printed a wall of
+        red at the end of an otherwise clean build.
+
+        Second, this repository has core.autocrlf=true, so git warns "LF will be
+        replaced by CRLF the next time Git touches it" for every file it looks at.
+        That is advisory, it goes to stderr, and there is nothing to fix about it.
+
+        So: the preference is relaxed for the length of the call, and safecrlf is
+        turned off for that one invocation, which stops git emitting the warning in
+        the first place rather than hiding it afterwards.
+    #>
+    param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Arguments)
+
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        return & git -c core.safecrlf=false @Arguments 2>$null
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Show-PlayerLogTail([string] $LogPath, [int] $Lines = 25) {
+    <#
+    .SYNOPSIS
+        Prints the end of a player log next to the failure that referenced it.
+
+    .DESCRIPTION
+        A check that fails with "see this log file" is only useful to someone sitting at
+        that machine with the file still there. This build runs on more than one machine,
+        and the first time the Release launch check failed on another one the report said
+        the player "did not initialize" and named a path -- which left no way to tell a
+        graphics-device failure from an antivirus kill from a log that was never written.
+
+        So the evidence travels with the failure. The last few lines of a Unity player log
+        are where it says why it stopped.
+    #>
+    if (-not (Test-Path -LiteralPath $LogPath)) {
+        Write-Info 'there is no player log at all, so the player never got far enough to open one'
+        Write-Info 'that usually means Windows blocked the executable rather than the game failing'
+        return
+    }
+
+    $size = (Get-Item -LiteralPath $LogPath).Length
+    Write-Info "player log: $LogPath ($size bytes)"
+
+    if ($size -eq 0) {
+        Write-Info 'the log is empty: the process started and died before Unity initialized'
+        return
+    }
+
+    $tail = Get-Content -LiteralPath $LogPath -Tail $Lines -ErrorAction SilentlyContinue
+    if (-not $tail) {
+        Write-Info 'the log could not be read (it may still be held open)'
+        return
+    }
+
+    Write-Info "last $($tail.Count) line(s):"
+    foreach ($line in $tail) { Write-Info "  $line" }
+}
+
 function Write-Step([string] $Message) {
     Write-Host ''
     Write-Host "==> $Message" -ForegroundColor Cyan
@@ -352,7 +426,7 @@ function Test-ReleasePlayerLaunches([string] $PlayerDirectory) {
     $exited = $process.WaitForExit(20000)
     if ($exited) {
         Write-Bad "the Release player exited before the 20 s start-up check ended (code $($process.ExitCode))"
-        Write-Info "player log: $playerLog"
+        Show-PlayerLogTail -LogPath $playerLog
         return $false
     }
 
@@ -367,10 +441,21 @@ function Test-ReleasePlayerLaunches([string] $PlayerDirectory) {
 
     if (-not (Test-Path $playerLog)) {
         Write-Bad 'the Release player produced no log for this launch'
+        Write-Info 'Nothing wrote to -logFile, so either the path is not writable or the'
+        Write-Info 'process was stopped before Unity started. On a machine with Smart App'
+        Write-Info 'Control or an aggressive antivirus, the second is the usual cause.'
         return $false
     }
 
-    $fatal = Select-String -Path $playerLog -Pattern 'Fatal error|Unhandled Exception|Crash!!!' |
+    # Widened past the original three. A player that dies on startup usually says so
+    # as a graphics-device failure or a NullReferenceException in an Awake, and neither
+    # of those matched -- so the check reported "did not initialize" and showed nothing.
+    $fatal = Select-String -Path $playerLog -Pattern @(
+                 'Fatal error', 'Unhandled Exception', 'Crash!!!',
+                 'NullReferenceException', 'Failed to initialize',
+                 'No graphics device', 'd3d11|d3d12|Vulkan.*(failed|error)',
+                 'Failed to load mono', 'The file .* is corrupted'
+             ) |
              Select-Object -First 5
     if ($fatal) {
         Write-Bad 'the Release player log contains a fatal error'
@@ -381,7 +466,11 @@ function Test-ReleasePlayerLaunches([string] $PlayerDirectory) {
     if (-not (Select-String -Path $playerLog -Pattern '\[GAME\] GameManager initialized\.' -Quiet) -or
         -not (Select-String -Path $playerLog -Pattern '\[GAME\] State changed: Boot -> Playing' -Quiet)) {
         Write-Bad 'the Release player did not initialize the game and reach the Main Menu'
-        Write-Info "player log: $playerLog"
+        Write-Info 'Expected two lines from GameManager: "GameManager initialized." and'
+        Write-Info '"State changed: Boot -> Playing". Both are written within a second of'
+        Write-Info 'the Main Menu scene loading, so their absence means the player never'
+        Write-Info 'got that far -- or was stopped before it could flush the log.'
+        Show-PlayerLogTail -LogPath $playerLog
         return $false
     }
 
@@ -497,7 +586,7 @@ Write-Info "Unity.exe      $unity"
 Write-Info "game version   $bundleVersion"
 Write-Info "output         $BuildRoot"
 
-$gitStatus = & git -C $RepoRoot status --porcelain 2>$null
+$gitStatus = Invoke-Git -C $RepoRoot status --porcelain
 if ($LASTEXITCODE -eq 0 -and $gitStatus) {
     Write-Info 'note: the working tree has uncommitted changes; build-info.txt will say so.'
 }
@@ -573,7 +662,7 @@ Write-Step 'Result'
 # URP can write shader-keyword prefiltering results into source assets. Compare
 # content to HEAD: a fresh Unity import can make git status report modified files
 # whose normalized content is unchanged, and that is not a change to review.
-$churn = & git -C $RepoRoot diff --name-only HEAD -- 'Assets/Settings' 'ProjectSettings/GraphicsSettings.asset' 2>$null
+$churn = Invoke-Git -C $RepoRoot diff --name-only HEAD -- 'Assets/Settings' 'ProjectSettings/GraphicsSettings.asset'
 if ($LASTEXITCODE -eq 0 -and $churn) {
     Write-Info 'Graphics settings differ from HEAD. Inspect these files before committing:'
     $churn | ForEach-Object { Write-Info "  $_" }

@@ -5,6 +5,55 @@ was left, and what closing it involves.
 
 ## TASK 054 — UI, accessibility and text readiness (in progress, 24 October 2026)
 
+### The Release launch check failed on a second machine, and said nothing useful
+
+Reported 24 October 2026 from a different checkout (`D:\Workspace\GOD_Game`): the build
+reached the launch check, the game's first screen flashed, and the check reported
+
+```
+FAIL the Release player did not initialize the game and reach the Main Menu
+     player log: ...\Build\Windows\_logs\player-release-launch.log
+```
+
+**The same build passes on the original machine.** Release was built from the same commit
+here, started, stayed up and packaged, so this is not the game failing — the two markers
+the check looks for are written from `GameManager.Awake` and `Start`, and `GameSystems`
+with a `GameManager` on it is present in `MainMenu.unity`.
+
+**What was actually wrong was the check.** It named a log file instead of showing it, so a
+failure on any machine but the one you are sitting at is undiagnosable. It also matched
+only `Fatal error|Unhandled Exception|Crash!!!`, which misses the two things that actually
+kill a player on startup — a graphics-device failure and a `NullReferenceException` in an
+`Awake`. Both fixed: the failure now prints the tail of the player log, says what an empty
+or missing log means, and matches the common startup failures by name.
+
+**Still open:** the cause on that machine. The next run will print the evidence with the
+failure. Candidates, in the order they are worth checking: the player being stopped by
+Smart App Control or antivirus before it could flush its log (an empty or missing log says
+so), a graphics-device failure on different hardware, and `-logFile` pointing somewhere
+that checkout cannot write.
+
+### Running the build script needs an execution-policy bypass
+
+PowerShell refuses unsigned `.ps1` files under the default policy, which is a fresh
+machine's default rather than anything about this project:
+
+```
+powershell -ExecutionPolicy Bypass -File .\Toolsuild-windows.ps1 -Variant Release
+```
+
+That is per-command and changes nothing on the machine. Documented here because the error
+names the script and reads like the script is broken.
+
+### CLOSED — git's CRLF warnings aborted the build script's last step
+
+`$ErrorActionPreference = 'Stop'` plus Windows PowerShell 5.1 turns every line a native
+executable writes to stderr into a terminating `NativeCommandError` — even on success, and
+even with `2>$null` on the call. With `core.autocrlf=true` git warns "LF will be replaced
+by CRLF" about every file it inspects, so a clean build ended in a wall of red from the
+graphics-churn check. Git now goes through `Invoke-Git`, which relaxes the preference for
+the call and passes `-c core.safecrlf=false` so the warning is never emitted.
+
 ### CLOSED — Text scaling never did anything (SPEC.md section 43, open since TASK 017)
 
 `UIScaleApplier` set `CanvasScaler.scaleFactor`, which Unity reads only in

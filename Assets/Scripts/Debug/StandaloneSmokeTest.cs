@@ -167,6 +167,16 @@ namespace Game.DevTools
             var saveRoot = SaveRoot();
             Record($"   save root: {saveRoot}");
 
+            // Photographed here, before a game is started, so the Load screen is seen with
+            // no saves — and again at the end with one, which is the state that matters.
+            yield return ShootMenu(MainMenuController.MenuScreen.Root, "01-main-menu");
+            yield return ShootMenu(MainMenuController.MenuScreen.Settings, "02-settings");
+            yield return ShootMenu(MainMenuController.MenuScreen.Help, "03-how-to-play");
+            yield return ShootMenu(MainMenuController.MenuScreen.Controls, "04-controls");
+            yield return ShootMenu(MainMenuController.MenuScreen.NewGame, "05-new-game");
+            yield return ShootMenu(MainMenuController.MenuScreen.Credits, "06-credits");
+            yield return ShootMenu(MainMenuController.MenuScreen.Root, "07-main-menu-again");
+
             // A fresh-save round trip is the point. SaveStorage.DefaultRoot routes
             // smoke runs to SmokeTestSaves, separate from the normal player's Saves.
             ClearSaves(saveRoot);
@@ -221,6 +231,11 @@ namespace Game.DevTools
 
             var positionInAvarsha = FindPlayer() != null ? FindPlayer().transform.position : Vector3.zero;
             Record($"   left Avarsha from {positionInAvarsha}");
+
+            // The HUD and the pause menu, in a loaded game, which is the only place
+            // either of them exists.
+            yield return Shoot("08-hud-in-play");
+            yield return ShootPause();
 
             yield return Step($"5. the temple door leads to '{TempleScene}'", () =>
             {
@@ -328,6 +343,10 @@ namespace Game.DevTools
             yield return Step("11. the Main Menu is active again",
                 () => SceneManager.GetActiveScene().name == MainMenuScene && FindMenu() != null);
 
+            // Now there is a real save on disk, so the Load screen has something to say.
+            yield return ShootMenu(MainMenuController.MenuScreen.Load, "11-load-with-a-save");
+            yield return ShootMenu(MainMenuController.MenuScreen.Root, "12-main-menu-with-continue");
+
             yield return Step("12. Continue loads the saved scene", () =>
             {
                 var menu = FindMenu();
@@ -391,6 +410,106 @@ namespace Game.DevTools
                 Fail($"{description} - still not true after {StepTimeoutSeconds:0} s");
             }
         }
+
+
+        /// <summary>
+        /// Photographs the screen as the player is actually drawing it.
+        ///
+        /// **This is the one thing the Editor capture tool cannot do.** That tool renders a
+        /// canvas at a size somebody picked; it cannot show the resolution list this
+        /// machine really offers, a save row written from a real file on disk, or a
+        /// checkbox whose tick was drawn by a Toggle that has actually run — all of which
+        /// were open questions in UI_BASELINE_REVIEW.md that needed a screenshot rather
+        /// than an opinion.
+        ///
+        /// <c>ScreenCapture.CaptureScreenshot</c> writes at the end of a frame rather than
+        /// when called, so this waits for the file to appear instead of assuming it has.
+        /// </summary>
+        private IEnumerator Shoot(string name)
+        {
+            if (failures.Count > 0)
+            {
+                // Nothing to photograph once a step has failed: the screen is showing
+                // whatever the run got stuck on, and a shot of it would be read as the
+                // screen this step was meant to capture.
+                yield break;
+            }
+
+            Directory.CreateDirectory(ShotRoot);
+            var path = Path.Combine(ShotRoot, name + ".png");
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+
+            // Two frames: one for whatever was just opened to lay itself out, one for it
+            // to be drawn. A screenshot of a panel mid-layout is worse than none, because
+            // it looks like a layout bug.
+            yield return null;
+            yield return new WaitForEndOfFrame();
+
+            ScreenCapture.CaptureScreenshot(path);
+
+            var deadline = Time.realtimeSinceStartup + 10f;
+            while (!File.Exists(path) && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Record(File.Exists(path)
+                ? $"SHOT {name}.png ({Screen.width}x{Screen.height})"
+                : $"SHOT {name}.png - never appeared");
+        }
+
+        /// <summary>Opens a Main Menu screen and photographs it.</summary>
+        private IEnumerator ShootMenu(MainMenuController.MenuScreen screen, string name)
+        {
+            var menu = FindMenu();
+            if (menu == null)
+            {
+                Record($"SHOT {name}.png - no Main Menu to open");
+                yield break;
+            }
+
+            menu.ShowScreenForSmokeTest(screen);
+            yield return Shoot(name);
+        }
+
+        /// <summary>
+        /// Pauses, photographs the pause menu and its Settings screen, then resumes.
+        ///
+        /// Driven through <see cref="PauseMenu.OpenPause"/> rather than by pressing a key,
+        /// for the same reason the menu steps go through MainMenuController: the point is
+        /// to exercise the paths the game really uses, so a bug in one fails this instead
+        /// of hiding behind a second implementation.
+        /// </summary>
+        private IEnumerator ShootPause()
+        {
+            var pause = UnityEngine.Object.FindAnyObjectByType<PauseMenu>(FindObjectsInactive.Include);
+            if (pause == null)
+            {
+                Record("SHOT pause - no PauseMenu in this scene");
+                yield break;
+            }
+
+            pause.OpenPause();
+            yield return Shoot("09-pause-menu");
+
+            var menu = UnityEngine.Object.FindAnyObjectByType<GameMenu>(FindObjectsInactive.Include);
+            if (menu != null)
+            {
+                menu.ShowSettings();
+                yield return Shoot("10-pause-settings");
+                menu.ShowRoot();
+            }
+
+            pause.OnResumeButtonPressed();
+            yield return null;
+        }
+
+        /// <summary>Where the screenshots go, beside the report the build script already collects.</summary>
+        private static string ShotRoot => Path.Combine(Application.persistentDataPath, "smoke-shots");
 
         /// <summary>A throw inside a step is a failure with a message, not a dead coroutine. Separate because C# forbids yield inside try/catch.</summary>
         private static string TryAttempt(Func<bool> attempt, out bool succeeded)
